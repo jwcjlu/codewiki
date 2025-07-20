@@ -1,0 +1,41 @@
+syntax = "proto3";
+package kratos.api;
+
+option go_package = "codewiki/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Data {
+  message Neo4j {
+    string target = 1;
+    string username = 2;
+    string password=3;
+  }
+  Neo4j neo4j = 1;
+  PoolConfig poolConfig=2;
+}
+
+message PoolConfig{
+  int32 poolSize=1;
+  bool blocking=2;
+}
