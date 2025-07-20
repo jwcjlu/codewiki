@@ -23,7 +23,7 @@ type Import struct {
 	Path string
 }
 
-func (e *File) Parse(ctx context.Context, pkgId string, filePath string) error {
+func (file *File) Parse(ctx context.Context, filePath string) error {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, filePath, nil, parser.AllErrors|parser.ParseComments)
 	if err != nil {
@@ -33,11 +33,11 @@ func (e *File) Parse(ctx context.Context, pkgId string, filePath string) error {
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch node := n.(type) {
 		case *ast.TypeSpec:
-			e.parseTypeSpec(ctx, node, f)
+			file.parseTypeSpec(ctx, node, f)
 		case *ast.GenDecl:
-			e.parseGenDecl(ctx, node)
+			file.parseGenDecl(ctx, node)
 		case *ast.FuncDecl:
-			e.parseFuncDecl(ctx, node, f)
+			file.parseFuncDecl(ctx, node, f)
 		}
 
 		return true
@@ -45,11 +45,11 @@ func (e *File) Parse(ctx context.Context, pkgId string, filePath string) error {
 	return nil
 }
 
-func (e *File) EntityCount() int {
-	return len(e.Entities)
+func (file *File) EntityCount() int {
+	return len(file.Entities)
 }
 
-func (e *File) parseGenDecl(ctx context.Context, node *ast.GenDecl) {
+func (file *File) parseGenDecl(ctx context.Context, node *ast.GenDecl) {
 	if node.Tok == token.CONST || node.Tok == token.VAR {
 		for _, spec := range node.Specs {
 			if value, ok := spec.(*ast.ValueSpec); ok && value.Names != nil {
@@ -58,10 +58,10 @@ func (e *File) parseGenDecl(ctx context.Context, node *ast.GenDecl) {
 					if node.Tok == token.CONST {
 						entityType = Constant
 					}
-					e.Entities = append(e.Entities, &Entity{
-						ID:     fmt.Sprintf("%s:%s", e.ID, name.Name),
+					file.Entities = append(file.Entities, &Entity{
+						ID:     fmt.Sprintf("%s:%s", file.ID, name.Name),
 						Type:   entityType,
-						FileID: e.ID,
+						FileID: file.ID,
 						Name:   name.Name,
 					})
 				}
@@ -78,7 +78,7 @@ func (e *File) parseGenDecl(ctx context.Context, node *ast.GenDecl) {
 				if spec.Name != nil {
 					imp.Name = spec.Name.Name
 				}
-				e.Imports = append(e.Imports, imp)
+				file.Imports = append(file.Imports, imp)
 			}
 
 		}
@@ -86,25 +86,31 @@ func (e *File) parseGenDecl(ctx context.Context, node *ast.GenDecl) {
 
 }
 
-func (e *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.File) {
+func (file *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.File) {
 	switch node.Type.(type) {
 	case *ast.StructType:
 		if structType, ok := node.Type.(*ast.StructType); ok {
 			entity := Entity{
-				ID:       fmt.Sprintf("%s:%s", e.ID, node.Name.Name),
+				ID:       fmt.Sprintf("%s:%s", file.ID, node.Name.Name),
 				Type:     Struct,
 				Name:     node.Name.Name,
-				FileID:   e.ID,
+				FileID:   file.ID,
 				f:        f,
 				Comment:  TextWarp(node.Comment),
 				Document: TextWarp(node.Doc),
+				PkgID:    file.PkgID,
 			}
 			for _, field := range structType.Fields.List {
 				if len(field.Names) < 1 {
 					continue
 				}
-				fd := Field{Name: field.Names[0].Name, StructID: entity.ID, Document: TextWarp(field.Doc)}
+				fd := Field{
+					Name:     field.Names[0].Name,
+					StructID: entity.ID,
+					Document: TextWarp(field.Doc),
+				}
 				fd.Scope = StructScope
+
 				entity.Fields = append(entity.Fields, &fd)
 				if field.Type == nil {
 					continue
@@ -112,17 +118,18 @@ func (e *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.Fil
 				fd.expr = field.Type
 
 			}
-			e.Entities = append(e.Entities, &entity)
+			file.Entities = append(file.Entities, &entity)
 
 		}
 	case *ast.InterfaceType:
 		if interfaceType, ok := node.Type.(*ast.InterfaceType); ok {
 			entity := Entity{
-				ID:       fmt.Sprintf("%s:%s", e.ID, node.Name.Name),
+				ID:       fmt.Sprintf("%s:%s", file.ID, node.Name.Name),
 				Type:     Interface,
 				Name:     node.Name.Name,
-				FileID:   e.ID,
+				FileID:   file.ID,
 				f:        f,
+				PkgID:    file.PkgID,
 				Comment:  TextWarp(node.Comment),
 				Document: TextWarp(node.Doc),
 			}
@@ -137,7 +144,7 @@ func (e *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.Fil
 					Comment:  TextWarp(method.Comment),
 					Scope:    InterfaceScope,
 				}
-				entity.Functions = append(e.Functions, fun)
+				entity.Functions = append(file.Functions, fun)
 				if method.Type == nil {
 					continue
 				}
@@ -148,17 +155,17 @@ func (e *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.Fil
 				}
 				fun.expr = method.Type
 			}
-			e.Entities = append(e.Entities, &entity)
+			file.Entities = append(file.Entities, &entity)
 		}
 	}
 
 }
 
-func (e *File) parseFuncDecl(ctx context.Context, node *ast.FuncDecl, f *ast.File) {
+func (file *File) parseFuncDecl(ctx context.Context, node *ast.FuncDecl, f *ast.File) {
 	if node.Type == nil {
 		return
 	}
-	entId := e.ID
+	entId := file.ID
 	fun := Function{
 		EntId:    entId,
 		Name:     node.Name.Name,
@@ -167,9 +174,10 @@ func (e *File) parseFuncDecl(ctx context.Context, node *ast.FuncDecl, f *ast.Fil
 		expr:     nil,
 		Scope:    FunctionScope,
 		recv:     node.Recv,
+		PkgID:    file.PkgID,
 	}
 	fun.Parse(ctx, node.Type)
-	e.Functions = append(e.Functions, &fun)
+	file.Functions = append(file.Functions, &fun)
 }
 
 type Text interface {

@@ -46,7 +46,7 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 			}
 
 			file := &File{Name: dir.Name(), PkgID: p.ID, ID: fmt.Sprintf("%s@%s", p.ID, dir.Name())}
-			if err = file.Parse(ctx, p.ID, filepath.Join(rootPath, dir.Name())); err != nil {
+			if err = file.Parse(ctx, filepath.Join(rootPath, dir.Name())); err != nil {
 				return err
 			}
 			p.Files = append(p.Files, file)

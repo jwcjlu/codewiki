@@ -30,6 +30,7 @@ type Entity struct {
 	Type       EntityType `json:"type"`
 	Name       string     `json:"name"`
 	FileID     string     `json:"file_id"`
+	PkgID      string     `json:"pkg_id"`
 	Position   token.Position
 	Definition string `json:"definition"`
 	Relations  []Relation
@@ -55,6 +56,7 @@ type Function struct {
 	Data     *ast.BlockStmt `json:"data"`
 	Document string         `json:"document"`
 	Comment  string         `json:"comment"`
+	PkgID    string         `json:"pkg_id"`
 	expr     ast.Expr
 	recv     *ast.FieldList
 	Scope    ScopeType `json:"scope"`
