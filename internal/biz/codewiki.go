@@ -13,11 +13,11 @@ func NewCodeWiki(entityRepo EntityRepo) *CodeWiki {
 	return &CodeWiki{entityRepo: entityRepo}
 }
 func (c *CodeWiki) Analyze(ctx context.Context, in *v1.AnalyzeReq) error {
-	preject := NewProject(&Config{
+	project := NewProject(&Config{
 		Language: in.Language,
 		Includes: in.Includes,
 		Excludes: in.Excludes,
 	})
-	return preject.Analyze(ctx, in.Target)
+	return project.Analyze(ctx, in.Target)
 
 }

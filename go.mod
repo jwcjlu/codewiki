@@ -42,13 +42,10 @@ require (
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250422160041-2d3770c4ea7f
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e // indirect
-
-)
-
-require (
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.1
-	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
+
 )
+
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
@@ -58,7 +55,6 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
-	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect

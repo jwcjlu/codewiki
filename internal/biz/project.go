@@ -26,15 +26,19 @@ func (p *Project) Analyze(ctx context.Context, rootPath string) error {
 	if err != nil {
 		return v1.ErrorParseCodeError("parseCode failure ").WithCause(err)
 	}
-	return root.AnalyzeRelations(ctx)
+	if err = root.AnalyzeRelations(ctx); err != nil {
+		return err
+	}
+	return nil
 
 }
 func (p *Project) ParseCode(ctx context.Context, rootPath string) (*Package, error) {
 	root := &Package{
-		ID:     filepath.Base(rootPath),
-		Name:   filepath.Base(rootPath),
-		Path:   filepath.Base(rootPath),
-		filter: p.shouldInclude,
+		ID:        filepath.Base(rootPath),
+		Name:      filepath.Base(rootPath),
+		Path:      filepath.Base(rootPath),
+		filter:    p.shouldInclude,
+		structMap: map[string]*Entity{},
 	}
 	err := root.Parse(ctx, rootPath)
 	if err != nil {

@@ -31,7 +31,7 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 			if filterFolder(dir.Name()) {
 				continue
 			}
-			subP := &Package{ParentID: p.ID, Name: dir.Name(), filter: p.filter}
+			subP := &Package{ParentID: p.ID, Name: dir.Name(), filter: p.filter, structMap: map[string]*Entity{}}
 			subP.ID = subP.geneID()
 			if err = subP.Parse(ctx, filepath.Join(rootPath, dir.Name())); err != nil {
 				return err
@@ -46,7 +46,7 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 			}
 
 			file := &File{Name: dir.Name(), PkgID: p.ID, ID: fmt.Sprintf("%s@%s", p.ID, dir.Name())}
-			if err = file.Parse(ctx, filepath.Join(rootPath, dir.Name())); err != nil {
+			if err = file.Parse(ctx, filepath.Join(rootPath, dir.Name()), p); err != nil {
 				return err
 			}
 			p.Files = append(p.Files, file)
@@ -56,7 +56,16 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 	return nil
 }
 func (p *Package) AnalyzeRelations(ctx context.Context) error {
-
+	for _, file := range p.Files {
+		if err := file.AnalyzeRelations(ctx, p); err != nil {
+			return err
+		}
+	}
+	for _, pkg := range p.Packages {
+		if err := pkg.AnalyzeRelations(ctx); err != nil {
+			return nil
+		}
+	}
 	return nil
 }
 
@@ -90,4 +99,7 @@ func filterFolder(path string) bool {
 		return true
 	}
 	return false
+}
+func (p *Package) AddEntity(name string, entity *Entity) {
+	p.structMap[name] = entity
 }
