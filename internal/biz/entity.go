@@ -73,7 +73,7 @@ func (e *Entity) AnalyzeRelations(ctx context.Context, file *File) ([]*Relation,
 				continue
 			}
 			relations = append(relations, &Relation{
-				Type:       Belong,
+				Type:       Declare,
 				TargetID:   entity.ID,
 				Confidence: 1,
 				SourceID:   e.ID,
