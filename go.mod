@@ -11,6 +11,7 @@ require (
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/automaxprocs v1.5.1
+	golang.org/x/mod v0.17.0
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 
@@ -32,6 +33,7 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/neo4j/neo4j-go-driver/v5 v5.28.1
 	github.com/panjf2000/ants/v2 v2.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
@@ -42,10 +44,8 @@ require (
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250422160041-2d3770c4ea7f
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e // indirect
-	github.com/neo4j/neo4j-go-driver/v5 v5.28.1
 
 )
-
 
 require (
 	github.com/google/uuid v1.6.0 // indirect
