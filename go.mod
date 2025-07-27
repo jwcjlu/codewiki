@@ -11,6 +11,7 @@ require (
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/automaxprocs v1.5.1
+	golang.org/x/mod v0.17.0
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 
@@ -32,6 +33,7 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
+	github.com/neo4j/neo4j-go-driver/v5 v5.28.1
 	github.com/panjf2000/ants/v2 v2.9.1
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
@@ -46,11 +48,6 @@ require (
 )
 
 require (
-	github.com/neo4j/neo4j-go-driver/v5 v5.28.1
-	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d
-)
-
-require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
@@ -58,7 +55,6 @@ require (
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
-	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/net v0.37.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect

@@ -18,6 +18,22 @@ type Package struct {
 	filter      func(path string) bool
 	entityCount int
 	structMap   map[string]*Entity
+	project     *Project
+	functionMap map[string]*Function
+}
+
+func NewPackage(filter func(path string) bool, project *Project, parentID, name string) *Package {
+	pkg := &Package{
+		filter:      filter,
+		structMap:   make(map[string]*Entity),
+		project:     project,
+		ParentID:    parentID,
+		Name:        name,
+		ID:          geneID(parentID, name),
+		functionMap: make(map[string]*Function),
+	}
+	project.AddPackage(pkg)
+	return pkg
 }
 
 func (p *Package) Parse(ctx context.Context, rootPath string) error {
@@ -31,8 +47,7 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 			if filterFolder(dir.Name()) {
 				continue
 			}
-			subP := &Package{ParentID: p.ID, Name: dir.Name(), filter: p.filter}
-			subP.ID = subP.geneID()
+			subP := NewPackage(p.filter, p.project, p.ID, dir.Name())
 			if err = subP.Parse(ctx, filepath.Join(rootPath, dir.Name())); err != nil {
 				return err
 			}
@@ -45,8 +60,8 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 				continue
 			}
 
-			file := &File{Name: dir.Name(), PkgID: p.ID, ID: fmt.Sprintf("%s@%s", p.ID, dir.Name())}
-			if err = file.Parse(ctx, filepath.Join(rootPath, dir.Name())); err != nil {
+			file := NewFile(dir.Name(), p)
+			if err = file.Parse(ctx, filepath.Join(rootPath, dir.Name()), p); err != nil {
 				return err
 			}
 			p.Files = append(p.Files, file)
@@ -55,17 +70,59 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 	}
 	return nil
 }
-func (p *Package) AnalyzeRelations(ctx context.Context) error {
-
+func (p *Package) AnalyzeRelations(ctx context.Context, module string) error {
+	for _, file := range p.Files {
+		if err := file.AnalyzeRelations(ctx, p); err != nil {
+			return err
+		}
+	}
+	for _, pkg := range p.Packages {
+		if err := pkg.AnalyzeRelations(ctx, module); err != nil {
+			return nil
+		}
+	}
 	return nil
 }
 
-func (p *Package) buildEntIdMap(ctx context.Context) map[string]string {
-	return nil
+// ClassifyMethod 归类方法到对应的实体里
+func (p *Package) ClassifyMethod(ctx context.Context) {
+	for _, file := range p.Files {
+		file.ClassifyMethod(ctx, p)
+
+	}
+	for _, pkg := range p.Packages {
+		pkg.ClassifyMethod(ctx)
+	}
 }
 
-func (p *Package) geneID() string {
-	return fmt.Sprintf("%s@%s", p.ParentID, p.Name)
+// ClassifyExtends 归类继承关系
+func (p *Package) ClassifyExtends(ctx context.Context) {
+	for _, file := range p.Files {
+		file.ClassifyExtends(ctx, p)
+
+	}
+	for _, pkg := range p.Packages {
+		pkg.ClassifyExtends(ctx)
+	}
+}
+
+func (p *Package) FindInterfaceImpl(ctx context.Context, entity *Entity) []*Entity {
+	var impls []*Entity
+	for _, file := range p.Files {
+		impls = append(impls, file.FindInterfaceImpl(ctx, entity)...)
+
+	}
+	for _, pkg := range p.Packages {
+		impls = append(impls, pkg.FindInterfaceImpl(ctx, entity)...)
+	}
+	return impls
+}
+
+func geneID(parentID, name string) string {
+	if len(parentID) == 0 {
+		return name
+	}
+	return fmt.Sprintf("%s@%s", parentID, name)
 }
 
 func (p *Package) countEntity() int {
@@ -90,4 +147,47 @@ func filterFolder(path string) bool {
 		return true
 	}
 	return false
+}
+func (p *Package) AddEntity(name string, entity *Entity) {
+	p.structMap[name] = entity
+}
+func (p *Package) AddFunction(name string, fun *Function) {
+	p.functionMap[name] = fun
+}
+func (p *Package) GetProject() *Project {
+	return p.project
+}
+func (p *Package) GetModule() string {
+	return p.project.module
+}
+func (p *Package) GetFunction(name string) *Function {
+	fun, _ := p.functionMap[name]
+	return fun
+}
+
+func (p *Package) AddFile(f *File) {
+	p.Files = append(p.Files, f)
+}
+func (p *Package) AnalyzeInterfaceImplRelations(ctx context.Context, project *Project) []*Relation {
+	var relations []*Relation
+	for _, file := range p.Files {
+		for _, entity := range file.Entities {
+			if entity.Type != Interface {
+				continue
+			}
+			entities := project.FindInterfaceImpl(ctx, entity)
+			for _, e := range entities {
+				relations = append(relations, &Relation{
+					Type:       Implement,
+					TargetID:   entity.ID,
+					Confidence: 0,
+					SourceID:   e.ID,
+				})
+			}
+		}
+	}
+	for _, pkg := range p.Packages {
+		relations = append(relations, pkg.AnalyzeInterfaceImplRelations(ctx, project)...)
+	}
+	return relations
 }

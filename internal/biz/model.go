@@ -1,11 +1,10 @@
 package biz
 
-type RelationType int
-
 const (
-	Implement RelationType = iota
-	Belong
-	Call
+	Implement = "Implement" //实现
+	Belong    = "Belong"    //属于
+	Call      = "Call"      //调用
+	Extended  = "Extended"  //继承
 )
 
 type Relation struct {
