@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/ast"
 	"go/token"
+	"go/types"
 	"strings"
 )
 
@@ -17,6 +18,21 @@ const (
 	Constant
 	Variable
 )
+
+func (et EntityType) Type() string {
+	switch et {
+	case Struct:
+		return "Struct"
+	case Interface:
+		return "Interface"
+	case Constant:
+		return "Constant"
+	case Variable:
+		return "Variable"
+	default:
+		return "Entity"
+	}
+}
 
 type ScopeType int
 
@@ -73,7 +89,7 @@ func (e *Entity) AnalyzeRelations(ctx context.Context, file *File) ([]*Relation,
 				continue
 			}
 			relations = append(relations, &Relation{
-				Type:       Belong,
+				Type:       HasFields,
 				TargetID:   entity.ID,
 				Confidence: 1,
 				SourceID:   e.ID,
@@ -86,6 +102,12 @@ func (e *Entity) AnalyzeRelations(ctx context.Context, file *File) ([]*Relation,
 			continue
 		}
 		relations = append(relations, fun.AnalyzeRelations(ctx, file)...)
+		relations = append(relations, &Relation{
+			Type:       HasMethod,
+			TargetID:   fun.ID,
+			Confidence: 1,
+			SourceID:   e.ID,
+		})
 
 	}
 	return relations, nil
@@ -129,6 +151,20 @@ func (e *Entity) HandlerExtends(file *File, pkg *Package) {
 			if ident, ok := extendType.X.(*ast.Ident); ok {
 				entity, ok := pkg.structMap[ident.Name]
 				if ok {
+					e.Extends = append(e.Extends, entity)
+				}
+			}
+		case *ast.IndexExpr:
+			if selectorExpr, ok := extendType.X.(*ast.SelectorExpr); ok {
+				var implName string
+				et, ok := selectorExpr.X.(*ast.Ident)
+				if !ok {
+					continue
+
+				}
+				implName = et.Name
+				entity := file.GetEntityForImport(implName, selectorExpr.Sel.Name)
+				if entity != nil {
 					e.Extends = append(e.Extends, entity)
 				}
 			}
@@ -187,10 +223,12 @@ type Function struct {
 	Document string         `json:"document"`
 	Comment  string         `json:"comment"`
 	PkgID    string         `json:"pkg_id"`
+	FileId   string         `json:"file_id"`
 	expr     ast.Expr
 	Scope    ScopeType `json:"scope"`
 	Receiver string    `json:"receiver"`
 	ID       string    `json:"id"`
+	file     *File
 }
 
 func (f *Function) sameFunctionSignature(function *Function) bool {
@@ -200,15 +238,19 @@ func (f *Function) sameFunctionSignature(function *Function) bool {
 	if len(f.Results) != len(function.Results) {
 		return false
 	}
-	for _, p := range function.Params {
-		findSameType := false
-		for _, r := range f.Params {
-			if r.IsSameType(p) {
-				findSameType = true
-				break
-			}
+	for index, p := range function.Params {
+		p.file = function.file
+		compareF := f.Params[index]
+		compareF.file = f.file
+		if !p.IsSameType(compareF) {
+			return false
 		}
-		if !findSameType {
+	}
+	for index, r := range function.Results {
+		r.file = function.file
+		compareF := f.Results[index]
+		compareF.file = f.file
+		if !r.IsSameType(f.Results[index]) {
 			return false
 		}
 	}
@@ -219,32 +261,12 @@ func (f *Function) sameFunctionSignature(function *Function) bool {
 func (f *Function) Parse(ctx context.Context, node *ast.FuncType) {
 	if node.Params != nil {
 		for _, param := range node.Params.List {
-			if len(param.Names) < 1 {
-				continue
-			}
-			pField := Field{
-				Name:     param.Names[0].Name,
-				Document: TextWarp(param.Doc),
-				expr:     param.Type,
-				Comment:  TextWarp(param.Comment),
-				Scope:    f.Scope,
-			}
-			f.Params = append(f.Params, &pField)
+			f.Params = append(f.Params, buildField(param, f.Scope))
 		}
 	}
 	if node.Results != nil {
 		for _, result := range node.Results.List {
-			if len(result.Names) < 1 {
-				continue
-			}
-			pField := Field{
-				Name:     result.Names[0].Name,
-				Document: TextWarp(result.Doc),
-				expr:     result.Type,
-				Scope:    f.Scope,
-				Comment:  TextWarp(result.Comment),
-			}
-			f.Results = append(f.Results, &pField)
+			f.Results = append(f.Results, buildField(result, f.Scope))
 		}
 	}
 }
@@ -422,10 +444,51 @@ type Field struct {
 	Comment  string `json:"comment"`
 	expr     ast.Expr
 	Scope    ScopeType `json:"scope"`
+	ObjType  string    `json:"obj_type"`
+	file     *File
+}
+
+func buildField(field *ast.Field, scope ScopeType) *Field {
+	var pField *Field
+	if len(field.Names) < 1 {
+		pField = &Field{
+			Document: TextWarp(field.Doc),
+			expr:     field.Type,
+			Scope:    scope,
+			ObjType:  types.ExprString(field.Type),
+			Comment:  TextWarp(field.Comment),
+		}
+	} else {
+		pField = &Field{
+			Name:     field.Names[0].Name,
+			Document: TextWarp(field.Doc),
+			expr:     field.Type,
+			Scope:    scope,
+			ObjType:  types.ExprString(field.Type),
+			Comment:  TextWarp(field.Comment),
+		}
+	}
+
+	return pField
 }
 
 func (field *Field) IsSameType(f *Field) bool {
-	return f.EntityID == field.EntityID
+	if f.EntityID == field.EntityID && len(field.EntityID) > 0 {
+		return true
+	}
+	objType1 := field.ObjType
+	objType2 := f.ObjType
+	for _, i := range field.file.Imports {
+		objType1 = strings.Replace(objType1, fmt.Sprintf("%s.", i.GetRef()), "", 1)
+	}
+	for _, i := range f.file.Imports {
+		objType2 = strings.Replace(objType2, fmt.Sprintf("%s.", i.GetRef()), "", 1)
+	}
+	if objType1 == objType2 {
+		return true
+	}
+
+	return false
 }
 
 func (field *Field) findFunction(methodName string, file *File) *Function {

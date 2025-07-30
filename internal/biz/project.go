@@ -18,7 +18,7 @@ type Project struct {
 	RootPath  string
 	pkgs      map[string]*Package
 	Relations []*Relation
-	root      *Package
+	Root      *Package
 }
 type Config struct {
 	Language string
@@ -30,7 +30,7 @@ func NewProject(config *Config) *Project {
 	return &Project{config: config, entities: make(map[string]*Entity), pkgs: make(map[string]*Package)}
 }
 
-func (p *Project) Analyze(ctx context.Context, rootPath string) error {
+func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo ProjectRepo) error {
 	root, err := p.ParseCode(ctx, rootPath)
 	if err != nil {
 		return v1.ErrorParseCodeError("parseCode failure ").WithCause(err)
@@ -38,7 +38,7 @@ func (p *Project) Analyze(ctx context.Context, rootPath string) error {
 	root.ClassifyExtends(ctx)
 	p.pkgs[root.ID] = root
 	root.ClassifyMethod(ctx)
-	p.root = root
+	p.Root = root
 	if err = p.AnalyzeRelations(ctx); err != nil {
 		return err
 	}
@@ -49,7 +49,7 @@ func (p *Project) Analyze(ctx context.Context, rootPath string) error {
 		}
 	}
 
-	return nil
+	return projectRepo.SaveProject(ctx, p)
 
 }
 func (p *Project) ParseCode(ctx context.Context, rootPath string) (*Package, error) {
@@ -143,6 +143,15 @@ func (p *Project) AnalyzeRelations(ctx context.Context) error {
 		if err := pkg.AnalyzeRelations(ctx, p.module); err != nil {
 			return err
 		}
+		if len(pkg.ParentID) > 0 {
+			p.Relations = append(p.Relations, &Relation{
+				Type:       Contains,
+				TargetID:   pkg.ID,
+				Confidence: 1,
+				SourceID:   pkg.ParentID,
+			})
+		}
+
 	}
 	return nil
 }
@@ -174,11 +183,29 @@ func (p *Project) AddPackage(pkg *Package) {
 
 // AnalyzeInterfaceImplRelations 分析接口实现的的关系
 func (p *Project) AnalyzeInterfaceImplRelations(ctx context.Context) {
-	p.Relations = append(p.Relations, p.root.AnalyzeInterfaceImplRelations(ctx, p)...)
+	p.Relations = append(p.Relations, p.Root.AnalyzeInterfaceImplRelations(ctx, p)...)
 
 }
 
 // FindInterfaceImpl 找出接口的实现
 func (p *Project) FindInterfaceImpl(ctx context.Context, interfaceEntity *Entity) []*Entity {
-	return p.root.FindInterfaceImpl(ctx, interfaceEntity)
+	return p.Root.FindInterfaceImpl(ctx, interfaceEntity)
+}
+
+func (p *Project) GetPackages() []*Package {
+	var packages []*Package
+	for _, pkg := range p.pkgs {
+		packages = append(packages, pkg)
+	}
+	return packages
+}
+func (p *Project) GetFiles() []*File {
+	var files []*File
+	for _, pkg := range p.pkgs {
+		for _, file := range pkg.Files {
+			files = append(files, file)
+		}
+
+	}
+	return files
 }
