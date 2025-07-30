@@ -75,6 +75,13 @@ func (p *Package) AnalyzeRelations(ctx context.Context, module string) error {
 		if err := file.AnalyzeRelations(ctx, p); err != nil {
 			return err
 		}
+
+		var relations []*Relation
+		relations = append(relations, &Relation{Type: ContainsFile,
+			TargetID:   file.ID,
+			Confidence: 0,
+			SourceID:   file.PkgID})
+		p.GetProject().AddRelations(relations)
 	}
 	for _, pkg := range p.Packages {
 		if err := pkg.AnalyzeRelations(ctx, module); err != nil {

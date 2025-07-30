@@ -6,6 +6,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"path/filepath"
 	"strings"
 )
@@ -40,8 +41,9 @@ func NewFile(name string, pkg *Package) *File {
 }
 
 type Import struct {
-	Name string
-	Path string
+	Name   string
+	Path   string
+	FileId string
 }
 
 func (imp *Import) GetRef() string {
@@ -110,9 +112,10 @@ func (file *File) parseGenDecl(ctx context.Context, node *ast.GenDecl) {
 				if spec.Name != nil {
 					imp.Name = spec.Name.Name
 				}
+				imp.FileId = file.ID
 				file.Imports = append(file.Imports, imp)
 				if strings.Contains(imp.Path, file.pkg.GetModule()) {
-					imp.Path = strings.Trim(imp.Path, file.pkg.GetModule())
+					imp.Path = strings.TrimPrefix(imp.Path, file.pkg.GetModule())
 					file.localImport[imp.GetRef()] = imp
 				}
 
@@ -155,6 +158,7 @@ func (file *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.
 					}
 					entity.rawExtends = append(entity.rawExtends, field.Type)
 				}
+				fd.ObjType = types.ExprString(field.Type)
 
 				entity.Fields = append(entity.Fields, &fd)
 				entity.fieldMap[fd.Name] = &fd
@@ -189,6 +193,8 @@ func (file *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.
 					Document: TextWarp(method.Doc),
 					Comment:  TextWarp(method.Comment),
 					Scope:    InterfaceScope,
+					file:     file,
+					FileId:   file.ID,
 					ID:       fmt.Sprintf("%s:%s", entity.ID, method.Names[0].Name),
 				}
 				entity.Functions = append(entity.Functions, fun)
@@ -224,6 +230,8 @@ func (file *File) parseFuncDecl(ctx context.Context, node *ast.FuncDecl, f *ast.
 		expr:     nil,
 		Scope:    FunctionScope,
 		PkgID:    file.PkgID,
+		FileId:   file.ID,
+		file:     file,
 		ID:       fmt.Sprintf("%s:%s", file.PkgID, node.Name.Name),
 	}
 	fun.Parse(ctx, node.Type)
@@ -266,9 +274,29 @@ func (file *File) AnalyzeRelations(ctx context.Context, pkg *Package) error {
 		} else {
 			relations = append(relations, rs...)
 		}
+		for _, ee := range entity.Extends {
+			relations = append(relations, &Relation{
+				Type:       Extends,
+				TargetID:   ee.ID,
+				Confidence: 1,
+				SourceID:   entity.ID,
+			})
+		}
+		relations = append(relations, &Relation{
+			Type:       DeclareEntity,
+			TargetID:   entity.ID,
+			Confidence: 1,
+			SourceID:   file.ID,
+		})
 	}
 	for _, fun := range file.Functions {
 		relations = append(relations, fun.AnalyzeRelations(ctx, file)...)
+		relations = append(relations, &Relation{
+			Type:       DeclareFunc,
+			TargetID:   fun.ID,
+			Confidence: 1,
+			SourceID:   file.ID,
+		})
 	}
 	file.pkg.GetProject().AddRelations(relations)
 	return nil

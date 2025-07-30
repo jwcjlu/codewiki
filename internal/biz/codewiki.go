@@ -6,11 +6,11 @@ import (
 )
 
 type CodeWiki struct {
-	entityRepo EntityRepo
+	projectRepo ProjectRepo
 }
 
-func NewCodeWiki(entityRepo EntityRepo) *CodeWiki {
-	return &CodeWiki{entityRepo: entityRepo}
+func NewCodeWiki(projectRepo ProjectRepo) *CodeWiki {
+	return &CodeWiki{projectRepo: projectRepo}
 }
 func (c *CodeWiki) Analyze(ctx context.Context, in *v1.AnalyzeReq) error {
 	project := NewProject(&Config{
@@ -18,6 +18,6 @@ func (c *CodeWiki) Analyze(ctx context.Context, in *v1.AnalyzeReq) error {
 		Includes: in.Includes,
 		Excludes: in.Excludes,
 	})
-	return project.Analyze(ctx, in.Target)
+	return project.Analyze(ctx, in.Target, c.projectRepo)
 
 }

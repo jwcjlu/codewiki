@@ -1,0 +1,100 @@
+// 创建Package节点
+CREATE (p:Package {
+  id: $id,
+  name: $name,
+  parent_id: $parent_id,
+  path: $path
+})
+
+// 创建File节点
+CREATE (f:File {
+  id: $id,
+  name: $name,
+  pkg_id: $pkg_id
+})
+
+// 创建Entity节点(以Struct为例)
+CREATE (e:Entity:Struct {
+  id: $id,
+  type: $type,
+  name: $name,
+  file_id: $file_id,
+  pkg_id: $pkg_id,
+  definition: $definition,
+  comment: $comment,
+  document: $document
+})
+
+// 创建Function节点
+CREATE (fn:Function {
+  id: $id,
+  name: $name,
+  document: $document,
+  comment: $comment,
+  pkg_id: $pkg_id,
+  scope: $scope,
+  receiver: $receiver,
+  ent_id: $ent_id
+})
+
+// 创建Field节点
+CREATE (fd:Field {
+  name: $name,
+  type: $type,
+  tag: $tag
+})
+
+// 创建Import节点
+CREATE (imp:Import {
+  path: $path,
+  name: $name
+})
+
+// 建立关系
+// Package包含File
+MATCH (p:Package {id: $pkg_id}), (f:File {id: $file_id})
+CREATE (p)-[:CONTAINS]->(f)
+
+// Package包含子Package
+MATCH (p1:Package {id: $parent_id}), (p2:Package {id: $child_id})
+CREATE (p1)-[:CONTAINS]->(p2)
+
+// File声明Entity
+MATCH (f:File {id: $file_id}), (e:Entity {id: $entity_id})
+CREATE (f)-[:DECLARES]->(e)
+
+// File声明Function
+MATCH (f:File {id: $file_id}), (fn:Function {id: $func_id})
+CREATE (f)-[:DECLARES]->(fn)
+
+// Entity拥有Field
+MATCH (e:Entity {id: $entity_id}), (fd:Field {name: $field_name})
+CREATE (e)-[:HAS_FIELD]->(fd)
+
+// Entity拥有方法
+MATCH (e:Entity {id: $entity_id}), (fn:Function {id: $func_id})
+CREATE (e)-[:HAS_METHOD]->(fn)
+
+// Function属于Entity
+MATCH (fn:Function {id: $func_id}), (e:Entity {id: $entity_id})
+CREATE (fn)-[:BELONGS_TO]->(e)
+
+// Entity继承/实现
+MATCH (e1:Entity {id: $entity_id1}), (e2:Entity {id: $entity_id2})
+CREATE (e1)-[:EXTENDS {type: $extend_type}]->(e2)
+
+// File导入Package
+MATCH (f:File {id: $file_id}), (imp:Import {path: $import_path})
+CREATE (f)-[:IMPORTS]->(imp)
+
+// Function调用Function
+MATCH (fn1:Function {id: $func_id1}), (fn2:Function {id: $func_id2})
+CREATE (fn1)-[:CALLS]->(fn2)
+
+// Function返回类型
+MATCH (fn:Function {id: $func_id}), (e:Entity {id: $entity_id})
+CREATE (fn)-[:RETURNS]->(e)
+
+// Function参数类型
+MATCH (fn:Function {id: $func_id}), (e:Entity {id: $entity_id})
+CREATE (fn)-[:PARAMETER]->(e)
