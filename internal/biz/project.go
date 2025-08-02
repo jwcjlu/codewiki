@@ -12,13 +12,14 @@ import (
 )
 
 type Project struct {
-	config    *Config
-	module    string
-	entities  map[string]*Entity
-	RootPath  string
-	pkgs      map[string]*Package
-	Relations []*Relation
-	Root      *Package
+	config       *Config
+	module       string
+	entities     map[string]*Entity
+	RootPath     string
+	pkgs         map[string]*Package
+	Relations    []*Relation
+	Root         *Package
+	relationsmap map[string]bool
 }
 type Config struct {
 	Language string
@@ -27,7 +28,7 @@ type Config struct {
 }
 
 func NewProject(config *Config) *Project {
-	return &Project{config: config, entities: make(map[string]*Entity), pkgs: make(map[string]*Package)}
+	return &Project{config: config, entities: make(map[string]*Entity), pkgs: make(map[string]*Package), relationsmap: make(map[string]bool)}
 }
 
 func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo ProjectRepo) error {
@@ -35,8 +36,8 @@ func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo Proj
 	if err != nil {
 		return v1.ErrorParseCodeError("parseCode failure ").WithCause(err)
 	}
-	root.ClassifyExtends(ctx)
 	p.pkgs[root.ID] = root
+	root.ClassifyExtends(ctx)
 	root.ClassifyMethod(ctx)
 	p.Root = root
 	if err = p.AnalyzeRelations(ctx); err != nil {
@@ -174,8 +175,30 @@ func (p *Project) GetEntity(pkgName, key string) *Entity {
 	}
 	return nil
 }
+
+func (p *Project) GetFunction(pkgName, functionName string) *Function {
+	pkg, ok := p.pkgs[pkgName]
+	if ok {
+		return pkg.functionMap[functionName]
+
+	}
+	if len(p.RootPath) > 0 {
+		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s", p.RootPath, pkgName)]
+	}
+	if ok {
+		return pkg.functionMap[functionName]
+	}
+	return nil
+}
 func (p *Project) AddRelations(rs []*Relation) {
-	p.Relations = append(p.Relations, rs...)
+	for _, r := range rs {
+		if _, ok := p.relationsmap[r.UnionKey()]; ok {
+			continue
+		}
+		p.Relations = append(p.Relations, r)
+		p.relationsmap[r.UnionKey()] = true
+	}
+
 }
 func (p *Project) AddPackage(pkg *Package) {
 	p.pkgs[pkg.ID] = pkg
@@ -193,17 +216,27 @@ func (p *Project) FindInterfaceImpl(ctx context.Context, interfaceEntity *Entity
 }
 
 func (p *Project) GetPackages() []*Package {
+	filter := map[string]bool{}
 	var packages []*Package
 	for _, pkg := range p.pkgs {
+		if _, ok := filter[pkg.ID]; ok {
+			continue
+		}
 		packages = append(packages, pkg)
+		filter[pkg.ID] = true
 	}
 	return packages
 }
 func (p *Project) GetFiles() []*File {
+	filter := map[string]bool{}
 	var files []*File
 	for _, pkg := range p.pkgs {
 		for _, file := range pkg.Files {
+			if _, ok := filter[file.ID]; ok {
+				continue
+			}
 			files = append(files, file)
+			filter[file.ID] = true
 		}
 
 	}

@@ -1,5 +1,7 @@
 package biz
 
+import "fmt"
+
 const (
 	Contains      = "Contains"      //包含
 	ContainsFile  = "ContainsFile"  //包含
@@ -18,4 +20,9 @@ type Relation struct {
 	TargetID   string
 	Confidence float64
 	SourceID   string
+}
+
+func (r *Relation) UnionKey() string {
+
+	return fmt.Sprintf("%s#%s#%s", r.SourceID, r.Type, r.TargetID)
 }

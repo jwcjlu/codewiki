@@ -167,10 +167,6 @@ func (p *Package) GetProject() *Project {
 func (p *Package) GetModule() string {
 	return p.project.module
 }
-func (p *Package) GetFunction(name string) *Function {
-	fun, _ := p.functionMap[name]
-	return fun
-}
 
 func (p *Package) AddFile(f *File) {
 	p.Files = append(p.Files, f)
@@ -197,4 +193,23 @@ func (p *Package) AnalyzeInterfaceImplRelations(ctx context.Context, project *Pr
 		relations = append(relations, pkg.AnalyzeInterfaceImplRelations(ctx, project)...)
 	}
 	return relations
+}
+
+func (p *Package) GetFunction(name string) *Function {
+
+	for _, file := range p.Files {
+		if fun, ok := file.functionMap[name]; ok {
+			return fun
+		}
+	}
+	return nil
+}
+func (p *Package) GetEntity(name string) *Entity {
+	for _, file := range p.Files {
+		if entity := file.GetEntity(name); entity != nil {
+			return entity
+		}
+
+	}
+	return nil
 }

@@ -213,6 +213,8 @@ func (file *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.
 			pkg.AddEntity(entity.Name, &entity)
 			pkg.project.AddEntity(entity.ID, &entity)
 		}
+	default:
+		//fmt.Println(fmt.Sprintf("file.Parse [%v]", node.Type))
 	}
 
 }
@@ -357,6 +359,16 @@ func (file *File) GetEntityForImport(importName, entityName string) *Entity {
 	}
 	pkgKey := strings.ReplaceAll(fmt.Sprintf("%s", strings.TrimPrefix(imp.Path, "/")), "/", "@")
 	return file.pkg.GetProject().GetEntity(pkgKey, entityName)
+
+}
+func (file *File) GetFunctionForImport(importName, functionName string) *Function {
+	imp, ok := file.localImport[importName]
+	if !ok {
+		return nil
+	}
+	pkgKey := strings.ReplaceAll(fmt.Sprintf("%s", strings.TrimPrefix(imp.Path, "/")), "/", "@")
+
+	return file.pkg.GetProject().GetFunction(pkgKey, functionName)
 
 }
 
