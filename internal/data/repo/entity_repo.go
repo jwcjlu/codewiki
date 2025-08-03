@@ -1,6 +1,7 @@
 package repo
 
 import (
+	v1 "codewiki/api/codewiki/v1"
 	"codewiki/internal/biz"
 	"context"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
@@ -90,4 +91,37 @@ func getImports(files []*biz.File) []*biz.Import {
 		imports = append(imports, file.GetImports()...)
 	}
 	return imports
+}
+
+func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, startFunctionName string) ([]*v1.CallRelationship, error) {
+	ctx, _ = context.WithTimeout(ctx, 5*time.Minute)
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+	query := `MATCH path = (start:Function {name: $startFunctionName})-[:Call*]->(end:Function)
+        UNWIND relationships(path) AS rel
+        WITH startNode(rel) AS caller, endNode(rel) AS callee
+        RETURN caller.id AS callerID, caller.name AS callerName,
+               callee.id AS calleeID, callee.name AS calleeName`
+
+	result, err := session.Run(ctx, query, map[string]interface{}{"startFunctionName": startFunctionName},
+		func(config *neo4j.TransactionConfig) {
+
+		})
+	if err != nil {
+		return nil, err
+	}
+	var relationships []*v1.CallRelationship
+	rs, err := result.Collect(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range rs {
+		relationships = append(relationships, &v1.CallRelationship{
+			CallerId:   v.Values[0].(string),
+			CallerName: v.Values[1].(string),
+			CalleeId:   v.Values[2].(string),
+			CalleeName: v.Values[3].(string),
+		})
+	}
+	return relationships, nil
 }

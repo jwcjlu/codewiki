@@ -151,6 +151,7 @@ func (ra *RelationAnalyzer) analyzeFunctionCalls(fun *Function) []*Relation {
 		relations: make([]*Relation, 0),
 		function:  fun,
 		analyzer:  ra,
+		entities:  make(map[string]*Entity),
 	}
 	// 遍历AST
 	ast.Walk(visitor, fun.Data)
@@ -165,14 +166,22 @@ type FunctionCallVisitor struct {
 	entities  map[string]*Entity
 }
 
+func (v *FunctionCallVisitor) GetEntity(name string) *Entity {
+	entity := v.entities[name]
+	if entity != nil {
+		return entity
+	}
+	return v.analyzer.pkg.GetEntity(name)
+}
 func (v *FunctionCallVisitor) Visit(node ast.Node) ast.Visitor {
 	if node == nil {
 		return nil
 	}
-
 	switch n := node.(type) {
 	case *ast.CallExpr:
 		v.handleCallExpr(n)
+	case *ast.AssignStmt:
+		v.handleAssign(n)
 	}
 
 	return v
@@ -250,6 +259,8 @@ func (v *FunctionCallVisitor) resolveEntityFromIdent(ident *ast.Ident) *Entity {
 	case *ast.ValueSpec:
 		if len(decl.Values) > 0 {
 			return v.resolveEntityFromExpr(decl.Type)
+		} else {
+			return v.entities[ident.Name]
 		}
 	}
 
@@ -266,7 +277,7 @@ func (v *FunctionCallVisitor) resolveEntityFromSelector(selector *ast.SelectorEx
 func (v *FunctionCallVisitor) resolveEntityFromExpr(expr ast.Expr) *Entity {
 	switch t := expr.(type) {
 	case *ast.Ident:
-		return v.analyzer.pkg.GetEntity(t.Name)
+		return v.GetEntity(t.Name)
 	case *ast.StarExpr:
 		return v.resolveEntityFromExpr(t.X)
 	case *ast.SelectorExpr:
@@ -274,3 +285,100 @@ func (v *FunctionCallVisitor) resolveEntityFromExpr(expr ast.Expr) *Entity {
 	}
 	return nil
 }
+
+func (v *FunctionCallVisitor) handleAssign(assign *ast.AssignStmt) {
+	for _, expr := range assign.Lhs {
+		switch t := expr.(type) {
+		case *ast.Ident:
+			v.handleIdentEntity(t)
+		}
+	}
+}
+func (v *FunctionCallVisitor) handleIdentEntity(ident *ast.Ident) {
+	name := ident.Name
+	if ident.Obj == nil {
+		return
+	}
+	switch decl := ident.Obj.Decl.(type) {
+	case *ast.ValueSpec:
+		if decl.Type == nil {
+			return
+		}
+		switch declType := decl.Type.(type) {
+		case *ast.SelectorExpr:
+			implName := ""
+			if x, ok := declType.X.(*ast.Ident); ok {
+				implName = x.Name
+			}
+			entity := v.analyzer.file.GetEntityForImport(implName, declType.Sel.Name)
+			if entity == nil {
+				return
+			}
+			v.entities[name] = entity
+		}
+	}
+}
+
+/*
+type entityVisitor struct {
+	name string
+	v    *FunctionCallVisitor
+}
+
+func newEntityVisitor(name string, v *FunctionCallVisitor) *entityVisitor {
+	return &entityVisitor{name: name, v: v}
+}
+func (e *entityVisitor) Visit(node ast.Node) ast.Visitor {
+	if node == nil {
+		return nil
+	}
+
+	switch n := node.(type) {
+	case *ast.CallExpr:
+		e.handleCallExpr(n)
+	}
+
+	return e
+}
+
+func (e *entityVisitor) handleCallExpr(call *ast.CallExpr) {
+	switch fun := call.Fun.(type) {
+	case *ast.Ident:
+
+		if function := e.v.analyzer.file.GetFunctionByNameInPackage(fun.Name); function != nil {
+
+		}
+
+	case *ast.SelectorExpr:
+		e.handleSelectorExpr(fun)
+	}
+}
+
+func (e *entityVisitor) handleSelectorExpr(selector *ast.SelectorExpr) {
+	switch x := selector.X.(type) {
+	case *ast.Ident:
+		if x.Obj == nil { // 其他包的方法直接调用eg:os.OpenFile("empty.go")
+			if function := e.v.analyzer.file.GetFunctionForImport(x.Name, selector.Sel.Name); function != nil {
+
+			}
+			return
+		}
+
+		if entity := e.v.resolveEntityFromIdent(x); entity != nil { // 处理实体方法调用eg:e.Server("empty.go")
+			if function := entity.FindMethodByName(selector.Sel.Name); function != nil {
+
+			}
+		}
+
+	case *ast.SelectorExpr:
+		// 处理链式调用
+		if entity := e.v.resolveEntityFromSelector(x); entity != nil {
+			if field := entity.FindFieldByName(x.Sel.Name); field != nil {
+				if function := field.FindFunctionByName(selector.Sel.Name, e.v.analyzer.file); function != nil {
+
+				}
+			}
+		}
+	}
+}
+*/

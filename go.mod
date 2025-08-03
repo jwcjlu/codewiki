@@ -8,6 +8,7 @@ require (
 	github.com/go-kratos/kratos/v2 v2.7.3
 	github.com/google/wire v0.6.0
 	github.com/prometheus/client_golang v1.21.1
+	github.com/rs/cors v1.11.1
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/automaxprocs v1.5.1

@@ -1,23 +1,11 @@
 package data
 
 import (
-	"codewiki/internal/biz"
 	"context"
+	"fmt"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"testing"
 )
-
-func TestNeo4j(t *testing.T) {
-	driver, err := createDriver()
-	if err != nil {
-		t.Fatal(err)
-	}
-	err = createPerson(driver, "hex", 18)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-}
 
 func createDriver() (neo4j.DriverWithContext, error) {
 	driver, err := neo4j.NewDriverWithContext(
@@ -36,43 +24,34 @@ func createDriver() (neo4j.DriverWithContext, error) {
 
 	return driver, nil
 }
-func createPerson(driver neo4j.DriverWithContext, name string, age int) error {
-	ctx := context.Background()
-	session := driver.NewSession(ctx, neo4j.SessionConfig{})
-	defer session.Close(ctx)
 
-	_, err := session.ExecuteWrite(ctx, savePackage(ctx, &biz.Package{
-		ID:       "dragonfly",
-		Name:     "dragonfly",
-		ParentID: "dragonfly",
-		Path:     "dragonfly",
-	}))
+func TestQueryFunctionCallChains(t *testing.T) {
 
-	return err
-}
+	driver, err := createDriver()
+	if err != nil {
+		t.Fatal(err)
+	}
+	session := driver.NewSession(context.Background(), neo4j.SessionConfig{})
+	defer session.Close(context.Background())
+	query := `MATCH path = (start:Function {id: $startFunctionName})-[:Call*]->(end:Function)
+        UNWIND relationships(path) AS rel
+        WITH startNode(rel) AS caller, endNode(rel) AS callee
+        RETURN caller.id AS callerID, caller.name AS callerName,
+               callee.id AS calleeID, callee.name AS calleeName`
 
-func savePackage(ctx context.Context, pkg *biz.Package) func(tx neo4j.ManagedTransaction) (any, error) {
-	return func(tx neo4j.ManagedTransaction) (any, error) {
-		query := `
-       CREATE (p:Package {
-           id: $id,
-           name: $name,
-           parent_id: $parent_id,
-           path: $path
-        })`
+	result, err := session.Run(context.Background(), query, map[string]interface{}{"startFunctionName": ""},
+		func(config *neo4j.TransactionConfig) {
 
-		params := map[string]any{
-			"id":        pkg.ID,
-			"name":      pkg.Name,
-			"path":      pkg.Path,
-			"parent_id": pkg.ParentID,
-		}
-
-		_, err := tx.Run(ctx, query, params)
-		if err != nil {
-			return nil, err
-		}
-		return nil, nil
+		})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rs, err := result.Collect(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range rs {
+		fmt.Println(v)
 	}
 
 }

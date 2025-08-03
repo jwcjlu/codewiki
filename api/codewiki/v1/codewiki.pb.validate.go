@@ -255,3 +255,350 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = AnalyzeRespValidationError{}
+
+// Validate checks the field values on CallChainReq with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *CallChainReq) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CallChainReq with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in CallChainReqMultiError, or
+// nil if none found.
+func (m *CallChainReq) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CallChainReq) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for StartFunctionName
+
+	if len(errors) > 0 {
+		return CallChainReqMultiError(errors)
+	}
+
+	return nil
+}
+
+// CallChainReqMultiError is an error wrapping multiple validation errors
+// returned by CallChainReq.ValidateAll() if the designated constraints aren't met.
+type CallChainReqMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CallChainReqMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CallChainReqMultiError) AllErrors() []error { return m }
+
+// CallChainReqValidationError is the validation error returned by
+// CallChainReq.Validate if the designated constraints aren't met.
+type CallChainReqValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CallChainReqValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CallChainReqValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CallChainReqValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CallChainReqValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CallChainReqValidationError) ErrorName() string { return "CallChainReqValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CallChainReqValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCallChainReq.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CallChainReqValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CallChainReqValidationError{}
+
+// Validate checks the field values on CallChainResp with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *CallChainResp) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CallChainResp with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in CallChainRespMultiError, or
+// nil if none found.
+func (m *CallChainResp) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CallChainResp) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Code
+
+	// no validation rules for Msg
+
+	for idx, item := range m.GetCallRelations() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, CallChainRespValidationError{
+						field:  fmt.Sprintf("CallRelations[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, CallChainRespValidationError{
+						field:  fmt.Sprintf("CallRelations[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return CallChainRespValidationError{
+					field:  fmt.Sprintf("CallRelations[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return CallChainRespMultiError(errors)
+	}
+
+	return nil
+}
+
+// CallChainRespMultiError is an error wrapping multiple validation errors
+// returned by CallChainResp.ValidateAll() if the designated constraints
+// aren't met.
+type CallChainRespMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CallChainRespMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CallChainRespMultiError) AllErrors() []error { return m }
+
+// CallChainRespValidationError is the validation error returned by
+// CallChainResp.Validate if the designated constraints aren't met.
+type CallChainRespValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CallChainRespValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CallChainRespValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CallChainRespValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CallChainRespValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CallChainRespValidationError) ErrorName() string { return "CallChainRespValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CallChainRespValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCallChainResp.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CallChainRespValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CallChainRespValidationError{}
+
+// Validate checks the field values on CallRelationship with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// first error encountered is returned, or nil if there are no violations.
+func (m *CallRelationship) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on CallRelationship with the rules
+// defined in the proto definition for this message. If any rules are
+// violated, the result is a list of violation errors wrapped in
+// CallRelationshipMultiError, or nil if none found.
+func (m *CallRelationship) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *CallRelationship) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for CallerId
+
+	// no validation rules for CallerName
+
+	// no validation rules for CalleeId
+
+	// no validation rules for CalleeName
+
+	if len(errors) > 0 {
+		return CallRelationshipMultiError(errors)
+	}
+
+	return nil
+}
+
+// CallRelationshipMultiError is an error wrapping multiple validation errors
+// returned by CallRelationship.ValidateAll() if the designated constraints
+// aren't met.
+type CallRelationshipMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m CallRelationshipMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m CallRelationshipMultiError) AllErrors() []error { return m }
+
+// CallRelationshipValidationError is the validation error returned by
+// CallRelationship.Validate if the designated constraints aren't met.
+type CallRelationshipValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e CallRelationshipValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e CallRelationshipValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e CallRelationshipValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e CallRelationshipValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e CallRelationshipValidationError) ErrorName() string { return "CallRelationshipValidationError" }
+
+// Error satisfies the builtin error interface
+func (e CallRelationshipValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sCallRelationship.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = CallRelationshipValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = CallRelationshipValidationError{}

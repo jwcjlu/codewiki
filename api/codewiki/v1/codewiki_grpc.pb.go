@@ -19,7 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CodeWikiService_Analyze_FullMethodName = "/codewiki.v1.CodeWikiService/Analyze"
+	CodeWikiService_Analyze_FullMethodName   = "/codewiki.v1.CodeWikiService/Analyze"
+	CodeWikiService_CallChain_FullMethodName = "/codewiki.v1.CodeWikiService/CallChain"
 )
 
 // CodeWikiServiceClient is the client API for CodeWikiService service.
@@ -27,6 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CodeWikiServiceClient interface {
 	Analyze(ctx context.Context, in *AnalyzeReq, opts ...grpc.CallOption) (*AnalyzeResp, error)
+	CallChain(ctx context.Context, in *CallChainReq, opts ...grpc.CallOption) (*CallChainResp, error)
 }
 
 type codeWikiServiceClient struct {
@@ -47,11 +49,22 @@ func (c *codeWikiServiceClient) Analyze(ctx context.Context, in *AnalyzeReq, opt
 	return out, nil
 }
 
+func (c *codeWikiServiceClient) CallChain(ctx context.Context, in *CallChainReq, opts ...grpc.CallOption) (*CallChainResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CallChainResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_CallChain_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CodeWikiServiceServer is the server API for CodeWikiService service.
 // All implementations must embed UnimplementedCodeWikiServiceServer
 // for forward compatibility.
 type CodeWikiServiceServer interface {
 	Analyze(context.Context, *AnalyzeReq) (*AnalyzeResp, error)
+	CallChain(context.Context, *CallChainReq) (*CallChainResp, error)
 	mustEmbedUnimplementedCodeWikiServiceServer()
 }
 
@@ -64,6 +77,9 @@ type UnimplementedCodeWikiServiceServer struct{}
 
 func (UnimplementedCodeWikiServiceServer) Analyze(context.Context, *AnalyzeReq) (*AnalyzeResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Analyze not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) CallChain(context.Context, *CallChainReq) (*CallChainResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CallChain not implemented")
 }
 func (UnimplementedCodeWikiServiceServer) mustEmbedUnimplementedCodeWikiServiceServer() {}
 func (UnimplementedCodeWikiServiceServer) testEmbeddedByValue()                         {}
@@ -104,6 +120,24 @@ func _CodeWikiService_Analyze_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CodeWikiService_CallChain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CallChainReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).CallChain(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_CallChain_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).CallChain(ctx, req.(*CallChainReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CodeWikiService_ServiceDesc is the grpc.ServiceDesc for CodeWikiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -114,6 +148,10 @@ var CodeWikiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Analyze",
 			Handler:    _CodeWikiService_Analyze_Handler,
+		},
+		{
+			MethodName: "CallChain",
+			Handler:    _CodeWikiService_CallChain_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

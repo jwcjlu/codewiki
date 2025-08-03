@@ -3,8 +3,137 @@
 
 openapi: 3.0.3
 info:
-    title: ""
+    title: CodeWikiService API
     version: 0.0.1
-paths: {}
+paths:
+    /v1/api/functions/{startFunctionName}/calls:
+        get:
+            tags:
+                - CodeWikiService
+            summary: 分析代码
+            operationId: CodeWikiService_CallChain
+            parameters:
+                - name: startFunctionName
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CallChainResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/project/analyze:
+        post:
+            tags:
+                - CodeWikiService
+            summary: 分析代码
+            operationId: CodeWikiService_Analyze
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AnalyzeReq'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AnalyzeResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
 components:
-    schemas: {}
+    schemas:
+        AnalyzeReq:
+            type: object
+            properties:
+                repoType:
+                    type: integer
+                    format: enum
+                path:
+                    type: string
+                target:
+                    type: string
+                token:
+                    type: string
+                language:
+                    type: string
+                includes:
+                    type: array
+                    items:
+                        type: string
+                excludes:
+                    type: array
+                    items:
+                        type: string
+        AnalyzeResp:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    format: int32
+                msg:
+                    type: string
+        CallChainResp:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    format: int32
+                msg:
+                    type: string
+                callRelations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/CallRelationship'
+        CallRelationship:
+            type: object
+            properties:
+                callerId:
+                    type: string
+                callerName:
+                    type: string
+                calleeId:
+                    type: string
+                calleeName:
+                    type: string
+        GoogleProtobufAny:
+            type: object
+            properties:
+                '@type':
+                    type: string
+                    description: The type of the serialized message.
+            additionalProperties: true
+            description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
+        Status:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    description: The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code].
+                    format: int32
+                message:
+                    type: string
+                    description: A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the [google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client.
+                details:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/GoogleProtobufAny'
+                    description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
+            description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
+tags:
+    - name: CodeWikiService
