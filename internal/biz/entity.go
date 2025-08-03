@@ -1,7 +1,6 @@
 package biz
 
 import (
-	"context"
 	"fmt"
 	"go/ast"
 	"go/token"
@@ -44,98 +43,89 @@ const (
 )
 
 type Entity struct {
-	ID          string     `json:"id"`
-	Type        EntityType `json:"type"`
-	Name        string     `json:"name"`
-	FileID      string     `json:"file_id"`
-	PkgID       string     `json:"pkg_id"`
-	Position    token.Position
-	Definition  string `json:"definition"`
-	Relations   []Relation
-	Embeddings  []float64 `json:"-"`
-	f           *ast.File
-	Comment     string      `json:"comment"`
-	Document    string      `json:"document"`  //根据语法树生成doc
-	Functions   []*Function `json:"functions"` //实例方法,结构体的方法
-	Fields      []*Field    `json:"fields"`
-	fieldMap    map[string]*Field
-	functionMap map[string]*Function
-	Extends     []*Entity  //继承
-	rawExtends  []ast.Expr //继承
+	ID           string     `json:"id"`
+	Type         EntityType `json:"type"`
+	Name         string     `json:"name"`
+	FileID       string     `json:"file_id"`
+	PkgID        string     `json:"pkg_id"`
+	Position     token.Position
+	Definition   string    `json:"definition"`
+	Embeddings   []float64 `json:"-"`
+	Comment      string    `json:"comment"`
+	Document     string    `json:"document"` //根据语法树生成doc
+	fieldManager *FieldManager
+	// 函数管理
+	functionManager *FunctionManager
+	Extends         []*Entity  //继承
+	rawExtends      []ast.Expr //继承
+	vSpace          *ast.ValueSpec
+}
+
+func NewEntity(file *File, node *ast.TypeSpec, entityType EntityType) *Entity {
+	return &Entity{
+		ID:              fmt.Sprintf("%s:%s", file.ID, node.Name.Name),
+		Type:            entityType,
+		Name:            node.Name.Name,
+		FileID:          file.ID,
+		Comment:         TextWarp(node.Comment),
+		Document:        TextWarp(node.Doc),
+		PkgID:           file.PkgID,
+		functionManager: NewFunctionManager(file),
+		fieldManager:    NewFieldManager(),
+	}
 }
 
 func (e *Entity) CountFunction() int {
-	count := len(e.Functions)
+	count := e.functionManager.CountMethod()
 	for _, extend := range e.Extends {
-		count += len(extend.Functions)
+		count += extend.functionManager.CountMethod()
 	}
 	return count
 
 }
-
-func (e *Entity) AnalyzeRelations(ctx context.Context, file *File) ([]*Relation, error) {
-	var relations []*Relation
-	for _, field := range e.Fields {
-		if field.expr == nil {
-			continue
-		}
-		switch ex := field.expr.(type) {
-		case *ast.SelectorExpr:
-			var entity *Entity
-			if ident, ok := ex.X.(*ast.Ident); ok {
-				entity = file.GetEntityForImport(ident.Name, ex.Sel.Name)
-			}
-			if entity == nil {
-				continue
-			}
-			relations = append(relations, &Relation{
-				Type:       HasFields,
-				TargetID:   entity.ID,
-				Confidence: 1,
-				SourceID:   e.ID,
-			})
-
-		}
-	}
-	for _, fun := range e.Functions {
-		if fun.Data == nil {
-			continue
-		}
-		relations = append(relations, fun.AnalyzeRelations(ctx, file)...)
-		relations = append(relations, &Relation{
-			Type:       HasMethod,
-			TargetID:   fun.ID,
-			Confidence: 1,
-			SourceID:   e.ID,
-		})
-
-	}
-	return relations, nil
-}
-
-func (e *Entity) FindFunctionByName(name string) *Function {
+func (e *Entity) FindMethodByName(name string) *Function {
 	if e == nil {
 		return nil
 	}
-	for _, f := range e.Functions {
-		if f.Name == name {
-			return f
+	return e.functionManager.GetMethodByName(name)
+}
+
+func (e *Entity) AddMethod(function *Function) {
+	if e.Type == Struct || e.Type == Interface {
+		e.functionManager.AddMethod(function)
+	}
+
+}
+func (e *Entity) AddField(field *Field) {
+	if e.Type == Struct || e.Type == Interface {
+		e.fieldManager.AddField(field)
+	}
+}
+func (e *Entity) FindFieldByName(fieldName string) *Field {
+	if e.Type == Struct || e.Type == Interface {
+		e.fieldManager.GetFieldByName(fieldName)
+	} else {
+		if e.vSpace == nil {
+			return nil
 		}
+		return &Field{expr: e.vSpace.Type}
 	}
 	return nil
+}
+func (e *Entity) SetValueSpace(vSpace *ast.ValueSpec) {
+	e.vSpace = vSpace
 }
 
 // HandlerExtends 处理继承问题
 func (e *Entity) HandlerExtends(file *File, pkg *Package) {
 	for _, rawExtendType := range e.rawExtends {
-
 		switch extendType := rawExtendType.(type) {
-		case *ast.Ident:
-			entity, ok := pkg.structMap[extendType.Name]
-			if ok {
+		case *ast.Ident: //同报下继承
+			entity := pkg.GetEntity(extendType.Name)
+			if entity != nil {
 				e.Extends = append(e.Extends, entity)
 			}
-		case *ast.SelectorExpr:
+		case *ast.SelectorExpr: //其他包下的继承
 			var implName string
 			et, ok := extendType.X.(*ast.Ident)
 			if !ok {
@@ -147,14 +137,14 @@ func (e *Entity) HandlerExtends(file *File, pkg *Package) {
 			if entity != nil {
 				e.Extends = append(e.Extends, entity)
 			}
-		case *ast.StarExpr:
+		case *ast.StarExpr: //指针类型
 			if ident, ok := extendType.X.(*ast.Ident); ok {
-				entity, ok := pkg.structMap[ident.Name]
-				if ok {
+				entity := pkg.GetEntity(ident.Name)
+				if entity != nil {
 					e.Extends = append(e.Extends, entity)
 				}
 			}
-		case *ast.IndexExpr:
+		case *ast.IndexExpr: //指针+泛型
 			if selectorExpr, ok := extendType.X.(*ast.SelectorExpr); ok {
 				var implName string
 				et, ok := selectorExpr.X.(*ast.Ident)
@@ -178,36 +168,51 @@ func (e *Entity) HandlerExtends(file *File, pkg *Package) {
 
 }
 
+func (e *Entity) GetFields() []*Field {
+	if e.Type == Struct || e.Type == Interface {
+		return e.fieldManager.GetFields()
+	}
+	return nil
+}
+
+func (e *Entity) GetMethods() []*Function {
+	if e.Type == Struct || e.Type == Interface {
+		return e.functionManager.GetMethods()
+	}
+	return nil
+}
+
 // IsImplInterface 是否实现改接口
 func (e *Entity) IsImplInterface(interfaceEntity *Entity) bool {
-
-	functions := interfaceEntity.Functions
+	if e.Type != Struct {
+		return false
+	}
+	functions := interfaceEntity.GetMethods()
 	//接口继承的方法也要加上
 	for _, extend := range interfaceEntity.Extends {
-		functions = append(functions, extend.Functions...)
+		functions = append(functions, extend.GetMethods()...)
 	}
 	//实体继承的方法
 	extendsFunctionMap := make(map[string]*Function)
 	for _, extend := range e.Extends {
-		for _, function := range extend.Functions {
+		for _, function := range extend.GetMethods() {
 			extendsFunctionMap[function.Name] = function
 		}
 	}
-	if len(e.Functions)+len(extendsFunctionMap) < len(functions) {
+	if len(e.GetMethods())+len(extendsFunctionMap) < len(functions) {
 		return false
 	}
-
 	for _, function := range functions {
-		fun, ok := e.functionMap[function.Name]
-		if !ok {
-			fun, ok = extendsFunctionMap[function.Name]
+		fun := e.FindMethodByName(function.Name)
+		if fun == nil {
+			fun, _ = extendsFunctionMap[function.Name]
 		}
-		if !ok {
-			return false
-		} else {
+		if fun != nil {
 			if !fun.sameFunctionSignature(function) {
 				return false
 			}
+		} else {
+			return false
 		}
 	}
 	return true
@@ -255,10 +260,9 @@ func (f *Function) sameFunctionSignature(function *Function) bool {
 		}
 	}
 	return true
-
 }
 
-func (f *Function) Parse(ctx context.Context, node *ast.FuncType) {
+func (f *Function) Parse(node *ast.FuncType) {
 	if node.Params != nil {
 		for _, param := range node.Params.List {
 			f.Params = append(f.Params, buildField(param, f.Scope))
@@ -270,231 +274,57 @@ func (f *Function) Parse(ctx context.Context, node *ast.FuncType) {
 		}
 	}
 }
-func (f *Function) AnalyzeRelations(ctx context.Context, file *File) []*Relation {
-	if f.Name == "GetOneVMV2" {
-		return f.ParseBlockCalls(f.Data, file)
-	}
-	return f.ParseBlockCalls(f.Data, file)
+
+// FunctionManager 函数管理器
+type FunctionManager struct {
+	file        *File
+	functions   []*Function
+	methods     []*Function
+	functionMap map[string]*Function
+	methodMap   map[string]*Function
 }
 
-// ParseBlockCalls 解析 BlockStmt 中的函数调用
-func (f *Function) ParseBlockCalls(block *ast.BlockStmt, file *File) []*Relation {
-	if block == nil {
-		return nil
+func NewFunctionManager(file *File) *FunctionManager {
+	return &FunctionManager{
+		file:        file,
+		functionMap: make(map[string]*Function),
+		methodMap:   make(map[string]*Function),
 	}
-	var rs []*Relation
-	// 遍历块语句中的所有语句
-	for _, stmt := range block.List {
-		rs = append(rs, f.parseStmtForCalls(stmt, file)...)
+}
+func (fm *FunctionManager) CountFunction() int {
+	return len(fm.functions)
+}
+func (fm *FunctionManager) CountMethod() int {
+	return len(fm.methods)
+}
+func (fm *FunctionManager) AddFunction(fun *Function) {
+	if _, ok := fm.functionMap[fun.Name]; ok {
+		return
 	}
-	return rs
+	fm.functionMap[fun.Name] = fun
+	fm.functions = append(fm.functions, fun)
 
 }
-
-// 递归解析语句中的函数调用
-func (f *Function) parseStmtForCalls(stmt ast.Stmt, file *File) []*Relation {
-	var rs []*Relation
-	switch s := stmt.(type) {
-	case *ast.ExprStmt: // 表达式语句
-		rs = append(rs, f.parseExprForCall(s.X, file)...)
-
-	case *ast.AssignStmt: // 赋值语句
-		for _, expr := range s.Rhs {
-			rs = append(rs, f.parseExprForCall(expr, file)...)
-		}
-
-	case *ast.ReturnStmt: // 返回语句
-		for _, expr := range s.Results {
-			rs = append(rs, f.parseExprForCall(expr, file)...)
-		}
-
-	case *ast.IfStmt: // if语句
-		if s.Init != nil {
-			rs = append(rs, f.parseStmtForCalls(s.Init, file)...)
-		}
-		rs = append(rs, f.parseStmtForCalls(s.Body, file)...)
-
-	case *ast.ForStmt: // for循环
-		if s.Init != nil {
-			rs = append(rs, f.parseStmtForCalls(s.Init, file)...)
-		}
-		rs = append(rs, f.parseStmtForCalls(s.Body, file)...)
-
-	case *ast.RangeStmt: // range循环
-		rs = append(rs, f.parseExprForCall(s.X, file)...)
-		rs = append(rs, f.parseStmtForCalls(s.Body, file)...)
-
-	case *ast.BlockStmt: // 嵌套代码块
-		rs = append(rs, f.ParseBlockCalls(s, file)...)
-	case *ast.GoStmt:
-		rs = append(rs, f.parseExprForCall(s.Call, file)...)
-
-	case *ast.DeclStmt: // 声明语句
-		if genDecl, ok := s.Decl.(*ast.GenDecl); ok {
-			for _, spec := range genDecl.Specs {
-				if valSpec, ok := spec.(*ast.ValueSpec); ok {
-					for _, val := range valSpec.Values {
-						rs = append(rs, f.parseExprForCall(val, file)...)
-					}
-				}
-			}
-		}
+func (fm *FunctionManager) AddMethod(fun *Function) {
+	if _, ok := fm.methodMap[fun.Name]; ok {
+		return
 	}
-	return rs
-
+	fm.methodMap[fun.Name] = fun
+	fm.methods = append(fm.methods, fun)
 }
 
-// 递归解析表达式中的函数调用
-func (f *Function) parseExprForCall(expr ast.Expr, file *File) []*Relation {
-	var rs []*Relation
-	switch e := expr.(type) {
-	case *ast.CallExpr: // 函数调用表达式
-		rs = append(rs, f.parseFunctionInfo(e.Fun, file)...)
-
-	case *ast.ParenExpr: // 括号表达式
-		rs = append(rs, f.parseExprForCall(e.X, file)...)
-
-	case *ast.UnaryExpr: // 一元表达式
-		rs = append(rs, f.parseExprForCall(e.X, file)...)
-
-	case *ast.BinaryExpr: // 二元表达式
-		rs = append(rs, f.parseExprForCall(e.X, file)...)
-		rs = append(rs, f.parseExprForCall(e.Y, file)...)
-
-	case *ast.SelectorExpr: // 选择器表达式
-		rs = append(rs, f.parseExprForCall(e.X, file)...)
-		rs = append(rs, f.parseExprForCall(e.Sel, file)...)
-
-	case *ast.IndexExpr: // 索引表达式
-		rs = append(rs, f.parseExprForCall(e.X, file)...)
-		rs = append(rs, f.parseExprForCall(e.Index, file)...)
-
-	case *ast.SliceExpr: // 切片表达式
-		rs = append(rs, f.parseExprForCall(e.X, file)...)
-
-	case *ast.CompositeLit: // 复合字面量
-		for _, elt := range e.Elts {
-			if kv, ok := elt.(*ast.KeyValueExpr); ok {
-				rs = append(rs, f.parseExprForCall(kv.Value, file)...)
-			} else {
-				rs = append(rs, f.parseExprForCall(elt, file)...)
-			}
-		}
-	}
-	return rs
+func (fm *FunctionManager) GetMethodByName(methodName string) *Function {
+	return fm.methodMap[methodName]
 }
 
-// parseFunctionInfo 解析函数标识信息
-func (f *Function) parseFunctionInfo(expr ast.Expr, file *File) []*Relation {
-	switch fun := expr.(type) {
-	case *ast.Ident:
-		function := file.pkg.GetFunction(fun.Name)
-		if function == nil {
-			return nil
-		}
-		return []*Relation{{Type: Call, SourceID: f.ID, TargetID: function.ID}}
-	case *ast.SelectorExpr:
-		if ident, ok := fun.X.(*ast.Ident); ok {
-			if ident.Obj == nil { //其他包的方法调用
-				function := file.GetFunctionForImport(ident.Name, fun.Sel.Name)
-				if function == nil {
-					return nil
-				}
-				return []*Relation{{Type: Call, SourceID: f.ID, TargetID: function.ID}}
-
-			}
-			//该实体的方法之间调用
-			typeName := ""
-			if field, ok := ident.Obj.Decl.(*ast.Field); ok {
-				switch t := field.Type.(type) {
-				case *ast.Ident:
-					typeName = t.Name
-				case *ast.StarExpr:
-					if tident, ok := t.X.(*ast.Ident); ok {
-						typeName = tident.Name
-					}
-
-				}
-			}
-			if value, ok := ident.Obj.Decl.(*ast.ValueSpec); ok { //函数内的变量方法
-				switch t := value.Type.(type) {
-				case *ast.SelectorExpr:
-					pkg := ""
-					if tident, ok := t.X.(*ast.Ident); ok {
-						pkg = tident.Name
-					}
-					if start, ok := t.X.(*ast.StarExpr); ok {
-						if tident, ok := start.X.(*ast.Ident); ok {
-							pkg = tident.Name
-						}
-					}
-					entityName := t.Sel.Name
-					entity := file.GetEntityForImport(pkg, entityName)
-					if entity == nil {
-						return nil
-					}
-					function := entity.functionMap[fun.Sel.Name]
-					if function == nil {
-						return nil
-					}
-					return []*Relation{{Type: Call, SourceID: f.ID, TargetID: function.ID}}
-
-				}
-			}
-			entity := file.pkg.GetEntity(typeName)
-			if entity == nil {
-				return nil
-			}
-			function := entity.FindFunctionByName(fun.Sel.Name)
-			if function == nil {
-				return nil
-			}
-			return []*Relation{{Type: Call, SourceID: f.ID, TargetID: function.ID}}
-		}
-		//调用该实体的属性的方法
-		if se, ok := fun.X.(*ast.SelectorExpr); ok {
-			fieldName := se.Sel.Name
-			method := fun.Sel.Name
-			typeName := ""
-			if ident, ok := se.X.(*ast.Ident); ok {
-				if ident.Obj == nil {
-					return nil
-				}
-				if field, ok := ident.Obj.Decl.(*ast.Field); ok {
-					switch t := field.Type.(type) {
-					case *ast.Ident:
-						typeName = t.Name
-					case *ast.StarExpr:
-						if tident, ok := t.X.(*ast.Ident); ok {
-							typeName = tident.Name
-						}
-
-					}
-				}
-			}
-			entity := file.pkg.GetEntity(typeName)
-			if entity == nil {
-				return nil
-			}
-			field := entity.fieldMap[fieldName]
-			if field == nil {
-				return nil
-			}
-			function := field.findFunction(method, file)
-			if function == nil {
-				return nil
-			}
-			return []*Relation{{Type: Call, SourceID: f.ID, TargetID: function.ID}}
-		}
-	default:
-		fmt.Printf("unhandled expr type: %T\n,file:%s", expr, file.ID)
-		return nil
-	}
-	return nil
+func (fm *FunctionManager) GetFunctions() []*Function {
+	return fm.functions
 }
-
-func findReceiverType() *Entity {
-	return nil
+func (fm *FunctionManager) GetMethods() []*Function {
+	return fm.methods
+}
+func (fm *FunctionManager) GetFunctionByName(name string) *Function {
+	return fm.functionMap[name]
 }
 
 type Field struct {
@@ -509,7 +339,30 @@ type Field struct {
 	ID       string    `json:"id"`
 	file     *File
 }
+type FieldManager struct {
+	fields    []*Field
+	fieldsMap map[string]*Field
+}
 
+func NewFieldManager() *FieldManager {
+	return &FieldManager{
+
+		fieldsMap: make(map[string]*Field),
+	}
+}
+
+func (fm *FieldManager) AddField(fd *Field) {
+	fm.fieldsMap[fd.Name] = fd
+	fm.fields = append(fm.fields, fd)
+}
+
+func (fm *FieldManager) GetFields() []*Field {
+	return fm.fields
+}
+
+func (fm *FieldManager) GetFieldByName(name string) *Field {
+	return fm.fieldsMap[name]
+}
 func buildField(field *ast.Field, scope ScopeType) *Field {
 	var pField *Field
 	if len(field.Names) < 1 {
@@ -540,20 +393,19 @@ func (field *Field) IsSameType(f *Field) bool {
 	}
 	objType1 := field.ObjType
 	objType2 := f.ObjType
-	for _, i := range field.file.Imports {
+	for _, i := range field.file.GetImports() {
 		objType1 = strings.Replace(objType1, fmt.Sprintf("%s.", i.GetRef()), "", 1)
 	}
-	for _, i := range f.file.Imports {
+	for _, i := range f.file.GetImports() {
 		objType2 = strings.Replace(objType2, fmt.Sprintf("%s.", i.GetRef()), "", 1)
 	}
 	if objType1 == objType2 {
 		return true
 	}
-
 	return false
 }
 
-func (field *Field) findFunction(methodName string, file *File) *Function {
+func (field *Field) FindFunctionByName(methodName string, file *File) *Function {
 	if field.expr == nil {
 		return nil
 	}
@@ -565,18 +417,24 @@ func (field *Field) findFunction(methodName string, file *File) *Function {
 				if entity == nil {
 					return nil
 				}
-				return entity.FindFunctionByName(methodName)
+				return entity.FindMethodByName(methodName)
 			}
 
 		}
+	case *ast.Ident:
+		entity := file.GetEntityByNameInPackage(fun.Name)
+		if entity == nil {
+			return nil
+		}
+		return entity.FindMethodByName(methodName)
+
 	case *ast.SelectorExpr:
 		if ident, ok := fun.X.(*ast.Ident); ok {
 			entity := file.GetEntityForImport(ident.Name, fun.Sel.Name)
 			if entity == nil {
 				return nil
 			}
-			return entity.FindFunctionByName(methodName)
-
+			return entity.FindMethodByName(methodName)
 		}
 	}
 	return nil

@@ -39,10 +39,10 @@ func (projectRepo *projectRepo) SaveProject(ctx context.Context, project *biz.Pr
 	if err := batchSaveFunction(ctx, session, functions); err != nil {
 		return err
 	}
-	methods := getMethods(entities)
-	if err := batchSaveFunction(ctx, session, methods); err != nil {
-		return err
-	}
+	/*	methods := getMethods(entities)
+		if err := batchSaveFunction(ctx, session, methods); err != nil {
+			return err
+		}*/
 	fields := getFields(entities)
 	if err := batchSaveField(ctx, session, fields); err != nil {
 		return err
@@ -53,35 +53,41 @@ func (projectRepo *projectRepo) SaveProject(ctx context.Context, project *biz.Pr
 func getEntities(files []*biz.File) []*biz.Entity {
 	var entities []*biz.Entity
 	for _, file := range files {
-		entities = append(entities, file.Entities...)
+		entities = append(entities, file.GetEntities()...)
 	}
 	return entities
 }
 func getFunctions(files []*biz.File) []*biz.Function {
 	var functions []*biz.Function
 	for _, file := range files {
-		functions = append(functions, file.Functions...)
+		functions = append(functions, file.GetFunctions()...)
+		for _, entity := range file.GetEntities() {
+			functions = append(functions, entity.GetMethods()...)
+		}
 	}
 	return functions
 }
-func getMethods(entities []*biz.Entity) []*biz.Function {
-	var functions []*biz.Function
-	for _, entity := range entities {
-		functions = append(functions, entity.Functions...)
+
+/*
+	func getMethods(entities []*biz.Entity) []*biz.Function {
+		var functions []*biz.Function
+		for _, entity := range entities {
+			functions = append(functions, entity.GetFunctions()...)
+		}
+		return functions
 	}
-	return functions
-}
+*/
 func getFields(entities []*biz.Entity) []*biz.Field {
 	var fields []*biz.Field
 	for _, entity := range entities {
-		fields = append(fields, entity.Fields...)
+		fields = append(fields, entity.GetFields()...)
 	}
 	return fields
 }
 func getImports(files []*biz.File) []*biz.Import {
 	var imports []*biz.Import
 	for _, file := range files {
-		imports = append(imports, file.Imports...)
+		imports = append(imports, file.GetImports()...)
 	}
 	return imports
 }

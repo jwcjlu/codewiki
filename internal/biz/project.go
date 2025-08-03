@@ -12,14 +12,13 @@ import (
 )
 
 type Project struct {
-	config       *Config
-	module       string
-	entities     map[string]*Entity
-	RootPath     string
-	pkgs         map[string]*Package
-	Relations    []*Relation
-	Root         *Package
-	relationsmap map[string]bool
+	config      *Config
+	module      string
+	RootPath    string
+	pkgs        map[string]*Package
+	Relations   []*Relation
+	Root        *Package
+	relationMap map[string]bool
 }
 type Config struct {
 	Language string
@@ -28,7 +27,7 @@ type Config struct {
 }
 
 func NewProject(config *Config) *Project {
-	return &Project{config: config, entities: make(map[string]*Entity), pkgs: make(map[string]*Package), relationsmap: make(map[string]bool)}
+	return &Project{config: config, pkgs: make(map[string]*Package), relationMap: make(map[string]bool)}
 }
 
 func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo ProjectRepo) error {
@@ -71,74 +70,6 @@ func (p *Project) ParseCode(ctx context.Context, rootPath string) (*Package, err
 	return root, nil
 }
 
-func (p *Project) shouldInclude(path string) bool {
-	ext := filepath.Ext(path)
-	if p.config.Language != "auto" && len(ext) > 0 {
-		if !strings.HasPrefix(ext, "."+p.config.Language) {
-			return false
-		}
-	}
-
-	for _, exclude := range p.config.Excludes {
-		if matched, _ := regexp.MatchString(exclude, path); matched {
-			return false
-		}
-	}
-
-	if len(p.config.Includes) > 0 {
-		for _, include := range p.config.Includes {
-			if matched, _ := regexp.MatchString(include, path); matched {
-				return true
-			}
-		}
-		return false
-	}
-
-	return true
-}
-
-// GetModuleName 解析 go.mod 文件并返回模块名称
-func GetModuleName(goModPath string) (string, error) {
-	// 读取 go.mod 文件内容
-	data, err := os.ReadFile(goModPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", fmt.Errorf("go.mod file not found: %w", err)
-		}
-		return "", fmt.Errorf("error reading go.mod: %w", err)
-	}
-
-	// 解析 mod 文件
-	f, err := modfile.Parse(goModPath, data, nil)
-	if err != nil {
-		return "", fmt.Errorf("error parsing modfile: %w", err)
-	}
-
-	// 获取 module 路径
-	if f.Module == nil {
-		return "", fmt.Errorf("no module declaration found in %s", goModPath)
-	}
-
-	return f.Module.Mod.Path, nil
-}
-
-// FindGoModPath 向上搜索目录树查找最近的 go.mod
-func FindGoModPath(startDir string) (string, error) {
-	dir := startDir
-	for {
-		modPath := filepath.Join(dir, "go.mod")
-		if _, err := os.Stat(modPath); err == nil {
-			return modPath, nil
-		}
-
-		parent := filepath.Dir(dir)
-		if parent == dir { // 到达根目录
-			return "", fmt.Errorf("no go.mod found in directory tree")
-		}
-		dir = parent
-	}
-}
-
 func (p *Project) AnalyzeRelations(ctx context.Context) error {
 	for _, pkg := range p.pkgs {
 		if err := pkg.AnalyzeRelations(ctx, p.module); err != nil {
@@ -157,46 +88,46 @@ func (p *Project) AnalyzeRelations(ctx context.Context) error {
 	return nil
 }
 
-func (p *Project) AddEntity(key string, entity *Entity) {
-	p.entities[key] = entity
-}
-
 func (p *Project) GetEntity(pkgName, key string) *Entity {
 	pkg, ok := p.pkgs[pkgName]
 	if ok {
-		return pkg.structMap[key]
+		return pkg.GetEntity(key)
 
 	}
 	if len(p.RootPath) > 0 {
 		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s", p.RootPath, pkgName)]
 	}
 	if ok {
-		return pkg.structMap[key]
+		return pkg.GetEntity(key)
 	}
 	return nil
 }
 
-func (p *Project) GetFunction(pkgName, functionName string) *Function {
+func (p *Project) GetFunctionByName(pkgName, functionName string) *Function {
+	pkg := p.GetPackageByName(pkgName)
+	if pkg != nil {
+		return pkg.GetFunctionByName(functionName)
+	}
+	return nil
+}
+
+func (p *Project) GetPackageByName(pkgName string) *Package {
 	pkg, ok := p.pkgs[pkgName]
 	if ok {
-		return pkg.functionMap[functionName]
-
+		return pkg
 	}
 	if len(p.RootPath) > 0 {
 		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s", p.RootPath, pkgName)]
 	}
-	if ok {
-		return pkg.functionMap[functionName]
-	}
-	return nil
+	return pkg
 }
 func (p *Project) AddRelations(rs []*Relation) {
 	for _, r := range rs {
-		if _, ok := p.relationsmap[r.UnionKey()]; ok {
+		if _, ok := p.relationMap[r.UnionKey()]; ok {
 			continue
 		}
 		p.Relations = append(p.Relations, r)
-		p.relationsmap[r.UnionKey()] = true
+		p.relationMap[r.UnionKey()] = true
 	}
 
 }
@@ -241,4 +172,71 @@ func (p *Project) GetFiles() []*File {
 
 	}
 	return files
+}
+
+// GetModuleName 解析 go.mod 文件并返回模块名称
+func GetModuleName(goModPath string) (string, error) {
+	// 读取 go.mod 文件内容
+	data, err := os.ReadFile(goModPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", fmt.Errorf("go.mod file not found: %w", err)
+		}
+		return "", fmt.Errorf("error reading go.mod: %w", err)
+	}
+
+	// 解析 mod 文件
+	f, err := modfile.Parse(goModPath, data, nil)
+	if err != nil {
+		return "", fmt.Errorf("error parsing modfile: %w", err)
+	}
+
+	// 获取 module 路径
+	if f.Module == nil {
+		return "", fmt.Errorf("no module declaration found in %s", goModPath)
+	}
+
+	return f.Module.Mod.Path, nil
+}
+func (p *Project) shouldInclude(path string) bool {
+	ext := filepath.Ext(path)
+	if p.config.Language != "auto" && len(ext) > 0 {
+		if !strings.HasPrefix(ext, "."+p.config.Language) {
+			return false
+		}
+	}
+
+	for _, exclude := range p.config.Excludes {
+		if matched, _ := regexp.MatchString(exclude, path); matched {
+			return false
+		}
+	}
+
+	if len(p.config.Includes) > 0 {
+		for _, include := range p.config.Includes {
+			if matched, _ := regexp.MatchString(include, path); matched {
+				return true
+			}
+		}
+		return false
+	}
+
+	return true
+}
+
+// FindGoModPath 向上搜索目录树查找最近的 go.mod
+func FindGoModPath(startDir string) (string, error) {
+	dir := startDir
+	for {
+		modPath := filepath.Join(dir, "go.mod")
+		if _, err := os.Stat(modPath); err == nil {
+			return modPath, nil
+		}
+
+		parent := filepath.Dir(dir)
+		if parent == dir { // 到达根目录
+			return "", fmt.Errorf("no go.mod found in directory tree")
+		}
+		dir = parent
+	}
 }
