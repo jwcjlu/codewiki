@@ -12,13 +12,13 @@ import (
 )
 
 type Project struct {
-	config    *Config
-	module    string
-	entities  map[string]*Entity
-	RootPath  string
-	pkgs      map[string]*Package
-	Relations []*Relation
-	Root      *Package
+	config      *Config
+	module      string
+	RootPath    string
+	pkgs        map[string]*Package
+	Relations   []*Relation
+	Root        *Package
+	relationMap map[string]bool
 }
 type Config struct {
 	Language string
@@ -27,7 +27,7 @@ type Config struct {
 }
 
 func NewProject(config *Config) *Project {
-	return &Project{config: config, entities: make(map[string]*Entity), pkgs: make(map[string]*Package)}
+	return &Project{config: config, pkgs: make(map[string]*Package), relationMap: make(map[string]bool)}
 }
 
 func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo ProjectRepo) error {
@@ -35,8 +35,8 @@ func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo Proj
 	if err != nil {
 		return v1.ErrorParseCodeError("parseCode failure ").WithCause(err)
 	}
-	root.ClassifyExtends(ctx)
 	p.pkgs[root.ID] = root
+	root.ClassifyExtends(ctx)
 	root.ClassifyMethod(ctx)
 	p.Root = root
 	if err = p.AnalyzeRelations(ctx); err != nil {
@@ -70,30 +70,108 @@ func (p *Project) ParseCode(ctx context.Context, rootPath string) (*Package, err
 	return root, nil
 }
 
-func (p *Project) shouldInclude(path string) bool {
-	ext := filepath.Ext(path)
-	if p.config.Language != "auto" && len(ext) > 0 {
-		if !strings.HasPrefix(ext, "."+p.config.Language) {
-			return false
+func (p *Project) AnalyzeRelations(ctx context.Context) error {
+	for _, pkg := range p.pkgs {
+		if err := pkg.AnalyzeRelations(ctx, p.module); err != nil {
+			return err
 		}
+		if len(pkg.ParentID) > 0 {
+			p.Relations = append(p.Relations, &Relation{
+				Type:       Contains,
+				TargetID:   pkg.ID,
+				Confidence: 1,
+				SourceID:   pkg.ParentID,
+			})
+		}
+
+	}
+	return nil
+}
+
+func (p *Project) GetEntity(pkgName, key string) *Entity {
+	pkg, ok := p.pkgs[pkgName]
+	if ok {
+		return pkg.GetEntity(key)
+
+	}
+	if len(p.RootPath) > 0 {
+		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s", p.RootPath, pkgName)]
+	}
+	if ok {
+		return pkg.GetEntity(key)
+	}
+	return nil
+}
+
+func (p *Project) GetFunctionByName(pkgName, functionName string) *Function {
+	pkg := p.GetPackageByName(pkgName)
+	if pkg != nil {
+		return pkg.GetFunctionByName(functionName)
+	}
+	return nil
+}
+
+func (p *Project) GetPackageByName(pkgName string) *Package {
+	pkg, ok := p.pkgs[pkgName]
+	if ok {
+		return pkg
+	}
+	if len(p.RootPath) > 0 {
+		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s", p.RootPath, pkgName)]
+	}
+	return pkg
+}
+func (p *Project) AddRelations(rs []*Relation) {
+	for _, r := range rs {
+		if _, ok := p.relationMap[r.UnionKey()]; ok {
+			continue
+		}
+		p.Relations = append(p.Relations, r)
+		p.relationMap[r.UnionKey()] = true
 	}
 
-	for _, exclude := range p.config.Excludes {
-		if matched, _ := regexp.MatchString(exclude, path); matched {
-			return false
-		}
-	}
+}
+func (p *Project) AddPackage(pkg *Package) {
+	p.pkgs[pkg.ID] = pkg
+}
 
-	if len(p.config.Includes) > 0 {
-		for _, include := range p.config.Includes {
-			if matched, _ := regexp.MatchString(include, path); matched {
-				return true
+// AnalyzeInterfaceImplRelations 分析接口实现的的关系
+func (p *Project) AnalyzeInterfaceImplRelations(ctx context.Context) {
+	p.Relations = append(p.Relations, p.Root.AnalyzeInterfaceImplRelations(ctx, p)...)
+
+}
+
+// FindInterfaceImpl 找出接口的实现
+func (p *Project) FindInterfaceImpl(ctx context.Context, interfaceEntity *Entity) []*Entity {
+	return p.Root.FindInterfaceImpl(ctx, interfaceEntity)
+}
+
+func (p *Project) GetPackages() []*Package {
+	filter := map[string]bool{}
+	var packages []*Package
+	for _, pkg := range p.pkgs {
+		if _, ok := filter[pkg.ID]; ok {
+			continue
+		}
+		packages = append(packages, pkg)
+		filter[pkg.ID] = true
+	}
+	return packages
+}
+func (p *Project) GetFiles() []*File {
+	filter := map[string]bool{}
+	var files []*File
+	for _, pkg := range p.pkgs {
+		for _, file := range pkg.Files {
+			if _, ok := filter[file.ID]; ok {
+				continue
 			}
+			files = append(files, file)
+			filter[file.ID] = true
 		}
-		return false
-	}
 
-	return true
+	}
+	return files
 }
 
 // GetModuleName 解析 go.mod 文件并返回模块名称
@@ -120,6 +198,31 @@ func GetModuleName(goModPath string) (string, error) {
 
 	return f.Module.Mod.Path, nil
 }
+func (p *Project) shouldInclude(path string) bool {
+	ext := filepath.Ext(path)
+	if p.config.Language != "auto" && len(ext) > 0 {
+		if !strings.HasPrefix(ext, "."+p.config.Language) {
+			return false
+		}
+	}
+
+	for _, exclude := range p.config.Excludes {
+		if matched, _ := regexp.MatchString(exclude, path); matched {
+			return false
+		}
+	}
+
+	if len(p.config.Includes) > 0 {
+		for _, include := range p.config.Includes {
+			if matched, _ := regexp.MatchString(include, path); matched {
+				return true
+			}
+		}
+		return false
+	}
+
+	return true
+}
 
 // FindGoModPath 向上搜索目录树查找最近的 go.mod
 func FindGoModPath(startDir string) (string, error) {
@@ -136,76 +239,4 @@ func FindGoModPath(startDir string) (string, error) {
 		}
 		dir = parent
 	}
-}
-
-func (p *Project) AnalyzeRelations(ctx context.Context) error {
-	for _, pkg := range p.pkgs {
-		if err := pkg.AnalyzeRelations(ctx, p.module); err != nil {
-			return err
-		}
-		if len(pkg.ParentID) > 0 {
-			p.Relations = append(p.Relations, &Relation{
-				Type:       Contains,
-				TargetID:   pkg.ID,
-				Confidence: 1,
-				SourceID:   pkg.ParentID,
-			})
-		}
-
-	}
-	return nil
-}
-
-func (p *Project) AddEntity(key string, entity *Entity) {
-	p.entities[key] = entity
-}
-
-func (p *Project) GetEntity(pkgName, key string) *Entity {
-	pkg, ok := p.pkgs[pkgName]
-	if ok {
-		return pkg.structMap[key]
-
-	}
-	if len(p.RootPath) > 0 {
-		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s", p.RootPath, pkgName)]
-	}
-	if ok {
-		return pkg.structMap[key]
-	}
-	return nil
-}
-func (p *Project) AddRelations(rs []*Relation) {
-	p.Relations = append(p.Relations, rs...)
-}
-func (p *Project) AddPackage(pkg *Package) {
-	p.pkgs[pkg.ID] = pkg
-}
-
-// AnalyzeInterfaceImplRelations 分析接口实现的的关系
-func (p *Project) AnalyzeInterfaceImplRelations(ctx context.Context) {
-	p.Relations = append(p.Relations, p.Root.AnalyzeInterfaceImplRelations(ctx, p)...)
-
-}
-
-// FindInterfaceImpl 找出接口的实现
-func (p *Project) FindInterfaceImpl(ctx context.Context, interfaceEntity *Entity) []*Entity {
-	return p.Root.FindInterfaceImpl(ctx, interfaceEntity)
-}
-
-func (p *Project) GetPackages() []*Package {
-	var packages []*Package
-	for _, pkg := range p.pkgs {
-		packages = append(packages, pkg)
-	}
-	return packages
-}
-func (p *Project) GetFiles() []*File {
-	var files []*File
-	for _, pkg := range p.pkgs {
-		for _, file := range pkg.Files {
-			files = append(files, file)
-		}
-
-	}
-	return files
 }

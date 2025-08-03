@@ -214,6 +214,178 @@ func (x *AnalyzeResp) GetMsg() string {
 	return ""
 }
 
+type CallChainReq struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	StartFunctionName string                 `protobuf:"bytes,1,opt,name=startFunctionName,proto3" json:"startFunctionName,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *CallChainReq) Reset() {
+	*x = CallChainReq{}
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CallChainReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CallChainReq) ProtoMessage() {}
+
+func (x *CallChainReq) ProtoReflect() protoreflect.Message {
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CallChainReq.ProtoReflect.Descriptor instead.
+func (*CallChainReq) Descriptor() ([]byte, []int) {
+	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *CallChainReq) GetStartFunctionName() string {
+	if x != nil {
+		return x.StartFunctionName
+	}
+	return ""
+}
+
+type CallChainResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          int32                  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Msg           string                 `protobuf:"bytes,2,opt,name=msg,proto3" json:"msg,omitempty"`
+	CallRelations []*CallRelationship    `protobuf:"bytes,3,rep,name=callRelations,proto3" json:"callRelations,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CallChainResp) Reset() {
+	*x = CallChainResp{}
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CallChainResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CallChainResp) ProtoMessage() {}
+
+func (x *CallChainResp) ProtoReflect() protoreflect.Message {
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CallChainResp.ProtoReflect.Descriptor instead.
+func (*CallChainResp) Descriptor() ([]byte, []int) {
+	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *CallChainResp) GetCode() int32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *CallChainResp) GetMsg() string {
+	if x != nil {
+		return x.Msg
+	}
+	return ""
+}
+
+func (x *CallChainResp) GetCallRelations() []*CallRelationship {
+	if x != nil {
+		return x.CallRelations
+	}
+	return nil
+}
+
+type CallRelationship struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CallerId      string                 `protobuf:"bytes,1,opt,name=callerId,proto3" json:"callerId,omitempty"`
+	CallerName    string                 `protobuf:"bytes,2,opt,name=callerName,proto3" json:"callerName,omitempty"`
+	CalleeId      string                 `protobuf:"bytes,3,opt,name=calleeId,proto3" json:"calleeId,omitempty"`
+	CalleeName    string                 `protobuf:"bytes,4,opt,name=calleeName,proto3" json:"calleeName,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CallRelationship) Reset() {
+	*x = CallRelationship{}
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CallRelationship) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CallRelationship) ProtoMessage() {}
+
+func (x *CallRelationship) ProtoReflect() protoreflect.Message {
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CallRelationship.ProtoReflect.Descriptor instead.
+func (*CallRelationship) Descriptor() ([]byte, []int) {
+	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CallRelationship) GetCallerId() string {
+	if x != nil {
+		return x.CallerId
+	}
+	return ""
+}
+
+func (x *CallRelationship) GetCallerName() string {
+	if x != nil {
+		return x.CallerName
+	}
+	return ""
+}
+
+func (x *CallRelationship) GetCalleeId() string {
+	if x != nil {
+		return x.CalleeId
+	}
+	return ""
+}
+
+func (x *CallRelationship) GetCalleeName() string {
+	if x != nil {
+		return x.CalleeName
+	}
+	return ""
+}
+
 var File_codewiki_v1_codewiki_proto protoreflect.FileDescriptor
 
 const file_codewiki_v1_codewiki_proto_rawDesc = "" +
@@ -231,14 +403,31 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\bexcludes\x18\a \x03(\tR\bexcludes\"3\n" +
 	"\vAnalyzeResp\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x10\n" +
-	"\x03msg\x18\x02 \x01(\tR\x03msg*!\n" +
+	"\x03msg\x18\x02 \x01(\tR\x03msg\"<\n" +
+	"\fCallChainReq\x12,\n" +
+	"\x11startFunctionName\x18\x01 \x01(\tR\x11startFunctionName\"z\n" +
+	"\rCallChainResp\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x10\n" +
+	"\x03msg\x18\x02 \x01(\tR\x03msg\x12C\n" +
+	"\rcallRelations\x18\x03 \x03(\v2\x1d.codewiki.v1.CallRelationshipR\rcallRelations\"\x8a\x01\n" +
+	"\x10CallRelationship\x12\x1a\n" +
+	"\bcallerId\x18\x01 \x01(\tR\bcallerId\x12\x1e\n" +
+	"\n" +
+	"callerName\x18\x02 \x01(\tR\n" +
+	"callerName\x12\x1a\n" +
+	"\bcalleeId\x18\x03 \x01(\tR\bcalleeId\x12\x1e\n" +
+	"\n" +
+	"calleeName\x18\x04 \x01(\tR\n" +
+	"calleeName*!\n" +
 	"\bRepoType\x12\t\n" +
 	"\x05Local\x10\x00\x12\n" +
 	"\n" +
-	"\x06Github\x10\x012\x81\x01\n" +
-	"\x0fCodeWikiService\x12n\n" +
-	"\aAnalyze\x12\x17.codewiki.v1.AnalyzeReq\x1a\x18.codewiki.v1.AnalyzeResp\"0\xbaG\x0e\x12\f分析代码\x82\xd3\xe4\x93\x02\x19:\x01*\"\x14/v1/codewiki/analyzeB,\n" +
-	"\vcodewiki.v1P\x01Z\x1bcodewiki/api/codewiki/v1;v1b\x06proto3"
+	"\x06Github\x10\x012\x8f\x02\n" +
+	"\x0fCodeWikiService\x12q\n" +
+	"\aAnalyze\x12\x17.codewiki.v1.AnalyzeReq\x1a\x18.codewiki.v1.AnalyzeResp\"3\xbaG\x0e\x12\f分析代码\x82\xd3\xe4\x93\x02\x1c:\x01*\"\x17/v1/api/project/analyze\x12\x88\x01\n" +
+	"\tCallChain\x12\x19.codewiki.v1.CallChainReq\x1a\x1a.codewiki.v1.CallChainResp\"D\xbaG\x0e\x12\f分析代码\x82\xd3\xe4\x93\x02-\x12+/v1/api/functions/{startFunctionName}/callsB+\n" +
+	"\n" +
+	"codewikiV1P\x01Z\x1bcodewiki/api/codewiki/v1;v1b\x06proto3"
 
 var (
 	file_codewiki_v1_codewiki_proto_rawDescOnce sync.Once
@@ -253,21 +442,27 @@ func file_codewiki_v1_codewiki_proto_rawDescGZIP() []byte {
 }
 
 var file_codewiki_v1_codewiki_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_codewiki_v1_codewiki_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_codewiki_v1_codewiki_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
 var file_codewiki_v1_codewiki_proto_goTypes = []any{
-	(RepoType)(0),       // 0: codewiki.v1.RepoType
-	(*AnalyzeReq)(nil),  // 1: codewiki.v1.AnalyzeReq
-	(*AnalyzeResp)(nil), // 2: codewiki.v1.AnalyzeResp
+	(RepoType)(0),            // 0: codewiki.v1.RepoType
+	(*AnalyzeReq)(nil),       // 1: codewiki.v1.AnalyzeReq
+	(*AnalyzeResp)(nil),      // 2: codewiki.v1.AnalyzeResp
+	(*CallChainReq)(nil),     // 3: codewiki.v1.CallChainReq
+	(*CallChainResp)(nil),    // 4: codewiki.v1.CallChainResp
+	(*CallRelationship)(nil), // 5: codewiki.v1.CallRelationship
 }
 var file_codewiki_v1_codewiki_proto_depIdxs = []int32{
 	0, // 0: codewiki.v1.AnalyzeReq.repoType:type_name -> codewiki.v1.RepoType
-	1, // 1: codewiki.v1.CodeWikiService.Analyze:input_type -> codewiki.v1.AnalyzeReq
-	2, // 2: codewiki.v1.CodeWikiService.Analyze:output_type -> codewiki.v1.AnalyzeResp
-	2, // [2:3] is the sub-list for method output_type
-	1, // [1:2] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	5, // 1: codewiki.v1.CallChainResp.callRelations:type_name -> codewiki.v1.CallRelationship
+	1, // 2: codewiki.v1.CodeWikiService.Analyze:input_type -> codewiki.v1.AnalyzeReq
+	3, // 3: codewiki.v1.CodeWikiService.CallChain:input_type -> codewiki.v1.CallChainReq
+	2, // 4: codewiki.v1.CodeWikiService.Analyze:output_type -> codewiki.v1.AnalyzeResp
+	4, // 5: codewiki.v1.CodeWikiService.CallChain:output_type -> codewiki.v1.CallChainResp
+	4, // [4:6] is the sub-list for method output_type
+	2, // [2:4] is the sub-list for method input_type
+	2, // [2:2] is the sub-list for extension type_name
+	2, // [2:2] is the sub-list for extension extendee
+	0, // [0:2] is the sub-list for field type_name
 }
 
 func init() { file_codewiki_v1_codewiki_proto_init() }
@@ -281,7 +476,7 @@ func file_codewiki_v1_codewiki_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_codewiki_v1_codewiki_proto_rawDesc), len(file_codewiki_v1_codewiki_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   2,
+			NumMessages:   5,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

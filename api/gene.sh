@@ -1,0 +1,1 @@
+ kratos proto client .\codewiki\v1\codewiki.proto -p ..\third_party\

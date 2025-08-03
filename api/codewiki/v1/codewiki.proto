@@ -17,8 +17,16 @@ enum RepoType{
 service CodeWikiService {
   rpc Analyze(AnalyzeReq) returns (AnalyzeResp) {
     option (google.api.http) = {
-      post: "/v1/codewiki/analyze"
+      post: "/v1/api/project/analyze"
       body: "*"
+    };
+    option (openapi.v3.operation) = {
+      summary: "分析代码"
+    };
+  }
+  rpc CallChain(CallChainReq) returns (CallChainResp) {
+    option (google.api.http) = {
+      get: "/v1/api/functions/{startFunctionName}/calls"
     };
     option (openapi.v3.operation) = {
       summary: "分析代码"
@@ -38,4 +46,21 @@ message AnalyzeReq{
 message AnalyzeResp{
   int32 code=1;
   string msg=2;
+}
+
+message CallChainReq{
+  string startFunctionName=1;
+}
+
+message CallChainResp{
+  int32 code=1;
+  string msg=2;
+  repeated CallRelationship callRelations=3;
+}
+
+message CallRelationship{
+  string callerId=1;
+  string callerName=2;
+  string calleeId=3;
+  string calleeName=4;
 }

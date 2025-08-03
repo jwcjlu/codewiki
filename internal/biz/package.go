@@ -17,20 +17,16 @@ type Package struct {
 	Files       []*File
 	filter      func(path string) bool
 	entityCount int
-	structMap   map[string]*Entity
 	project     *Project
-	functionMap map[string]*Function
 }
 
 func NewPackage(filter func(path string) bool, project *Project, parentID, name string) *Package {
 	pkg := &Package{
-		filter:      filter,
-		structMap:   make(map[string]*Entity),
-		project:     project,
-		ParentID:    parentID,
-		Name:        name,
-		ID:          geneID(parentID, name),
-		functionMap: make(map[string]*Function),
+		filter:   filter,
+		project:  project,
+		ParentID: parentID,
+		Name:     name,
+		ID:       geneID(parentID, name),
 	}
 	project.AddPackage(pkg)
 	return pkg
@@ -61,7 +57,7 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 			}
 
 			file := NewFile(dir.Name(), p)
-			if err = file.Parse(ctx, filepath.Join(rootPath, dir.Name()), p); err != nil {
+			if err = file.Parse(filepath.Join(rootPath, dir.Name())); err != nil {
 				return err
 			}
 			p.Files = append(p.Files, file)
@@ -155,21 +151,11 @@ func filterFolder(path string) bool {
 	}
 	return false
 }
-func (p *Package) AddEntity(name string, entity *Entity) {
-	p.structMap[name] = entity
-}
-func (p *Package) AddFunction(name string, fun *Function) {
-	p.functionMap[name] = fun
-}
 func (p *Package) GetProject() *Project {
 	return p.project
 }
 func (p *Package) GetModule() string {
 	return p.project.module
-}
-func (p *Package) GetFunction(name string) *Function {
-	fun, _ := p.functionMap[name]
-	return fun
 }
 
 func (p *Package) AddFile(f *File) {
@@ -178,7 +164,7 @@ func (p *Package) AddFile(f *File) {
 func (p *Package) AnalyzeInterfaceImplRelations(ctx context.Context, project *Project) []*Relation {
 	var relations []*Relation
 	for _, file := range p.Files {
-		for _, entity := range file.Entities {
+		for _, entity := range file.GetEntities() {
 			if entity.Type != Interface {
 				continue
 			}
@@ -197,4 +183,21 @@ func (p *Package) AnalyzeInterfaceImplRelations(ctx context.Context, project *Pr
 		relations = append(relations, pkg.AnalyzeInterfaceImplRelations(ctx, project)...)
 	}
 	return relations
+}
+
+func (p *Package) GetFunctionByName(name string) *Function {
+	for _, file := range p.Files {
+		if fun := file.GetFunctionByName(name); fun != nil {
+			return fun
+		}
+	}
+	return nil
+}
+func (p *Package) GetEntity(name string) *Entity {
+	for _, file := range p.Files {
+		if entity := file.GetEntity(name); entity != nil {
+			return entity
+		}
+	}
+	return nil
 }

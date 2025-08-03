@@ -21,3 +21,8 @@ func (c *CodeWiki) Analyze(ctx context.Context, in *v1.AnalyzeReq) error {
 	return project.Analyze(ctx, in.Target, c.projectRepo)
 
 }
+func (c *CodeWiki) QueryCallChain(ctx context.Context, startFunctionName string) ([]*v1.CallRelationship, error) {
+
+	return c.projectRepo.QueryCallChain(ctx, startFunctionName)
+
+}

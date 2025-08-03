@@ -11,8 +11,10 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/middleware/validate"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/rs/cors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
+	"strings"
 
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/recovery"
@@ -21,10 +23,44 @@ import (
 
 // NewHTTPServer new an HTTP server.
 func NewHTTPServer(c *conf.Server, codeWikiService *service.CodeWikiService, logger log.Logger) *http.Server {
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // 生产环境应指定具体域名
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowCredentials: true,
+		MaxAge:           86400,
+		AllowOriginFunc: func(origin string) bool {
+			if origin == "" { // 允许无origin的请求（如curl）
+				return true
+			}
+			if origin == "null" {
+				return true
+			}
+
+			// 开发环境允许所有来源
+			if strings.Contains(origin, "http://localhost") {
+				return true
+			}
+
+			// 生产环境只允许特定域名
+			allowedDomains := []string{
+				"http://localhost:8000",
+			}
+
+			for _, domain := range allowedDomains {
+				if strings.HasPrefix(origin, domain) {
+					return true
+				}
+			}
+
+			return false
+		},
+	})
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
 		),
+		http.Filter(corsMiddleware.Handler),
 	}
 	if c.Http.Network != "" {
 		opts = append(opts, http.Network(c.Http.Network))

@@ -20,14 +20,17 @@ var _ = binding.EncodeURL
 const _ = http.SupportPackageIsVersion1
 
 const OperationCodeWikiServiceAnalyze = "/codewiki.v1.CodeWikiService/Analyze"
+const OperationCodeWikiServiceCallChain = "/codewiki.v1.CodeWikiService/CallChain"
 
 type CodeWikiServiceHTTPServer interface {
 	Analyze(context.Context, *AnalyzeReq) (*AnalyzeResp, error)
+	CallChain(context.Context, *CallChainReq) (*CallChainResp, error)
 }
 
 func RegisterCodeWikiServiceHTTPServer(s *http.Server, srv CodeWikiServiceHTTPServer) {
 	r := s.Route("/")
-	r.POST("/v1/codewiki/analyze", _CodeWikiService_Analyze0_HTTP_Handler(srv))
+	r.POST("/v1/api/project/analyze", _CodeWikiService_Analyze0_HTTP_Handler(srv))
+	r.GET("/v1/api/functions/{startFunctionName}/calls", _CodeWikiService_CallChain0_HTTP_Handler(srv))
 }
 
 func _CodeWikiService_Analyze0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
@@ -52,8 +55,31 @@ func _CodeWikiService_Analyze0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(
 	}
 }
 
+func _CodeWikiService_CallChain0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CallChainReq
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCodeWikiServiceCallChain)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CallChain(ctx, req.(*CallChainReq))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CallChainResp)
+		return ctx.Result(200, reply)
+	}
+}
+
 type CodeWikiServiceHTTPClient interface {
 	Analyze(ctx context.Context, req *AnalyzeReq, opts ...http.CallOption) (rsp *AnalyzeResp, err error)
+	CallChain(ctx context.Context, req *CallChainReq, opts ...http.CallOption) (rsp *CallChainResp, err error)
 }
 
 type CodeWikiServiceHTTPClientImpl struct {
@@ -66,11 +92,24 @@ func NewCodeWikiServiceHTTPClient(client *http.Client) CodeWikiServiceHTTPClient
 
 func (c *CodeWikiServiceHTTPClientImpl) Analyze(ctx context.Context, in *AnalyzeReq, opts ...http.CallOption) (*AnalyzeResp, error) {
 	var out AnalyzeResp
-	pattern := "/v1/codewiki/analyze"
+	pattern := "/v1/api/project/analyze"
 	path := binding.EncodeURL(pattern, in, false)
 	opts = append(opts, http.Operation(OperationCodeWikiServiceAnalyze))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CodeWikiServiceHTTPClientImpl) CallChain(ctx context.Context, in *CallChainReq, opts ...http.CallOption) (*CallChainResp, error) {
+	var out CallChainResp
+	pattern := "/v1/api/functions/{startFunctionName}/calls"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationCodeWikiServiceCallChain))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {
 		return nil, err
 	}

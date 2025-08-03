@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"time"
 )
 
 func batchSavePackage(ctx context.Context, session neo4j.SessionWithContext, pkgs []*biz.Package) error {
@@ -166,7 +167,6 @@ func batchSaveFunction(ctx context.Context, session neo4j.SessionWithContext, fu
 }
 
 func batchSaveField(ctx context.Context, session neo4j.SessionWithContext, fields []*biz.Field) error {
-
 	query := `
         UNWIND $batch AS fd
 		CREATE (f:Field {
@@ -176,7 +176,6 @@ func batchSaveField(ctx context.Context, session neo4j.SessionWithContext, field
                 entity_id: fd.entity_id
 		})
 		`
-
 	// 生成唯一ID，例如 entityID + fieldName
 	var params []map[string]any
 	for _, f := range fields {
@@ -265,7 +264,7 @@ func batchSaveImport(ctx context.Context, session neo4j.SessionWithContext, impo
 
 	return err
 }
-func batchSaveRelation(ctx context.Context, session neo4j.SessionWithContext, relations []*biz.Relation) error {
+func batchSaveRelation(ctx1 context.Context, neo4jDriver neo4j.DriverWithContext, relations []*biz.Relation) error {
 
 	// 将 Relation 结构体转换为 Neo4j 支持的格式
 	relMaps := make(map[string][]map[string]interface{})
@@ -277,20 +276,26 @@ func batchSaveRelation(ctx context.Context, session neo4j.SessionWithContext, re
 			"confidence": rel.Confidence,
 		})
 	}
-
+	ctx, _ := context.WithTimeout(ctx1, 10*time.Minute)
+	session := neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
 	for Type, params := range relMaps {
+
 		query := getCreateQueryCypher(Type)
 		if len(query) == 0 {
 			continue
 		}
+		// 执行当前批次的写入操作
 		if _, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
-			if _, err := tx.Run(ctx, query, map[string]interface{}{"rels": params}); err != nil {
+			result, err := tx.Run(ctx, query, map[string]interface{}{"rels": params})
+			if err != nil {
 				return nil, err
 			}
-			return nil, nil
+			return result, nil
 		}); err != nil {
 			return err
 		}
+
 	}
 
 	return nil
@@ -302,64 +307,55 @@ func getCreateQueryCypher(Type string) string {
 		return `
         UNWIND $rels AS rel
         MATCH (p:Package {id: rel.sourceID}), (e:Entity {id: rel.targetID})
-        MERGE (p)-[:DeclareEntity]->(e)
-        RETURN count(*) AS relationshipCount
+        CREATE (p)-[:DeclareEntity]->(e)
         `
 	case biz.ContainsFile:
 		return `
         UNWIND $rels AS rel
         MATCH (p:Package {id: rel.sourceID}), (f:File {id: rel.targetID})
-        MERGE (p)-[:ContainsFile]->(f)
-        RETURN count(*) AS relationshipCount
+        CREATE (p)-[:ContainsFile]->(f)
         `
 	case biz.DeclareFunc:
 		return `
         UNWIND $rels AS rel
         MATCH (f:File {id: rel.sourceID}), (fn:Function {id: rel.targetID})
-        MERGE (f)-[:DeclareFunc]->(fn)
-        RETURN count(*) AS relationshipCount
+        CREATE (f)-[:DeclareFunc]->(fn)
         `
 	case biz.HasMethod:
 		return `
         UNWIND $rels AS rel
         MATCH (e:Entity {id: rel.sourceID}), (f:Function {id: rel.targetID})
-        MERGE (e)-[:HasMethod]->(f)
-        RETURN count(*) AS relationshipCount
+        CREATE (e)-[:HasMethod]->(f)
         `
 	case biz.HasFields:
 		return `
         UNWIND $rels AS rel
         MATCH (e:Entity {id: rel.sourceID}), (fd:Field {id: rel.targetID})
-        MERGE (e)-[:HasFields]->(fd)
-        RETURN count(*) AS relationshipCount
+        CREATE (e)-[:HasFields]->(fd)
         `
 	case biz.Implement:
 		return `
         UNWIND $rels AS rel
         MATCH (e1:Entity {id: rel.sourceID}), (e2:Entity {id: rel.targetID})
-        MERGE (e1)-[:Implement]->(e2)
-        RETURN count(*) AS relationshipCount
+        CREATE (e1)-[:Implement]->(e2)
         `
 	case biz.Call:
 		return `
         UNWIND $rels AS rel
         MATCH (f1:Function {id: rel.sourceID}), (f2:Function {id: rel.targetID})
-        MERGE (f1)-[:Call]->(f2)
-        RETURN count(*) AS relationshipCount
+        CREATE (f1)-[:Call]->(f2)
         `
 	case biz.Contains:
 		return `
         UNWIND $rels AS rel
         MATCH (p1:Package {id: rel.sourceID}), (p2:Package {id: rel.targetID})
-        MERGE (p1)-[:Contains]->(p2)
-        RETURN count(*) AS relationshipCount
+        CREATE (p1)-[:Contains]->(p2)
         `
 	case biz.Extends:
 		return `
         UNWIND $rels AS rel
         MATCH (e1:Entity {id: rel.sourceID}), (e2:Entity {id: rel.targetID})
-        MERGE (e1)-[:Extends]->(e2)
-        RETURN count(*) AS relationshipCount
+        CREATE (e1)-[:Extends]->(e2)
         `
 	}
 	return ""

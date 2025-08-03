@@ -12,32 +12,151 @@ import (
 )
 
 type File struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	PkgID       string      `json:"pkg_id"`
-	Entities    []*Entity   `json:"entities"`
-	Functions   []*Function `json:"functions"`
-	f           *ast.File
-	Imports     []*Import
-	methods     []*Function
-	localImport map[string]*Import //本工程的包
-	pkg         *Package
-	functionMap map[string]*Function
-	entityMap   map[string]*Entity
+	ID       string `json:"id"`
+	Name     string `json:"name"`
+	PkgID    string `json:"pkg_id"`
+	FilePath string `json:"file_path"`
+
+	// AST相关
+	f1 *ast.File
+
+	// 导入管理
+	importManager *ImportManager
+
+	// 实体管理
+	entityManager *EntityManager
+
+	// 函数管理
+	functionManager *FunctionManager
+	// 包引用
+	pkg *Package
 }
 
+// NewFile 创建新的文件对象
 func NewFile(name string, pkg *Package) *File {
 	file := &File{
-		localImport: make(map[string]*Import),
-		Name:        name,
-		PkgID:       pkg.ID,
-		ID:          fmt.Sprintf("%s@%s", pkg.ID, name),
-		pkg:         pkg,
-		functionMap: make(map[string]*Function),
-		entityMap:   make(map[string]*Entity),
+		Name:  name,
+		PkgID: pkg.ID,
+		ID:    fmt.Sprintf("%s@%s", pkg.ID, name),
+		pkg:   pkg,
 	}
 
+	// 初始化各个管理器
+	file.importManager = NewImportManager(file)
+	file.entityManager = NewEntityManager(file)
+	file.functionManager = NewFunctionManager(file)
+
 	return file
+}
+func (file *File) Parse(filePath string) error {
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, filePath, nil, parser.AllErrors|parser.ParseComments)
+	if err != nil {
+		return err
+	}
+	visitor := &FileVisitor{
+		file: file,
+		pkg:  file.pkg,
+	}
+	ast.Walk(visitor, f)
+	return nil
+}
+
+func (file *File) AnalyzeRelations(ctx context.Context, pkg *Package) error {
+	relations, err := NewRelationAnalyzer(file, pkg).AnalyzeEntityRelations()
+	if err != nil {
+		return err
+	}
+	file.pkg.GetProject().AddRelations(relations)
+	return nil
+}
+func (file *File) FindInterfaceImpl(ctx context.Context, entity *Entity) []*Entity {
+	if entity.Type != Interface {
+		return nil
+	}
+	if entity.CountFunction() < 1 {
+		return nil
+	}
+	var entities []*Entity
+	for _, e := range file.entityManager.GetEntities() {
+		if e.Type != Struct {
+			continue
+		}
+		if e.IsImplInterface(entity) {
+			entities = append(entities, e)
+		}
+	}
+	return entities
+}
+func (file *File) ClassifyMethod(ctx context.Context, pkg *Package) {
+	for _, fun := range file.functionManager.GetMethods() {
+		structEntity := pkg.GetEntity(fun.Receiver)
+		if structEntity == nil {
+			continue
+		}
+		structEntity.AddMethod(fun)
+	}
+}
+
+func (file *File) ClassifyExtends(ctx context.Context, pkg *Package) {
+	for _, entity := range file.entityManager.GetEntities() {
+		entity.HandlerExtends(file, pkg)
+	}
+
+}
+
+func (file *File) GetFunctionByNameInPackage(name string) *Function {
+	return file.pkg.GetFunctionByName(name)
+}
+func (file *File) GetEntityByNameInPackage(name string) *Entity {
+	return file.pkg.GetEntity(name)
+}
+func (file *File) GetImports() []*Import {
+	return file.importManager.GetImport()
+}
+func (file *File) AddImport(imp *ast.ImportSpec) {
+	file.importManager.AddImport(imp)
+}
+func (file *File) GetEntities() []*Entity {
+	return file.entityManager.GetEntities()
+}
+func (file *File) GetFunctions() []*Function {
+	return file.functionManager.GetFunctions()
+}
+func (file *File) GetFunctionByName(name string) *Function {
+	return file.functionManager.GetFunctionByName(name)
+}
+func (file *File) GetMethods() []*Function {
+	return file.functionManager.GetMethods()
+}
+func (file *File) AddEntity(entity *Entity) {
+	file.entityManager.AddEntity(entity)
+}
+func (file *File) EntityCount() int {
+	return len(file.entityManager.entities)
+}
+func (file *File) GetEntity(name string) *Entity {
+	return file.entityManager.GetEntity(name)
+}
+
+func (file *File) GetEntityForImport(importName, entityName string) *Entity {
+	imp := file.importManager.LocalImport(importName)
+	if imp == nil {
+		return nil
+	}
+	pkgKey := strings.ReplaceAll(fmt.Sprintf("%s", strings.TrimPrefix(imp.Path, "/")), "/", "@")
+	return file.pkg.GetProject().GetEntity(pkgKey, entityName)
+
+}
+func (file *File) GetFunctionForImport(importName, functionName string) *Function {
+	imp := file.importManager.LocalImport(importName)
+	if imp == nil {
+		return nil
+	}
+	pkgKey := strings.ReplaceAll(fmt.Sprintf("%s", strings.TrimPrefix(imp.Path, "/")), "/", "@")
+
+	return file.pkg.GetProject().GetFunctionByName(pkgKey, functionName)
+
 }
 
 type Import struct {
@@ -53,174 +172,218 @@ func (imp *Import) GetRef() string {
 	return filepath.Base(imp.Path)
 }
 
-func (file *File) Parse(ctx context.Context, filePath string, pkg *Package) error {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filePath, nil, parser.AllErrors|parser.ParseComments)
-	if err != nil {
-		return err
-	}
-	// 提取其他实体
-	ast.Inspect(f, func(n ast.Node) bool {
-		switch node := n.(type) {
-		case *ast.TypeSpec:
-			file.parseTypeSpec(ctx, node, f, pkg)
-		case *ast.GenDecl:
-			file.parseGenDecl(ctx, node)
-		case *ast.FuncDecl:
-			file.parseFuncDecl(ctx, node, f)
-		}
-
-		return true
-	})
-	return nil
+// ImportManager 导入管理器
+type ImportManager struct {
+	file        *File
+	imports     []*Import
+	localImport map[string]*Import
 }
 
-func (file *File) EntityCount() int {
-	return len(file.Entities)
+func NewImportManager(file *File) *ImportManager {
+	return &ImportManager{
+		file:        file,
+		localImport: make(map[string]*Import),
+	}
 }
 
-func (file *File) parseGenDecl(ctx context.Context, node *ast.GenDecl) {
-	if node.Tok == token.CONST || node.Tok == token.VAR {
-		for _, spec := range node.Specs {
-			if value, ok := spec.(*ast.ValueSpec); ok && value.Names != nil {
-				for _, name := range value.Names {
-					entityType := Variable
-					if node.Tok == token.CONST {
-						entityType = Constant
-					}
-					entity := &Entity{
-						ID:          fmt.Sprintf("%s:%s", file.ID, name.Name),
-						Type:        entityType,
-						FileID:      file.ID,
-						Name:        name.Name,
-						fieldMap:    make(map[string]*Field),
-						functionMap: make(map[string]*Function),
-					}
-					file.Entities = append(file.Entities, entity)
-					file.entityMap[entity.Name] = entity
-				}
-			}
-		}
+func (im *ImportManager) AddImport(spec *ast.ImportSpec) {
+	imp := &Import{
+		Path:   strings.Trim(spec.Path.Value, "`"),
+		FileId: im.file.ID,
 	}
-	if node.Tok == token.IMPORT {
-		for _, spec := range node.Specs {
-			spec, ok := spec.(*ast.ImportSpec)
-			if ok {
-				imp := &Import{
-					Path: strings.Trim(spec.Path.Value, `"`),
-				}
-				if spec.Name != nil {
-					imp.Name = spec.Name.Name
-				}
-				imp.FileId = file.ID
-				file.Imports = append(file.Imports, imp)
-				if strings.Contains(imp.Path, file.pkg.GetModule()) {
-					imp.Path = strings.TrimPrefix(imp.Path, file.pkg.GetModule())
-					file.localImport[imp.GetRef()] = imp
-				}
-
-			}
-
-		}
+	if spec.Name != nil {
+		imp.Name = strings.Trim(spec.Name.Name, `"`)
 	}
 
+	im.imports = append(im.imports, imp)
+
+	// 处理本地导入
+	if strings.Contains(imp.Path, im.file.pkg.GetModule()) {
+		imp.Path = strings.TrimPrefix(strings.Trim(imp.Path, `"`), im.file.pkg.GetModule())
+		im.localImport[imp.GetRef()] = imp
+	}
 }
 
-func (file *File) parseTypeSpec(ctx context.Context, node *ast.TypeSpec, f *ast.File, pkg *Package) {
-	switch node.Type.(type) {
+func (im *ImportManager) LocalImport(importName string) *Import {
+	return im.localImport[importName]
+}
+func (im *ImportManager) GetImport() []*Import {
+	return im.imports
+}
+
+// EntityManager 实体管理器
+type EntityManager struct {
+	file      *File
+	entities  []*Entity
+	entityMap map[string]*Entity
+}
+
+func NewEntityManager(file *File) *EntityManager {
+	return &EntityManager{
+		file:      file,
+		entityMap: make(map[string]*Entity),
+	}
+}
+
+func (em *EntityManager) AddEntity(entity *Entity) {
+	em.entities = append(em.entities, entity)
+	em.entityMap[entity.Name] = entity
+}
+
+func (em *EntityManager) GetEntity(name string) *Entity {
+	return em.entityMap[name]
+}
+func (em *EntityManager) GetEntities() []*Entity {
+	return em.entities
+}
+
+// FileVisitor AST访问器
+type FileVisitor struct {
+	file *File
+	pkg  *Package
+}
+
+func (v *FileVisitor) Visit(node ast.Node) ast.Visitor {
+	if node == nil {
+		return nil
+	}
+	switch n := node.(type) {
+	case *ast.TypeSpec:
+		v.handleTypeSpec(n)
+	case *ast.GenDecl:
+		v.handleGenDecl(n)
+	case *ast.FuncDecl:
+		v.handleFuncDecl(n)
+	}
+
+	return v
+}
+
+// 处理类型声明
+func (v *FileVisitor) handleTypeSpec(node *ast.TypeSpec) {
+	switch t := node.Type.(type) {
 	case *ast.StructType:
-		if structType, ok := node.Type.(*ast.StructType); ok {
-			entity := Entity{
-				ID:          fmt.Sprintf("%s:%s", file.ID, node.Name.Name),
-				Type:        Struct,
-				Name:        node.Name.Name,
-				FileID:      file.ID,
-				f:           f,
-				Comment:     TextWarp(node.Comment),
-				Document:    TextWarp(node.Doc),
-				PkgID:       file.PkgID,
-				fieldMap:    make(map[string]*Field),
-				functionMap: make(map[string]*Function),
-			}
-
-			for _, field := range structType.Fields.List {
-				fd := Field{
-					StructID: entity.ID,
-					Document: TextWarp(field.Doc),
-				}
-				fd.Scope = StructScope
-				fd.expr = field.Type
-				if len(field.Names) > 0 {
-					fd.Name = field.Names[0].Name
-				} else {
-					if field.Type == nil {
-						continue
-					}
-					entity.rawExtends = append(entity.rawExtends, field.Type)
-				}
-				fd.ObjType = types.ExprString(field.Type)
-
-				entity.Fields = append(entity.Fields, &fd)
-				entity.fieldMap[fd.Name] = &fd
-			}
-			file.Entities = append(file.Entities, &entity)
-			file.entityMap[entity.Name] = &entity
-			pkg.AddEntity(entity.Name, &entity)
-			pkg.project.AddEntity(entity.ID, &entity)
-		}
+		v.handleStructType(node, t)
 	case *ast.InterfaceType:
-		if interfaceType, ok := node.Type.(*ast.InterfaceType); ok {
-			entity := Entity{
-				ID:          fmt.Sprintf("%s:%s", file.ID, node.Name.Name),
-				Type:        Interface,
-				Name:        node.Name.Name,
-				FileID:      file.ID,
-				f:           f,
-				PkgID:       file.PkgID,
-				Comment:     TextWarp(node.Comment),
-				Document:    TextWarp(node.Doc),
-				fieldMap:    make(map[string]*Field),
-				functionMap: make(map[string]*Function),
-			}
-			for _, method := range interfaceType.Methods.List {
-				if len(method.Names) < 1 {
-					entity.rawExtends = append(entity.rawExtends, method.Type)
-					continue
-				}
-				fun := &Function{
-					Name:     method.Names[0].Name,
-					EntId:    entity.ID,
-					Document: TextWarp(method.Doc),
-					Comment:  TextWarp(method.Comment),
-					Scope:    InterfaceScope,
-					file:     file,
-					FileId:   file.ID,
-					ID:       fmt.Sprintf("%s:%s", entity.ID, method.Names[0].Name),
-				}
-				entity.Functions = append(entity.Functions, fun)
-				file.functionMap[fun.Name] = fun
-				entity.functionMap[fun.Name] = fun
-				if method.Type == nil {
-					continue
-				}
-				if funcType, ok := method.Type.(*ast.FuncType); ok {
-					fun.Parse(ctx, funcType)
-				}
-				fun.expr = method.Type
-			}
-			file.Entities = append(file.Entities, &entity)
-			file.entityMap[entity.Name] = &entity
-			pkg.AddEntity(entity.Name, &entity)
-			pkg.project.AddEntity(entity.ID, &entity)
-		}
+		v.handleInterfaceType(node, t)
 	}
-
 }
 
-func (file *File) parseFuncDecl(ctx context.Context, node *ast.FuncDecl, f *ast.File) {
+// 处理结构体类型
+func (v *FileVisitor) handleStructType(node *ast.TypeSpec, structType *ast.StructType) {
+	entity := NewEntity(v.file, node, Struct)
+	// 处理结构体字段
+	for _, field := range structType.Fields.List {
+		fd := &Field{
+			StructID: entity.ID,
+			Document: TextWarp(field.Doc),
+		}
+		fd.Scope = StructScope
+		fd.expr = field.Type
+		if len(field.Names) > 0 {
+			fd.Name = field.Names[0].Name
+		} else {
+			if field.Type == nil {
+				continue
+			}
+			entity.rawExtends = append(entity.rawExtends, field.Type)
+		}
+		fd.ObjType = types.ExprString(field.Type)
+		entity.AddField(fd)
+	}
+
+	v.file.entityManager.AddEntity(entity)
+}
+
+// 处理接口类型
+func (v *FileVisitor) handleInterfaceType(node *ast.TypeSpec, interfaceType *ast.InterfaceType) {
+	file := v.file
+	entity := NewEntity(v.file, node, Interface)
+	for _, method := range interfaceType.Methods.List {
+		if len(method.Names) < 1 {
+			entity.rawExtends = append(entity.rawExtends, method.Type)
+			continue
+		}
+		fun := &Function{
+			Name:     method.Names[0].Name,
+			EntId:    entity.ID,
+			Document: TextWarp(method.Doc),
+			Comment:  TextWarp(method.Comment),
+			Scope:    InterfaceScope,
+			file:     file,
+			FileId:   file.ID,
+			ID:       fmt.Sprintf("%s:%s.%s", entity.ID, entity.Name, method.Names[0].Name),
+		}
+		entity.AddMethod(fun)
+		if method.Type == nil {
+			continue
+		}
+		if funcType, ok := method.Type.(*ast.FuncType); ok {
+			fun.Parse(funcType)
+		}
+		fun.expr = method.Type
+	}
+	v.file.AddEntity(entity)
+}
+
+// 处理通用声明
+func (v *FileVisitor) handleGenDecl(node *ast.GenDecl) {
+	switch node.Tok {
+	case token.IMPORT:
+		v.handleImport(node)
+	case token.CONST, token.VAR:
+		v.handleVarConst(node)
+	default:
+
+	}
+}
+
+// 处理导入声明
+func (v *FileVisitor) handleImport(node *ast.GenDecl) {
+	for _, spec := range node.Specs {
+		if importSpec, ok := spec.(*ast.ImportSpec); ok {
+			v.file.AddImport(importSpec)
+		}
+	}
+}
+
+// 处理变量和常量声明
+func (v *FileVisitor) handleVarConst(node *ast.GenDecl) {
+	for _, spec := range node.Specs {
+		if valueSpec, ok := spec.(*ast.ValueSpec); ok {
+			for _, name := range valueSpec.Names {
+				file := v.file
+				entityType := Variable
+				if node.Tok == token.CONST {
+					entityType = Constant
+				}
+				entity := &Entity{
+					ID:     fmt.Sprintf("%s:%s", file.ID, name.Name),
+					Type:   entityType,
+					FileID: file.ID,
+					Name:   name.Name,
+				}
+				entity.SetValueSpace(valueSpec)
+				entity.Name = name.Name
+				entity.Type = entityType
+				if node.Doc != nil {
+					for _, text := range node.Doc.List {
+						entity.Comment += text.Text + "\n\t"
+					}
+				}
+
+				v.file.AddEntity(entity)
+			}
+		}
+	}
+}
+
+// 处理函数声明
+func (v *FileVisitor) handleFuncDecl(node *ast.FuncDecl) {
 	if node.Type == nil {
 		return
 	}
+	file := v.file
 	entId := file.ID
 	fun := &Function{
 		EntId:    entId,
@@ -234,16 +397,13 @@ func (file *File) parseFuncDecl(ctx context.Context, node *ast.FuncDecl, f *ast.
 		file:     file,
 		ID:       fmt.Sprintf("%s:%s", file.PkgID, node.Name.Name),
 	}
-	fun.Parse(ctx, node.Type)
+	fun.Parse(node.Type)
 	if node.Recv != nil && len(node.Recv.List) > 0 && node.Recv.List[0].Type != nil {
 		fun.Receiver = parseReceiver(node.Recv.List[0].Type)
-		file.methods = append(file.methods, fun)
-		file.functionMap[fun.Name] = fun
-
+		fun.ID = fmt.Sprintf("%s:%s.%s", file.PkgID, fun.Receiver, node.Name.Name)
+		v.file.functionManager.AddMethod(fun)
 	} else {
-		file.functionMap[fun.Name] = fun
-		file.pkg.AddFunction(fun.Name, fun)
-		file.Functions = append(file.Functions, fun)
+		v.file.functionManager.AddFunction(fun)
 	}
 
 }
@@ -264,99 +424,6 @@ func parseReceiver(expr ast.Expr) string {
 		}
 	}
 	return ""
-
-}
-func (file *File) AnalyzeRelations(ctx context.Context, pkg *Package) error {
-	var relations []*Relation
-	for _, entity := range file.Entities {
-		if rs, err := entity.AnalyzeRelations(ctx, file); err != nil {
-			return err
-		} else {
-			relations = append(relations, rs...)
-		}
-		for _, ee := range entity.Extends {
-			relations = append(relations, &Relation{
-				Type:       Extends,
-				TargetID:   ee.ID,
-				Confidence: 1,
-				SourceID:   entity.ID,
-			})
-		}
-		relations = append(relations, &Relation{
-			Type:       DeclareEntity,
-			TargetID:   entity.ID,
-			Confidence: 1,
-			SourceID:   file.ID,
-		})
-	}
-	for _, fun := range file.Functions {
-		relations = append(relations, fun.AnalyzeRelations(ctx, file)...)
-		relations = append(relations, &Relation{
-			Type:       DeclareFunc,
-			TargetID:   fun.ID,
-			Confidence: 1,
-			SourceID:   file.ID,
-		})
-	}
-	file.pkg.GetProject().AddRelations(relations)
-	return nil
-}
-func (file *File) FindInterfaceImpl(ctx context.Context, entity *Entity) []*Entity {
-	if entity.Type != Interface {
-		return nil
-	}
-	if entity.CountFunction() < 1 {
-		return nil
-	}
-	var entities []*Entity
-	for _, e := range file.Entities {
-		if e.Type != Struct {
-			continue
-		}
-		if e.IsImplInterface(entity) {
-			entities = append(entities, e)
-		}
-	}
-	return entities
-}
-func (file *File) ClassifyMethod(ctx context.Context, pkg *Package) {
-	for _, fun := range file.methods {
-		structEntity, ok := pkg.structMap[fun.Receiver]
-		if !ok {
-			continue
-		}
-		structEntity.Functions = append(structEntity.Functions, fun)
-		structEntity.functionMap[fun.Name] = fun
-	}
-}
-
-func (file *File) ClassifyExtends(ctx context.Context, pkg *Package) {
-	for _, entity := range file.Entities {
-		entity.HandlerExtends(file, pkg)
-	}
-
-}
-func (file *File) GetEntity(name string) *Entity {
-	entity := file.entityMap[name]
-	if entity != nil {
-		return entity
-	}
-	for _, f := range file.pkg.Files {
-		entity = f.entityMap[name]
-		if entity != nil {
-			return entity
-		}
-	}
-	return nil
-}
-
-func (file *File) GetEntityForImport(importName, entityName string) *Entity {
-	imp, ok := file.localImport[importName]
-	if !ok {
-		return nil
-	}
-	pkgKey := strings.ReplaceAll(fmt.Sprintf("%s", strings.TrimPrefix(imp.Path, "/")), "/", "@")
-	return file.pkg.GetProject().GetEntity(pkgKey, entityName)
 
 }
 

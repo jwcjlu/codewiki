@@ -29,3 +29,15 @@ func (s *CodeWikiService) Analyze(ctx context.Context, in *v1.AnalyzeReq) (*v1.A
 	}
 	return resp, nil
 }
+
+func (s *CodeWikiService) CallChain(ctx context.Context, req *v1.CallChainReq) (*v1.CallChainResp, error) {
+	resp := new(v1.CallChainResp)
+	callRelations, err := s.codeWiki.QueryCallChain(ctx, req.StartFunctionName)
+	if err != nil {
+		resp.Code = 1000
+		resp.Msg = err.Error()
+		return resp, err
+	}
+	resp.CallRelations = callRelations
+	return resp, nil
+}
