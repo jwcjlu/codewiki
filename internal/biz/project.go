@@ -18,16 +18,34 @@ type Project struct {
 	pkgs        map[string]*Package
 	Relations   []*Relation
 	Root        *Package
+	RepoId      string
 	relationMap map[string]bool
 }
 type Config struct {
-	Language string
+	Language v1.Language
 	Includes []string
 	Excludes []string
 }
 
-func NewProject(config *Config) *Project {
-	return &Project{config: config, pkgs: make(map[string]*Package), relationMap: make(map[string]bool)}
+func NewProject(repo *v1.Repo) *Project {
+	return &Project{config: &Config{
+		Language: repo.Language,
+		Excludes: repo.Excludes,
+	},
+		pkgs:        make(map[string]*Package),
+		relationMap: make(map[string]bool),
+		RepoId:      repo.Id,
+	}
+}
+
+func (p *Project) LanguagePrefix() string {
+	switch p.config.Language {
+	case v1.Language_Golang:
+		return ".go"
+	case v1.Language_Java:
+		return ".java"
+	}
+	return ""
 }
 
 func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo ProjectRepo) error {
@@ -61,7 +79,7 @@ func (p *Project) ParseCode(ctx context.Context, rootPath string) (*Package, err
 		}
 		p.module = module
 	}
-	root := NewPackage(p.shouldInclude, p, "", filepath.Base(rootPath))
+	root := NewPackage(p.shouldInclude, p, p.RepoId, filepath.Base(rootPath))
 	p.RootPath = filepath.Base(rootPath)
 	err = root.Parse(ctx, rootPath)
 	if err != nil {
@@ -87,7 +105,9 @@ func (p *Project) AnalyzeRelations(ctx context.Context) error {
 	}
 	return nil
 }
-
+func (p *Project) GetPackageById(pkgId string) *Package {
+	return p.pkgs[pkgId]
+}
 func (p *Project) GetEntity(pkgName, key string) *Entity {
 	pkg, ok := p.pkgs[pkgName]
 	if ok {
@@ -95,7 +115,7 @@ func (p *Project) GetEntity(pkgName, key string) *Entity {
 
 	}
 	if len(p.RootPath) > 0 {
-		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s", p.RootPath, pkgName)]
+		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s@%s", p.RepoId, p.RootPath, pkgName)]
 	}
 	if ok {
 		return pkg.GetEntity(key)
@@ -117,7 +137,7 @@ func (p *Project) GetPackageByName(pkgName string) *Package {
 		return pkg
 	}
 	if len(p.RootPath) > 0 {
-		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s", p.RootPath, pkgName)]
+		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s@%s", p.RepoId, p.RootPath, pkgName)]
 	}
 	return pkg
 }
@@ -200,12 +220,9 @@ func GetModuleName(goModPath string) (string, error) {
 }
 func (p *Project) shouldInclude(path string) bool {
 	ext := filepath.Ext(path)
-	if p.config.Language != "auto" && len(ext) > 0 {
-		if !strings.HasPrefix(ext, "."+p.config.Language) {
-			return false
-		}
+	if !strings.HasPrefix(ext, p.LanguagePrefix()) {
+		return false
 	}
-
 	for _, exclude := range p.config.Excludes {
 		if matched, _ := regexp.MatchString(exclude, path); matched {
 			return false

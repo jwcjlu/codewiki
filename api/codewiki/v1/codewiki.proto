@@ -14,16 +14,14 @@ enum RepoType{
   Local = 0; // 本地
   Github=1;  //github
 }
+enum Language{
+  Golang = 0; // Golang
+  Java=1;  //Java
+  Python=2;//Python
+  Rust=3;//Rust
+
+}
 service CodeWikiService {
-  rpc Analyze(AnalyzeReq) returns (AnalyzeResp) {
-    option (google.api.http) = {
-      post: "/v1/api/project/analyze"
-      body: "*"
-    };
-    option (openapi.v3.operation) = {
-      summary: "分析代码"
-    };
-  }
   rpc CallChain(CallChainReq) returns (CallChainResp) {
     option (google.api.http) = {
       get: "/v1/api/functions/{startFunctionName}/calls"
@@ -31,6 +29,42 @@ service CodeWikiService {
     option (openapi.v3.operation) = {
       summary: "分析代码"
     };
+  }
+
+  // Repo management
+  rpc CreateRepo(CreateRepoReq) returns (CreateRepoResp) {
+    option (google.api.http) = {
+      post: "/v1/api/repos"
+      body: "*"
+    };
+    option (openapi.v3.operation) = { summary: "创建仓库" };
+  }
+  rpc ListRepos(ListReposReq) returns (ListReposResp) {
+    option (google.api.http) = { get: "/v1/api/repos" };
+    option (openapi.v3.operation) = { summary: "仓库列表" };
+  }
+  rpc GetRepo(GetRepoReq) returns (GetRepoResp) {
+    option (google.api.http) = { get: "/v1/api/repos/{id}" };
+    option (openapi.v3.operation) = { summary: "仓库详情" };
+  }
+  rpc DeleteRepo(DeleteRepoReq) returns (DeleteRepoResp) {
+    option (google.api.http) = { delete: "/v1/api/repos/{id}" };
+    option (openapi.v3.operation) = { summary: "删除仓库" };
+  }
+
+  // Analyze by repository id
+  rpc AnalyzeRepo(AnalyzeRepoReq) returns (AnalyzeResp) {
+    option (google.api.http) = {
+      post: "/v1/api/repos/{id}/analyze"
+      body: "*"
+    };
+    option (openapi.v3.operation) = { summary: "按仓库触发分析" };
+  }
+
+  // Repo tree display
+  rpc GetRepoTree(GetRepoTreeReq) returns (GetRepoTreeResp) {
+    option (google.api.http) = { get: "/v1/api/repos/{id}/tree" };
+    option (openapi.v3.operation) = { summary: "仓库包/文件树" };
   }
 }
 message AnalyzeReq{
@@ -63,4 +97,58 @@ message CallRelationship{
   string callerName=2;
   string calleeId=3;
   string calleeName=4;
+}
+
+// ===== Repo Management =====
+message Repo{
+  string id=1;
+  string name=2;
+  RepoType repoType=3;
+  string path=4;    // 本地路径，可选
+  string target=5;  // 远端地址或本地路径
+  string token=6;   // 令牌（如 GitHub），可选
+  string description=7;
+  repeated string excludes=8;//不需要分析的目录
+  Language language=9;
+
+}
+
+message CreateRepoReq{
+  string name=1[(validate.rules).string = {min_len: 1, max_len: 128}];
+  RepoType repoType=2;
+  string path=3;
+  string target=4[(validate.rules).string = {min_len: 1, max_len: 512}];
+  string token=5;
+  string description=6;
+  repeated string excludes=7;//不需要分析的目录
+  Language language=8;
+}
+message CreateRepoResp{ string id=1; }
+
+message ListReposReq{}
+message ListReposResp{ repeated Repo repos=1; }
+
+message GetRepoReq{ string id=1; }
+message GetRepoResp{ Repo repo=1; }
+
+message DeleteRepoReq{ string id=1; }
+message DeleteRepoResp{}
+
+message AnalyzeRepoReq{ string id=1; }
+
+message GetRepoTreeReq{ string id=1; }
+message GetRepoTreeResp{
+  repeated PackageNode packages=1;
+  repeated FileNode files=2;
+}
+
+message PackageNode{
+  string id=1;
+  string name=2;
+  string parentId=3;
+}
+message FileNode{
+  string id=1;
+  string name=2;
+  string pkgId=3;
 }

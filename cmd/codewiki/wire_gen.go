@@ -30,7 +30,16 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 		return nil, nil, err
 	}
 	driverWithContext := data.NewDriverWithContext(dataData)
-	projectRepo := repo.NewProjectRepo(driverWithContext)
+	db, err := data.NewGormDB(confData, logger)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
+	projectRepo, err := repo.NewCompositeRepo(driverWithContext, db)
+	if err != nil {
+		cleanup()
+		return nil, nil, err
+	}
 	codeWiki := biz.NewCodeWiki(projectRepo)
 	codeWikiService := service.NewCodeWikiService(codeWiki)
 	httpServer := server.NewHTTPServer(confServer, codeWikiService, logger)

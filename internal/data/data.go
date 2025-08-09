@@ -4,18 +4,22 @@ import (
 	"codewiki/internal/conf"
 	"codewiki/internal/data/repo"
 	"context"
+	"fmt"
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"time"
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, repo.NewProjectRepo, NewDriverWithContext)
+var ProviderSet = wire.NewSet(NewData, NewDriverWithContext, NewGormDB, repo.NewCompositeRepo)
 
 // Data .
 type Data struct {
 	neo4jDriver neo4j.DriverWithContext
+	gormDB      *gorm.DB
 }
 
 // NewData .
@@ -45,3 +49,25 @@ func NewData(c *conf.Data, logger log.Logger) (*Data, func(), error) {
 func NewDriverWithContext(data *Data) neo4j.DriverWithContext {
 	return data.neo4jDriver
 }
+
+// NewGormDB initializes MySQL GORM connection if configured
+func NewGormDB(c *conf.Data, logger log.Logger) (*gorm.DB, error) {
+	if c.Database == nil {
+		return nil, fmt.Errorf("database config is nil")
+	}
+	db, err := gorm.Open(mysql.Open(c.Database.Source), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
+}
+
+func getenv(key, def string) string {
+	if v := getenv0(key); v != "" {
+		return v
+	}
+	return def
+}
+
+// small indirection for testability
+var getenv0 = func(k string) string { return "" }

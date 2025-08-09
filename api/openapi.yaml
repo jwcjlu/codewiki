@@ -31,17 +31,117 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /v1/api/project/analyze:
+    /v1/api/repos:
+        get:
+            tags:
+                - CodeWikiService
+            summary: 仓库列表
+            operationId: CodeWikiService_ListRepos
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListReposResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
         post:
             tags:
                 - CodeWikiService
-            summary: 分析代码
-            operationId: CodeWikiService_Analyze
+            summary: 创建仓库
+            description: Repo management
+            operationId: CodeWikiService_CreateRepo
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/AnalyzeReq'
+                            $ref: '#/components/schemas/CreateRepoReq'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CreateRepoResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/repos/{id}:
+        get:
+            tags:
+                - CodeWikiService
+            summary: 仓库详情
+            operationId: CodeWikiService_GetRepo
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetRepoResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+        delete:
+            tags:
+                - CodeWikiService
+            summary: 删除仓库
+            operationId: CodeWikiService_DeleteRepo
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteRepoResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/repos/{id}/analyze:
+        post:
+            tags:
+                - CodeWikiService
+            summary: 按仓库触发分析
+            description: Analyze by repository id
+            operationId: CodeWikiService_AnalyzeRepo
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AnalyzeRepoReq'
                 required: true
             responses:
                 "200":
@@ -56,30 +156,39 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
+    /v1/api/repos/{id}/tree:
+        get:
+            tags:
+                - CodeWikiService
+            summary: 仓库包/文件树
+            description: Repo tree display
+            operationId: CodeWikiService_GetRepoTree
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetRepoTreeResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
 components:
     schemas:
-        AnalyzeReq:
+        AnalyzeRepoReq:
             type: object
             properties:
-                repoType:
-                    type: integer
-                    format: enum
-                path:
+                id:
                     type: string
-                target:
-                    type: string
-                token:
-                    type: string
-                language:
-                    type: string
-                includes:
-                    type: array
-                    items:
-                        type: string
-                excludes:
-                    type: array
-                    items:
-                        type: string
         AnalyzeResp:
             type: object
             properties:
@@ -111,6 +220,62 @@ components:
                     type: string
                 calleeName:
                     type: string
+        CreateRepoReq:
+            type: object
+            properties:
+                name:
+                    type: string
+                repoType:
+                    type: integer
+                    format: enum
+                path:
+                    type: string
+                target:
+                    type: string
+                token:
+                    type: string
+                description:
+                    type: string
+                excludes:
+                    type: array
+                    items:
+                        type: string
+                language:
+                    type: integer
+                    format: enum
+        CreateRepoResp:
+            type: object
+            properties:
+                id:
+                    type: string
+        DeleteRepoResp:
+            type: object
+            properties: {}
+        FileNode:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                pkgId:
+                    type: string
+        GetRepoResp:
+            type: object
+            properties:
+                repo:
+                    $ref: '#/components/schemas/Repo'
+        GetRepoTreeResp:
+            type: object
+            properties:
+                packages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/PackageNode'
+                files:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/FileNode'
         GoogleProtobufAny:
             type: object
             properties:
@@ -119,6 +284,48 @@ components:
                     description: The type of the serialized message.
             additionalProperties: true
             description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
+        ListReposResp:
+            type: object
+            properties:
+                repos:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Repo'
+        PackageNode:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                parentId:
+                    type: string
+        Repo:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                repoType:
+                    type: integer
+                    format: enum
+                path:
+                    type: string
+                target:
+                    type: string
+                token:
+                    type: string
+                description:
+                    type: string
+                excludes:
+                    type: array
+                    items:
+                        type: string
+                language:
+                    type: integer
+                    format: enum
+            description: ===== Repo Management =====
         Status:
             type: object
             properties:

@@ -31,8 +31,13 @@ message Data {
     string username = 2;
     string password=3;
   }
+  message Database {
+    string driver = 1;
+    string source = 2;
+  }
   Neo4j neo4j = 1;
   PoolConfig poolConfig=2;
+  Database database = 3;
 }
 
 message PoolConfig{

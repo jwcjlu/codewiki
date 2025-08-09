@@ -32,6 +32,10 @@ type File struct {
 	pkg *Package
 }
 
+func (file *File) GetCurrentPkg() *Package {
+	return file.pkg
+}
+
 // NewFile 创建新的文件对象
 func NewFile(name string, pkg *Package) *File {
 	file := &File{

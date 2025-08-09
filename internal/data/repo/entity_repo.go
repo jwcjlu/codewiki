@@ -12,9 +12,6 @@ type projectRepo struct {
 	neo4jDriver neo4j.DriverWithContext
 }
 
-func NewProjectRepo(driver neo4j.DriverWithContext) biz.ProjectRepo {
-	return &projectRepo{neo4jDriver: driver}
-}
 func (projectRepo *projectRepo) SaveProject(ctx context.Context, project *biz.Project) error {
 	// 保存Package节点
 	ctx, _ = context.WithTimeout(ctx, 5*time.Minute)
@@ -49,6 +46,206 @@ func (projectRepo *projectRepo) SaveProject(ctx context.Context, project *biz.Pr
 		return err
 	}
 	return batchSaveRelation(ctx, projectRepo.neo4jDriver, project.Relations)
+}
+
+// ===== Repo management =====
+func (projectRepo *projectRepo) CreateRepo(ctx context.Context, req *RepoModel) (string, error) {
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+
+	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `CREATE (r:Repo {id: $id, name: $name, repo_type: $repo_type, path: $path, target: $target, token: $token, description: $description})`
+		_, err := tx.Run(ctx, query, map[string]any{
+			"id":          req.ID,
+			"name":        req.Name,
+			"repo_type":   req.RepoType,
+			"path":        req.Path,
+			"target":      req.Target,
+			"token":       req.Token,
+			"description": req.Description,
+		})
+		return nil, err
+	})
+	if err != nil {
+		return "", err
+	}
+	return req.ID, nil
+}
+
+func (projectRepo *projectRepo) ListRepos(ctx context.Context) ([]*v1.Repo, error) {
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+	var repos []*v1.Repo
+	_, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `MATCH (r:Repo) RETURN r`
+		result, err := tx.Run(ctx, query, nil)
+		if err != nil {
+			return nil, err
+		}
+		for result.Next(ctx) {
+			rec := result.Record()
+			node, _ := rec.Get("r")
+			if n, ok := node.(neo4j.Node); ok {
+				repo := &v1.Repo{}
+				if v, ok := n.Props["id"].(string); ok {
+					repo.Id = v
+				}
+				if v, ok := n.Props["name"].(string); ok {
+					repo.Name = v
+				}
+				if v, ok := n.Props["repo_type"].(int64); ok {
+					repo.RepoType = v1.RepoType(v)
+				}
+				if v, ok := n.Props["path"].(string); ok {
+					repo.Path = v
+				}
+				if v, ok := n.Props["target"].(string); ok {
+					repo.Target = v
+				}
+				if v, ok := n.Props["token"].(string); ok {
+					repo.Token = v
+				}
+				if v, ok := n.Props["description"].(string); ok {
+					repo.Description = v
+				}
+				repos = append(repos, repo)
+			}
+		}
+		return nil, result.Err()
+	})
+	return repos, err
+}
+
+func (projectRepo *projectRepo) GetRepo(ctx context.Context, id string) (*v1.Repo, error) {
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+	var repo *v1.Repo
+	_, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `MATCH (r:Repo {id: $id}) RETURN r`
+		result, err := tx.Run(ctx, query, map[string]any{"id": id})
+		if err != nil {
+			return nil, err
+		}
+		if result.Next(ctx) {
+			rec := result.Record()
+			node, _ := rec.Get("r")
+			if n, ok := node.(neo4j.Node); ok {
+				r := &v1.Repo{}
+				if v, ok := n.Props["id"].(string); ok {
+					r.Id = v
+				}
+				if v, ok := n.Props["name"].(string); ok {
+					r.Name = v
+				}
+				if v, ok := n.Props["repo_type"].(int64); ok {
+					r.RepoType = v1.RepoType(v)
+				}
+				if v, ok := n.Props["path"].(string); ok {
+					r.Path = v
+				}
+				if v, ok := n.Props["target"].(string); ok {
+					r.Target = v
+				}
+				if v, ok := n.Props["token"].(string); ok {
+					r.Token = v
+				}
+				if v, ok := n.Props["description"].(string); ok {
+					r.Description = v
+				}
+				repo = r
+			}
+		}
+		return nil, result.Err()
+	})
+	return repo, err
+}
+
+func (projectRepo *projectRepo) DeleteRepo(ctx context.Context, id string) error {
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `MATCH (root:Package {parent_id: $id}) DETACH DELETE root`
+		_, err := tx.Run(ctx, query, map[string]any{"id": id})
+		return nil, err
+	})
+	return err
+}
+
+func (projectRepo *projectRepo) BindRepoRoot(ctx context.Context, repoId, rootPkgId string) error {
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+	_, err := session.ExecuteWrite(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `MATCH (r:Repo {id: $rid}), (p:Package {id: $pid}) MERGE (r)-[:ROOT_PACKAGE]->(p)`
+		_, err := tx.Run(ctx, query, map[string]any{"rid": repoId, "pid": rootPkgId})
+		return nil, err
+	})
+	return err
+}
+
+func (projectRepo *projectRepo) GetRepoTree(ctx context.Context, id string) (packages []*v1.PackageNode, files []*v1.FileNode, err error) {
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+	// packages
+	_, err = session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `MATCH (root:Package {parent_id: $id})
+                  OPTIONAL MATCH (root)-[:Contains*0..]->(p:Package)
+                  RETURN DISTINCT p`
+		result, err := tx.Run(ctx, query, map[string]any{"id": id})
+		if err != nil {
+			return nil, err
+		}
+		for result.Next(ctx) {
+			rec := result.Record()
+			node, _ := rec.Get("p")
+			if n, ok := node.(neo4j.Node); ok {
+				pn := &v1.PackageNode{}
+				if v, ok := n.Props["id"].(string); ok {
+					pn.Id = v
+				}
+				if v, ok := n.Props["name"].(string); ok {
+					pn.Name = v
+				}
+				if v, ok := n.Props["parent_id"].(string); ok {
+					pn.ParentId = v
+				}
+				packages = append(packages, pn)
+			}
+		}
+		return nil, result.Err()
+	})
+	if err != nil {
+		return
+	}
+	// files
+	_, err = session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `MATCH (root:Package {parent_id: $id})
+                  OPTIONAL MATCH (p:Package)-[:ContainsFile]->(f:File)
+                  WHERE p.id STARTS WITH root.id
+                  RETURN DISTINCT f`
+		result, err := tx.Run(ctx, query, map[string]any{"id": id})
+		if err != nil {
+			return nil, err
+		}
+		for result.Next(ctx) {
+			rec := result.Record()
+			node, _ := rec.Get("f")
+			if n, ok := node.(neo4j.Node); ok {
+				fn := &v1.FileNode{}
+				if v, ok := n.Props["id"].(string); ok {
+					fn.Id = v
+				}
+				if v, ok := n.Props["name"].(string); ok {
+					fn.Name = v
+				}
+				if v, ok := n.Props["pkg_id"].(string); ok {
+					fn.PkgId = v
+				}
+				files = append(files, fn)
+			}
+		}
+		return nil, result.Err()
+	})
+	return
 }
 
 func getEntities(files []*biz.File) []*biz.Entity {
