@@ -1,10 +1,117 @@
-# Kratos Project Template
+# CodeWiki - 智能代码仓库分析系统
 
-## Install Kratos
+[![Go Version](https://img.shields.io/badge/Go-1.24+-blue.svg)](https://golang.org)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Kratos](https://img.shields.io/badge/Kratos-v2.7.3-blue.svg)](https://github.com/go-kratos/kratos)
+[![React](https://img.shields.io/badge/React-18.2.0-blue.svg)](https://reactjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-4.9+-blue.svg)](https://www.typescriptlang.org)
+
+CodeWiki是一个基于Go语言和React的智能代码仓库分析系统，能够自动解析代码结构、分析函数调用关系，并提供可视化的代码探索体验。
+
+## 🚀 快速开始
+
+### 使用Docker快速体验
+```bash
+# 克隆项目
+git clone https://github.com/your-username/codewiki.git
+cd codewiki
+
+# 启动服务
+docker-compose up -d
+
+# 访问Web界面
+open http://localhost:3000
 ```
-go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
+
+### 手动安装
+```bash
+# 1. 安装依赖
+make init
+
+# 2. 配置数据库
+# 编辑 configs/config.yaml
+
+# 3. 生成代码
+make all
+
+# 4. 启动后端
+make build && ./bin/codewiki -conf ./configs
+
+# 5. 启动前端
+cd web && npm install && npm start
 ```
-## Create a service
+
+## 🚀 主要特性
+
+### 🔍 代码仓库管理
+- **多语言支持**: 支持Go、Java、Python、Rust等多种编程语言
+- **智能解析**: 自动分析代码结构、包依赖、文件关系
+- **仓库类型**: 支持本地仓库和GitHub远程仓库
+- **批量操作**: 支持批量导入和分析多个仓库
+
+### 📊 代码结构分析
+- **包结构可视化**: 树形展示包和文件的层次结构
+- **依赖关系图**: 可视化展示模块间的依赖关系
+- **代码导航**: 快速定位和浏览代码文件
+
+### 🕸️ 函数调用图分析
+- **调用链追踪**: 自动识别函数调用关系
+- **交互式图表**: 支持拖拽、缩放、展开/折叠操作
+- **实时分析**: 点击函数名即可查看调用关系图
+- **节点详情**: 显示函数签名、调用次数等详细信息
+
+### 🎨 现代化Web界面
+- **响应式设计**: 支持桌面和移动设备
+- **语法高亮**: 支持多种编程语言的代码高亮
+- **实时搜索**: 快速查找文件和函数
+- **多标签页**: 同时查看多个仓库或分析结果
+
+## 🏗️ 系统架构
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Web Frontend  │    │   HTTP Server   │    │   gRPC Server   │
+│   (React/TS)    │◄──►│   (Kratos)      │◄──►│   (Kratos)      │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                │                       │
+                                ▼                       ▼
+                       ┌─────────────────┐    ┌─────────────────┐
+                       │  Business Logic │    │   Data Layer    │
+                       │   (Biz Layer)   │    │  (MySQL+Neo4j)  │
+                       └─────────────────┘    └─────────────────┘
+```
+
+### 技术栈
+
+**后端 (Go)**
+- **框架**: [Kratos v2](https://github.com/go-kratos/kratos) - 微服务框架
+- **数据库**: MySQL (关系数据) + Neo4j (图数据)
+- **API**: gRPC + HTTP RESTful
+- **代码生成**: Protocol Buffers + Wire依赖注入
+- **并发处理**: Ants协程池
+
+**前端 (React)**
+- **框架**: React 18 + TypeScript
+- **构建工具**: Create React App
+- **图表库**: 自定义SVG图形渲染
+- **语法高亮**: Prism.js
+- **状态管理**: React Hooks
+
+## 📦 安装部署
+
+### 环境要求
+
+- **Go**: 1.24+
+- **Node.js**: 16+
+- **MySQL**: 8.0+
+- **Neo4j**: 5.0+
+- **Git**: 最新版本
+
+### 1. 克隆项目
+
+```bash
+git clone https://github.com/your-username/codewiki.git
+cd codewiki
 ```
 
 ### 2. 后端设置
@@ -32,7 +139,7 @@ data:
     password: <your-password>
   database:
     driver: mysql
-    source: root:123456@tcp(127.0.0.1:33060)/codewiki?parseTime=True
+    source: root:123456@tcp(127.0.0.1:3306)/codewiki?parseTime=True
 ```
 
 #### 生成代码和构建
@@ -160,4 +267,63 @@ curl -X POST http://localhost:8000/v1/api/repos/{id}/analyze
 # 查询调用链
 curl http://localhost:8000/v1/api/functions/main/calls
 ```
+
+## 🗂️ 项目结构
+
+```
+codewiki/
+├── api/                    # API定义和生成的代码
+│   ├── codewiki/          # 主要API接口
+│   └── openapi.yaml       # OpenAPI规范文档
+├── cmd/                    # 应用程序入口
+│   └── codewiki/          # 主程序
+├── configs/                # 配置文件
+├── internal/               # 内部包
+│   ├── biz/               # 业务逻辑层
+│   ├── conf/              # 配置结构
+│   ├── data/              # 数据访问层
+│   ├── pkg/               # 公共包
+│   └── server/            # 服务器实现
+├── web/                    # 前端React应用
+│   ├── src/
+│   │   ├── components/    # React组件
+│   │   ├── services/      # API服务
+│   │   └── types/         # TypeScript类型定义
+│   └── package.json
+├── third_party/            # 第三方依赖
+├── Dockerfile              # Docker构建文件
+├── Makefile                # 构建脚本
+└── README.md               # 项目文档
+```
+
+## 🤝 贡献指南
+
+我们欢迎所有形式的贡献！请查看以下指南：
+
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+## 📄 许可证
+
+本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情。
+
+## 🙏 致谢
+
+- [Kratos](https://github.com/go-kratos/kratos) - Go微服务框架
+- [Neo4j](https://neo4j.com/) - 图数据库
+- [React](https://reactjs.org/) - 前端框架
+- [Ants](https://github.com/panjf2000/ants) - Go协程池
+
+## 📞 联系我们
+
+- 项目主页: [GitHub Repository](https://github.com/your-username/codewiki)
+- 问题反馈: [Issues](https://github.com/your-username/codewiki/issues)
+- 讨论交流: [Discussions](https://github.com/your-username/codewiki/discussions)
+
+---
+
+⭐ 如果这个项目对你有帮助，请给我们一个星标！
 
