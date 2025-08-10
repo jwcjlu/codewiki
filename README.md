@@ -1,81 +1,10 @@
-# CodeWiki - 智能代码关系分析平台
+# Kratos Project Template
 
-CodeWiki 是一个基于 Go/AST 的智能代码关系分析平台，提供代码仓库管理、函数调用链分析、代码结构可视化等功能。该平台采用前后端分离架构，后端使用 Go 语言构建，前端使用 React + TypeScript 实现。
-
-## 🚀 核心功能
-
-### 后端服务 (Go)
-- **代码仓库管理**: 支持本地和GitHub仓库的创建、删除、分析
-- **AST代码解析**: 基于Go标准库`go/ast`进行代码结构分析
-- **关系图构建**: 自动构建函数调用链、类型继承关系等
-- **多语言支持**: 支持Golang、Java、Python、Rust等编程语言
-- **图数据库存储**: 使用Neo4j存储代码关系图，MySQL存储元数据
-
-### 前端应用 (React)
-- **仓库管理界面**: 直观的仓库CRUD操作
-- **代码树视图**: 层次化的包/文件结构展示
-- **代码查看器**: 语法高亮、函数识别
-- **调用链可视化**: 交互式函数调用关系图
-- **节点详情面板**: 显示函数、类型、文件等详细信息
-
-## 🏗️ 技术架构
-
-### 后端技术栈
-- **框架**: [Kratos](https://github.com/go-kratos/kratos) - Go微服务框架
-- **数据库**: MySQL 8.0+ (元数据), Neo4j 5.x (关系图)
-- **代码解析**: Go标准库 `go/ast`
-- **API**: gRPC + HTTP (RESTful)
-- **配置管理**: Protocol Buffers + YAML
-- **依赖注入**: Google Wire
-
-### 前端技术栈
-- **框架**: React 18 + TypeScript
-- **图形渲染**: SVG + Canvas
-- **状态管理**: React Hooks
-- **样式**: CSS-in-JS
-- **构建工具**: Create React App
-
-## 📦 项目结构
-
+## Install Kratos
 ```
-codewiki/
-├── api/                    # API定义和生成的代码
-│   ├── codewiki/          # 主要API接口
-│   └── openapi.yaml       # OpenAPI文档
-├── cmd/codewiki/          # 应用入口点
-├── configs/               # 配置文件
-├── internal/              # 内部实现
-│   ├── biz/              # 业务逻辑层
-│   ├── data/             # 数据访问层
-│   ├── server/           # 服务层
-│   └── service/          # 服务接口层
-├── web/                  # 前端React应用
-│   ├── src/
-│   │   ├── components/   # React组件
-│   │   ├── services/     # API服务
-│   │   ├── types/        # TypeScript类型定义
-│   │   └── utils/        # 工具函数
-│   └── package.json
-├── third_party/          # 第三方依赖
-├── go.mod               # Go模块定义
-└── Makefile             # 构建脚本
+go install github.com/go-kratos/kratos/cmd/kratos/v2@latest
 ```
-
-## 🚀 快速开始
-
-### 环境要求
-
-- **Go**: 1.24+
-- **Node.js**: 16+
-- **MySQL**: 8.0+
-- **Neo4j**: 5.x
-- **protoc**: Protocol Buffers编译器
-
-### 1. 克隆项目
-
-```bash
-git clone <repository-url>
-cd codewiki
+## Create a service
 ```
 
 ### 2. 后端设置
@@ -232,41 +161,3 @@ curl -X POST http://localhost:8000/v1/api/repos/{id}/analyze
 curl http://localhost:8000/v1/api/functions/main/calls
 ```
 
-## 🔍 核心特性详解
-
-### 代码关系分析
-
-- **函数调用**: 解析函数间的调用关系，支持链式调用
-- **类型关系**: 分析结构体、接口的继承和实现关系
-- **包依赖**: 追踪包之间的导入和依赖关系
-- **作用域分析**: 识别私有、包级、公共等不同作用域
-
-### 可视化引擎
-
-- **SVG渲染**: 使用SVG实现高质量的图形渲染
-- **交互式操作**: 支持拖拽、缩放、点击等交互
-- **自适应布局**: 智能计算节点位置，保持层级间距一致
-- **实时更新**: 动态响应数据变化，实时更新视图
-
-## 🤝 贡献指南
-
-1. Fork 项目
-2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
-
-## 📄 许可证
-
-本项目遵循 `LICENSE` 中所述的许可协议。
-
-## 🙏 致谢
-
-- [Kratos](https://github.com/go-kratos/kratos) - Go微服务框架
-- [Neo4j](https://neo4j.com/) - 图数据库
-- [React](https://reactjs.org/) - 前端框架
-- 开源社区的支持和贡献
-
----
-
-**CodeWiki** - 让代码关系分析变得简单直观 🚀
