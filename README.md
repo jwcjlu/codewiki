@@ -1,28 +1,92 @@
-# CodeWiki
+# CodeWiki - 智能代码关系分析平台
 
-一个基于 Go/AST 的代码关系分析服务。支持仓库管理、包/文件与实体关系抽取、函数调用链分析（包含链式调用，如 `GetRepo().Analyzer()` 以及 `a, err := GetRepo().Analyzer()`）并通过 HTTP API 对外提供查询能力。
+CodeWiki 是一个基于 Go/AST 的智能代码关系分析平台，提供代码仓库管理、函数调用链分析、代码结构可视化等功能。该平台采用前后端分离架构，后端使用 Go 语言构建，前端使用 React + TypeScript 实现。
 
-## 功能特性
+## 🚀 核心功能
 
-- 仓库管理：创建、查询、删除仓库，并触发分析
-- 代码结构建模：实体（结构体/接口/变量/常量）、字段、方法与继承关系
-- 调用链分析：解析函数调用关系，支持包级函数、方法调用、字段方法以及链式调用
-- 包/文件树：按仓库输出包/文件树便于可视化
-- OpenAPI/Swagger：自动生成 OpenAPI 文档
+### 后端服务 (Go)
+- **代码仓库管理**: 支持本地和GitHub仓库的创建、删除、分析
+- **AST代码解析**: 基于Go标准库`go/ast`进行代码结构分析
+- **关系图构建**: 自动构建函数调用链、类型继承关系等
+- **多语言支持**: 支持Golang、Java、Python、Rust等编程语言
+- **图数据库存储**: 使用Neo4j存储代码关系图，MySQL存储元数据
 
-## 快速开始
+### 前端应用 (React)
+- **仓库管理界面**: 直观的仓库CRUD操作
+- **代码树视图**: 层次化的包/文件结构展示
+- **代码查看器**: 语法高亮、函数识别
+- **调用链可视化**: 交互式函数调用关系图
+- **节点详情面板**: 显示函数、类型、文件等详细信息
+
+## 🏗️ 技术架构
+
+### 后端技术栈
+- **框架**: [Kratos](https://github.com/go-kratos/kratos) - Go微服务框架
+- **数据库**: MySQL 8.0+ (元数据), Neo4j 5.x (关系图)
+- **代码解析**: Go标准库 `go/ast`
+- **API**: gRPC + HTTP (RESTful)
+- **配置管理**: Protocol Buffers + YAML
+- **依赖注入**: Google Wire
+
+### 前端技术栈
+- **框架**: React 18 + TypeScript
+- **图形渲染**: SVG + Canvas
+- **状态管理**: React Hooks
+- **样式**: CSS-in-JS
+- **构建工具**: Create React App
+
+## 📦 项目结构
+
+```
+codewiki/
+├── api/                    # API定义和生成的代码
+│   ├── codewiki/          # 主要API接口
+│   └── openapi.yaml       # OpenAPI文档
+├── cmd/codewiki/          # 应用入口点
+├── configs/               # 配置文件
+├── internal/              # 内部实现
+│   ├── biz/              # 业务逻辑层
+│   ├── data/             # 数据访问层
+│   ├── server/           # 服务层
+│   └── service/          # 服务接口层
+├── web/                  # 前端React应用
+│   ├── src/
+│   │   ├── components/   # React组件
+│   │   ├── services/     # API服务
+│   │   ├── types/        # TypeScript类型定义
+│   │   └── utils/        # 工具函数
+│   └── package.json
+├── third_party/          # 第三方依赖
+├── go.mod               # Go模块定义
+└── Makefile             # 构建脚本
+```
+
+## 🚀 快速开始
 
 ### 环境要求
 
-- Go 1.24+
-- protoc 以及相关插件（参考下文 Makefile 指令）
-- MySQL 8.0+（持久化 repo 元数据）
-- Neo4j 5.x（持久化/查询关系图）
+- **Go**: 1.24+
+- **Node.js**: 16+
+- **MySQL**: 8.0+
+- **Neo4j**: 5.x
+- **protoc**: Protocol Buffers编译器
 
-### 配置
+### 1. 克隆项目
 
-修改或确认 `configs/config.yaml`：
+```bash
+git clone <repository-url>
+cd codewiki
+```
 
+### 2. 后端设置
+
+#### 安装Go依赖和工具
+```bash
+make init
+```
+
+#### 配置数据库
+编辑 `configs/config.yaml`:
 ```yaml
 server:
   http:
@@ -31,6 +95,7 @@ server:
   grpc:
     addr: 0.0.0.0:9000
     timeout: 1s
+
 data:
   neo4j:
     target: bolt://127.0.0.1:7687
@@ -41,119 +106,167 @@ data:
     source: root:123456@tcp(127.0.0.1:33060)/codewiki?parseTime=True
 ```
 
-> Windows 下默认启动参数中的 `-conf` 指向本地 `configs` 目录，可通过命令行覆盖。
+#### 生成代码和构建
+```bash
+# 生成所有代码
+make all
 
-### 初始化与构建
+# 构建二进制文件
+make build
+
+# 运行服务
+./bin/codewiki -conf ./configs
+```
+
+### 3. 前端设置
 
 ```bash
-# 安装依赖、代码生成工具
-make init
+cd web
+npm install
+npm start
+```
 
-# 生成 API 代码（pb/http/grpc/validate/openapi）
+前端将在 http://localhost:3000 启动
+
+## 📚 使用指南
+
+### 创建并分析代码仓库
+
+1. **创建仓库**: 在Web界面中填写仓库信息（名称、路径、类型等）
+2. **触发分析**: 点击"分析"按钮，系统将自动解析代码结构
+3. **查看结果**: 分析完成后可查看包结构、文件树、函数调用关系
+
+### 探索代码关系
+
+1. **查看文件树**: 点击"查看树"按钮浏览仓库结构
+2. **阅读代码**: 点击文件名查看代码内容，支持语法高亮
+3. **分析调用链**: 点击函数名查看调用关系图
+4. **交互式探索**: 在调用图中拖拽节点、展开/折叠、查看详情
+
+### 调用图操作
+
+- **拖拽节点**: 调整节点位置
+- **点击节点**: 查看详细信息
+- **展开/折叠**: 显示/隐藏子节点
+- **缩放平移**: 使用鼠标滚轮和拖拽画布
+- **重置视图**: 恢复默认布局
+
+## 🔧 开发指南
+
+### 代码生成
+
+```bash
+# 生成API代码
 make api
 
-# 生成内部配置 pb
+# 生成内部配置
 make config
 
-# 其他生成动作（go generate / mod tidy）
-make generate
+# 生成依赖注入代码
+(cd cmd/codewiki && wire)
 
-# 编译
-make build
+# 一键生成所有
+make all
 ```
 
-### 运行
+### 添加新功能
+
+1. **后端**: 在`internal/`目录下添加新的业务逻辑
+2. **前端**: 在`web/src/components/`下创建新的React组件
+3. **API**: 修改`api/`下的proto文件，重新生成代码
+
+### 测试
 
 ```bash
-# 方式一：二进制
-./bin/codewiki -conf ./configs
+# 后端测试
+go test ./...
 
-# 方式二：本地运行
-go run ./cmd/codewiki -conf ./configs
+# 前端测试
+cd web
+npm test
 ```
 
-## HTTP API（节选）
+## 🐳 Docker部署
 
-OpenAPI 文档见 `api/openapi.yaml`。主要接口如下：
+### 构建镜像
+```bash
+docker build -t codewiki:latest .
+```
 
-- GET `/v1/api/repos`：仓库列表
-- POST `/v1/api/repos`：创建仓库
-- GET `/v1/api/repos/{id}`：仓库详情
-- DELETE `/v1/api/repos/{id}`：删除仓库
-- POST `/v1/api/repos/{id}/analyze`：按仓库触发分析
-- GET `/v1/api/repos/{id}/tree`：仓库包/文件树
-- GET `/v1/api/functions/{startFunctionName}/calls`：函数调用链分析
+### 运行容器
+```bash
+docker run --rm -p 8000:8000 -p 9000:9000 \
+  -v $(pwd)/configs:/data/conf codewiki:latest
+```
 
-### 示例 curl
+## 📊 API接口
+
+主要HTTP接口（完整文档见 `api/openapi.yaml`）:
+
+- `GET /v1/api/repos` - 获取仓库列表
+- `POST /v1/api/repos` - 创建新仓库
+- `GET /v1/api/repos/{id}` - 获取仓库详情
+- `DELETE /v1/api/repos/{id}` - 删除仓库
+- `POST /v1/api/repos/{id}/analyze` - 触发代码分析
+- `GET /v1/api/repos/{id}/tree` - 获取仓库结构树
+- `GET /v1/api/functions/{name}/calls` - 查询函数调用链
+
+### 示例请求
 
 ```bash
 # 创建仓库
 curl -X POST http://localhost:8000/v1/api/repos \
   -H 'Content-Type: application/json' \
   -d '{
-    "name":"demo",
-    "repoType":1,
-    "path":"D:/workspace/golang/demo",
-    "description":"demo repo",
-    "excludes":["**/vendor/**"],
-    "language":1
+    "name": "my-project",
+    "repoType": 0,
+    "path": "/path/to/project",
+    "description": "My Go project",
+    "language": 1
   }'
 
-# 触发分析
-curl -X POST http://localhost:8000/v1/api/repos/<id>/analyze -H 'Content-Type: application/json' -d '{"id":"<id>"}'
+# 分析仓库
+curl -X POST http://localhost:8000/v1/api/repos/{id}/analyze
 
-# 查询调用链（从某个函数名出发）
-curl http://localhost:8000/v1/api/functions/StartFunc/calls
+# 查询调用链
+curl http://localhost:8000/v1/api/functions/main/calls
 ```
 
-## 架构与实现概览
+## 🔍 核心特性详解
 
-- 框架：`kratos` 提供应用骨架与 HTTP 服务
-- 配置：`internal/conf`（`conf.proto` -> pb）+ `configs/config.yaml`
-- 数据层：MySQL（仓库等元数据）、Neo4j（关系图）
-- 业务层：`internal/biz` 使用 `go/ast` 解析代码结构与关系
-  - `RelationAnalyzer` 抽取类型、字段、方法、继承与调用关系
-  - 支持链式调用的解析（如 `GetRepo().Analyzer()`、`a, err := GetRepo().Analyzer()`）
+### 代码关系分析
 
-## 开发指南
+- **函数调用**: 解析函数间的调用关系，支持链式调用
+- **类型关系**: 分析结构体、接口的继承和实现关系
+- **包依赖**: 追踪包之间的导入和依赖关系
+- **作用域分析**: 识别私有、包级、公共等不同作用域
 
-```bash
-# 重新生成 API 代码
-make api
+### 可视化引擎
 
-# 重新生成内部配置 pb
-make config
+- **SVG渲染**: 使用SVG实现高质量的图形渲染
+- **交互式操作**: 支持拖拽、缩放、点击等交互
+- **自适应布局**: 智能计算节点位置，保持层级间距一致
+- **实时更新**: 动态响应数据变化，实时更新视图
 
-# 生成 wire（如有依赖注入改动）
-(cd cmd/codewiki && wire)
+## 🤝 贡献指南
 
-# 一键生成
-make all
-```
+1. Fork 项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
 
-## Docker
-
-```bash
-# 构建镜像
-docker build -t codewiki:latest .
-
-# 运行（将本地配置目录挂载到容器内 /data/conf）
-docker run --rm -p 8000:8000 -p 9000:9000 \
-  -v $(pwd)/configs:/data/conf codewiki:latest
-```
-
-## 目录结构（简要）
-
-- `api/`：proto 与生成的 http/grpc/openapi
-- `cmd/codewiki/`：应用入口、依赖注入（wire）
-- `configs/`：配置文件
-- `internal/`：业务实现（conf、biz、data、server、service 等）
-- `documents/`：图数据库等相关脚本
-
-## 许可
+## 📄 许可证
 
 本项目遵循 `LICENSE` 中所述的许可协议。
 
-—
+## 🙏 致谢
 
-基于 Kratos 构建，感谢开源社区。
+- [Kratos](https://github.com/go-kratos/kratos) - Go微服务框架
+- [Neo4j](https://neo4j.com/) - 图数据库
+- [React](https://reactjs.org/) - 前端框架
+- 开源社区的支持和贡献
+
+---
+
+**CodeWiki** - 让代码关系分析变得简单直观 🚀
