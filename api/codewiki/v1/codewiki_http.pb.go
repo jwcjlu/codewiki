@@ -19,40 +19,40 @@ var _ = binding.EncodeURL
 
 const _ = http.SupportPackageIsVersion1
 
-const OperationCodeWikiServiceAnalyze = "/codewiki.v1.CodeWikiService/Analyze"
+const OperationCodeWikiServiceAnalyzeRepo = "/codewiki.v1.CodeWikiService/AnalyzeRepo"
 const OperationCodeWikiServiceCallChain = "/codewiki.v1.CodeWikiService/CallChain"
+const OperationCodeWikiServiceCreateRepo = "/codewiki.v1.CodeWikiService/CreateRepo"
+const OperationCodeWikiServiceDeleteRepo = "/codewiki.v1.CodeWikiService/DeleteRepo"
+const OperationCodeWikiServiceGetRepo = "/codewiki.v1.CodeWikiService/GetRepo"
+const OperationCodeWikiServiceGetRepoTree = "/codewiki.v1.CodeWikiService/GetRepoTree"
+const OperationCodeWikiServiceListRepos = "/codewiki.v1.CodeWikiService/ListRepos"
+const OperationCodeWikiServiceViewFileContent = "/codewiki.v1.CodeWikiService/ViewFileContent"
 
 type CodeWikiServiceHTTPServer interface {
-	Analyze(context.Context, *AnalyzeReq) (*AnalyzeResp, error)
+	// AnalyzeRepo Analyze by repository id
+	AnalyzeRepo(context.Context, *AnalyzeRepoReq) (*AnalyzeResp, error)
 	CallChain(context.Context, *CallChainReq) (*CallChainResp, error)
+	// CreateRepo Repo management
+	CreateRepo(context.Context, *CreateRepoReq) (*CreateRepoResp, error)
+	DeleteRepo(context.Context, *DeleteRepoReq) (*DeleteRepoResp, error)
+	GetRepo(context.Context, *GetRepoReq) (*GetRepoResp, error)
+	// GetRepoTree Repo tree display
+	GetRepoTree(context.Context, *GetRepoTreeReq) (*GetRepoTreeResp, error)
+	ListRepos(context.Context, *ListReposReq) (*ListReposResp, error)
+	// ViewFileContent File  view  content
+	ViewFileContent(context.Context, *ViewFileReq) (*ViewFileResp, error)
 }
 
 func RegisterCodeWikiServiceHTTPServer(s *http.Server, srv CodeWikiServiceHTTPServer) {
 	r := s.Route("/")
-	r.POST("/v1/api/project/analyze", _CodeWikiService_Analyze0_HTTP_Handler(srv))
-	r.GET("/v1/api/functions/{startFunctionName}/calls", _CodeWikiService_CallChain0_HTTP_Handler(srv))
-}
-
-func _CodeWikiService_Analyze0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
-		var in AnalyzeReq
-		if err := ctx.Bind(&in); err != nil {
-			return err
-		}
-		if err := ctx.BindQuery(&in); err != nil {
-			return err
-		}
-		http.SetOperation(ctx, OperationCodeWikiServiceAnalyze)
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
-			return srv.Analyze(ctx, req.(*AnalyzeReq))
-		})
-		out, err := h(ctx, &in)
-		if err != nil {
-			return err
-		}
-		reply := out.(*AnalyzeResp)
-		return ctx.Result(200, reply)
-	}
+	r.GET("/v1/api/functions/{id}/calls", _CodeWikiService_CallChain0_HTTP_Handler(srv))
+	r.POST("/v1/api/repos", _CodeWikiService_CreateRepo0_HTTP_Handler(srv))
+	r.GET("/v1/api/repos", _CodeWikiService_ListRepos0_HTTP_Handler(srv))
+	r.GET("/v1/api/repos/{id}", _CodeWikiService_GetRepo0_HTTP_Handler(srv))
+	r.DELETE("/v1/api/repos/{id}", _CodeWikiService_DeleteRepo0_HTTP_Handler(srv))
+	r.POST("/v1/api/repos/{id}/analyze", _CodeWikiService_AnalyzeRepo0_HTTP_Handler(srv))
+	r.GET("/v1/api/repos/{id}/tree", _CodeWikiService_GetRepoTree0_HTTP_Handler(srv))
+	r.GET("/v1/api/{repoId}/file/{id}/view", _CodeWikiService_ViewFileContent0_HTTP_Handler(srv))
 }
 
 func _CodeWikiService_CallChain0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
@@ -77,9 +77,169 @@ func _CodeWikiService_CallChain0_HTTP_Handler(srv CodeWikiServiceHTTPServer) fun
 	}
 }
 
+func _CodeWikiService_CreateRepo0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in CreateRepoReq
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCodeWikiServiceCreateRepo)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.CreateRepo(ctx, req.(*CreateRepoReq))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*CreateRepoResp)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _CodeWikiService_ListRepos0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ListReposReq
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCodeWikiServiceListRepos)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ListRepos(ctx, req.(*ListReposReq))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ListReposResp)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _CodeWikiService_GetRepo0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetRepoReq
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCodeWikiServiceGetRepo)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetRepo(ctx, req.(*GetRepoReq))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetRepoResp)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _CodeWikiService_DeleteRepo0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in DeleteRepoReq
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCodeWikiServiceDeleteRepo)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.DeleteRepo(ctx, req.(*DeleteRepoReq))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*DeleteRepoResp)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _CodeWikiService_AnalyzeRepo0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in AnalyzeRepoReq
+		if err := ctx.Bind(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCodeWikiServiceAnalyzeRepo)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.AnalyzeRepo(ctx, req.(*AnalyzeRepoReq))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*AnalyzeResp)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _CodeWikiService_GetRepoTree0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in GetRepoTreeReq
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCodeWikiServiceGetRepoTree)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.GetRepoTree(ctx, req.(*GetRepoTreeReq))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*GetRepoTreeResp)
+		return ctx.Result(200, reply)
+	}
+}
+
+func _CodeWikiService_ViewFileContent0_HTTP_Handler(srv CodeWikiServiceHTTPServer) func(ctx http.Context) error {
+	return func(ctx http.Context) error {
+		var in ViewFileReq
+		if err := ctx.BindQuery(&in); err != nil {
+			return err
+		}
+		if err := ctx.BindVars(&in); err != nil {
+			return err
+		}
+		http.SetOperation(ctx, OperationCodeWikiServiceViewFileContent)
+		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+			return srv.ViewFileContent(ctx, req.(*ViewFileReq))
+		})
+		out, err := h(ctx, &in)
+		if err != nil {
+			return err
+		}
+		reply := out.(*ViewFileResp)
+		return ctx.Result(200, reply)
+	}
+}
+
 type CodeWikiServiceHTTPClient interface {
-	Analyze(ctx context.Context, req *AnalyzeReq, opts ...http.CallOption) (rsp *AnalyzeResp, err error)
+	AnalyzeRepo(ctx context.Context, req *AnalyzeRepoReq, opts ...http.CallOption) (rsp *AnalyzeResp, err error)
 	CallChain(ctx context.Context, req *CallChainReq, opts ...http.CallOption) (rsp *CallChainResp, err error)
+	CreateRepo(ctx context.Context, req *CreateRepoReq, opts ...http.CallOption) (rsp *CreateRepoResp, err error)
+	DeleteRepo(ctx context.Context, req *DeleteRepoReq, opts ...http.CallOption) (rsp *DeleteRepoResp, err error)
+	GetRepo(ctx context.Context, req *GetRepoReq, opts ...http.CallOption) (rsp *GetRepoResp, err error)
+	GetRepoTree(ctx context.Context, req *GetRepoTreeReq, opts ...http.CallOption) (rsp *GetRepoTreeResp, err error)
+	ListRepos(ctx context.Context, req *ListReposReq, opts ...http.CallOption) (rsp *ListReposResp, err error)
+	ViewFileContent(ctx context.Context, req *ViewFileReq, opts ...http.CallOption) (rsp *ViewFileResp, err error)
 }
 
 type CodeWikiServiceHTTPClientImpl struct {
@@ -90,11 +250,11 @@ func NewCodeWikiServiceHTTPClient(client *http.Client) CodeWikiServiceHTTPClient
 	return &CodeWikiServiceHTTPClientImpl{client}
 }
 
-func (c *CodeWikiServiceHTTPClientImpl) Analyze(ctx context.Context, in *AnalyzeReq, opts ...http.CallOption) (*AnalyzeResp, error) {
+func (c *CodeWikiServiceHTTPClientImpl) AnalyzeRepo(ctx context.Context, in *AnalyzeRepoReq, opts ...http.CallOption) (*AnalyzeResp, error) {
 	var out AnalyzeResp
-	pattern := "/v1/api/project/analyze"
+	pattern := "/v1/api/repos/{id}/analyze"
 	path := binding.EncodeURL(pattern, in, false)
-	opts = append(opts, http.Operation(OperationCodeWikiServiceAnalyze))
+	opts = append(opts, http.Operation(OperationCodeWikiServiceAnalyzeRepo))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
 	if err != nil {
@@ -105,9 +265,87 @@ func (c *CodeWikiServiceHTTPClientImpl) Analyze(ctx context.Context, in *Analyze
 
 func (c *CodeWikiServiceHTTPClientImpl) CallChain(ctx context.Context, in *CallChainReq, opts ...http.CallOption) (*CallChainResp, error) {
 	var out CallChainResp
-	pattern := "/v1/api/functions/{startFunctionName}/calls"
+	pattern := "/v1/api/functions/{id}/calls"
 	path := binding.EncodeURL(pattern, in, true)
 	opts = append(opts, http.Operation(OperationCodeWikiServiceCallChain))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CodeWikiServiceHTTPClientImpl) CreateRepo(ctx context.Context, in *CreateRepoReq, opts ...http.CallOption) (*CreateRepoResp, error) {
+	var out CreateRepoResp
+	pattern := "/v1/api/repos"
+	path := binding.EncodeURL(pattern, in, false)
+	opts = append(opts, http.Operation(OperationCodeWikiServiceCreateRepo))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "POST", path, in, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CodeWikiServiceHTTPClientImpl) DeleteRepo(ctx context.Context, in *DeleteRepoReq, opts ...http.CallOption) (*DeleteRepoResp, error) {
+	var out DeleteRepoResp
+	pattern := "/v1/api/repos/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationCodeWikiServiceDeleteRepo))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "DELETE", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CodeWikiServiceHTTPClientImpl) GetRepo(ctx context.Context, in *GetRepoReq, opts ...http.CallOption) (*GetRepoResp, error) {
+	var out GetRepoResp
+	pattern := "/v1/api/repos/{id}"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationCodeWikiServiceGetRepo))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CodeWikiServiceHTTPClientImpl) GetRepoTree(ctx context.Context, in *GetRepoTreeReq, opts ...http.CallOption) (*GetRepoTreeResp, error) {
+	var out GetRepoTreeResp
+	pattern := "/v1/api/repos/{id}/tree"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationCodeWikiServiceGetRepoTree))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CodeWikiServiceHTTPClientImpl) ListRepos(ctx context.Context, in *ListReposReq, opts ...http.CallOption) (*ListReposResp, error) {
+	var out ListReposResp
+	pattern := "/v1/api/repos"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationCodeWikiServiceListRepos))
+	opts = append(opts, http.PathTemplate(pattern))
+	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CodeWikiServiceHTTPClientImpl) ViewFileContent(ctx context.Context, in *ViewFileReq, opts ...http.CallOption) (*ViewFileResp, error) {
+	var out ViewFileResp
+	pattern := "/v1/api/{repoId}/file/{id}/view"
+	path := binding.EncodeURL(pattern, in, true)
+	opts = append(opts, http.Operation(OperationCodeWikiServiceViewFileContent))
 	opts = append(opts, http.PathTemplate(pattern))
 	err := c.cc.Invoke(ctx, "GET", path, nil, &out, opts...)
 	if err != nil {

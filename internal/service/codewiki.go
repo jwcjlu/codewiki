@@ -18,10 +18,52 @@ func NewCodeWikiService(codeWiki *biz.CodeWiki) *CodeWikiService {
 	return &CodeWikiService{codeWiki: codeWiki}
 }
 
-// Analyze implements codewiki.DeepWikiServiceServer.
-func (s *CodeWikiService) Analyze(ctx context.Context, in *v1.AnalyzeReq) (*v1.AnalyzeResp, error) {
+func (s *CodeWikiService) CallChain(ctx context.Context, req *v1.CallChainReq) (*v1.CallChainResp, error) {
+	resp := new(v1.CallChainResp)
+	callRelations, err := s.codeWiki.QueryCallChain(ctx, req.Id)
+	if err != nil {
+		resp.Code = 1000
+		resp.Msg = err.Error()
+		return resp, err
+	}
+	resp.CallRelations = callRelations
+	return resp, nil
+}
+
+func (s *CodeWikiService) CreateRepo(ctx context.Context, req *v1.CreateRepoReq) (*v1.CreateRepoResp, error) {
+	id, err := s.codeWiki.CreateRepo(ctx, req)
+	if err != nil {
+		return &v1.CreateRepoResp{}, err
+	}
+	return &v1.CreateRepoResp{Id: id}, nil
+}
+
+func (s *CodeWikiService) ListRepos(ctx context.Context, req *v1.ListReposReq) (*v1.ListReposResp, error) {
+	repos, err := s.codeWiki.ListRepos(ctx)
+	if err != nil {
+		return &v1.ListReposResp{}, err
+	}
+	return &v1.ListReposResp{Repos: repos}, nil
+}
+
+func (s *CodeWikiService) GetRepo(ctx context.Context, req *v1.GetRepoReq) (*v1.GetRepoResp, error) {
+	repo, err := s.codeWiki.GetRepo(ctx, req.Id)
+	if err != nil {
+		return &v1.GetRepoResp{}, err
+	}
+	return &v1.GetRepoResp{Repo: repo}, nil
+}
+
+func (s *CodeWikiService) DeleteRepo(ctx context.Context, req *v1.DeleteRepoReq) (*v1.DeleteRepoResp, error) {
+	if err := s.codeWiki.DeleteRepo(ctx, req.Id); err != nil {
+		return &v1.DeleteRepoResp{}, err
+	}
+	return &v1.DeleteRepoResp{}, nil
+}
+
+func (s *CodeWikiService) AnalyzeRepo(ctx context.Context, req *v1.AnalyzeRepoReq) (*v1.AnalyzeResp, error) {
 	resp := new(v1.AnalyzeResp)
-	err := s.codeWiki.Analyze(ctx, in)
+	err := s.codeWiki.AnalyzeRepo(ctx, req.Id)
 	if err != nil {
 		resp.Code = 1000
 		resp.Msg = err.Error()
@@ -30,14 +72,21 @@ func (s *CodeWikiService) Analyze(ctx context.Context, in *v1.AnalyzeReq) (*v1.A
 	return resp, nil
 }
 
-func (s *CodeWikiService) CallChain(ctx context.Context, req *v1.CallChainReq) (*v1.CallChainResp, error) {
-	resp := new(v1.CallChainResp)
-	callRelations, err := s.codeWiki.QueryCallChain(ctx, req.StartFunctionName)
+func (s *CodeWikiService) GetRepoTree(ctx context.Context, req *v1.GetRepoTreeReq) (*v1.GetRepoTreeResp, error) {
+	pkgs, files, err := s.codeWiki.GetRepoTree(ctx, req.Id)
 	if err != nil {
-		resp.Code = 1000
-		resp.Msg = err.Error()
-		return resp, err
+		return &v1.GetRepoTreeResp{}, err
 	}
-	resp.CallRelations = callRelations
-	return resp, nil
+	return &v1.GetRepoTreeResp{Packages: pkgs, Files: files}, nil
+}
+func (s *CodeWikiService) ViewFileContent(ctx context.Context, req *v1.ViewFileReq) (*v1.ViewFileResp, error) {
+	fileContent, err := s.codeWiki.ViewFileContent(ctx, req)
+	if err != nil {
+		return &v1.ViewFileResp{}, err
+	}
+	return &v1.ViewFileResp{
+		Content:   fileContent.Content,
+		Language:  fileContent.Language,
+		Functions: fileContent.Functions,
+	}, err
 }

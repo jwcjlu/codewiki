@@ -201,3 +201,15 @@ func (p *Package) GetEntity(name string) *Entity {
 	}
 	return nil
 }
+func (p *Package) GetEntityByPkg(pkgId, name string) *Entity {
+	newP := p
+	if pkg := p.GetProject().GetPackageById(pkgId); pkg != nil {
+		newP = pkg
+	}
+	for _, file := range newP.Files {
+		if entity := file.GetEntity(name); entity != nil {
+			return entity
+		}
+	}
+	return nil
+}

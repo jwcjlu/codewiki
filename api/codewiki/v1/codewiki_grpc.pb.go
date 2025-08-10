@@ -19,16 +19,32 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CodeWikiService_Analyze_FullMethodName   = "/codewiki.v1.CodeWikiService/Analyze"
-	CodeWikiService_CallChain_FullMethodName = "/codewiki.v1.CodeWikiService/CallChain"
+	CodeWikiService_CallChain_FullMethodName       = "/codewiki.v1.CodeWikiService/CallChain"
+	CodeWikiService_CreateRepo_FullMethodName      = "/codewiki.v1.CodeWikiService/CreateRepo"
+	CodeWikiService_ListRepos_FullMethodName       = "/codewiki.v1.CodeWikiService/ListRepos"
+	CodeWikiService_GetRepo_FullMethodName         = "/codewiki.v1.CodeWikiService/GetRepo"
+	CodeWikiService_DeleteRepo_FullMethodName      = "/codewiki.v1.CodeWikiService/DeleteRepo"
+	CodeWikiService_AnalyzeRepo_FullMethodName     = "/codewiki.v1.CodeWikiService/AnalyzeRepo"
+	CodeWikiService_GetRepoTree_FullMethodName     = "/codewiki.v1.CodeWikiService/GetRepoTree"
+	CodeWikiService_ViewFileContent_FullMethodName = "/codewiki.v1.CodeWikiService/ViewFileContent"
 )
 
 // CodeWikiServiceClient is the client API for CodeWikiService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type CodeWikiServiceClient interface {
-	Analyze(ctx context.Context, in *AnalyzeReq, opts ...grpc.CallOption) (*AnalyzeResp, error)
 	CallChain(ctx context.Context, in *CallChainReq, opts ...grpc.CallOption) (*CallChainResp, error)
+	// Repo management
+	CreateRepo(ctx context.Context, in *CreateRepoReq, opts ...grpc.CallOption) (*CreateRepoResp, error)
+	ListRepos(ctx context.Context, in *ListReposReq, opts ...grpc.CallOption) (*ListReposResp, error)
+	GetRepo(ctx context.Context, in *GetRepoReq, opts ...grpc.CallOption) (*GetRepoResp, error)
+	DeleteRepo(ctx context.Context, in *DeleteRepoReq, opts ...grpc.CallOption) (*DeleteRepoResp, error)
+	// Analyze by repository id
+	AnalyzeRepo(ctx context.Context, in *AnalyzeRepoReq, opts ...grpc.CallOption) (*AnalyzeResp, error)
+	// Repo tree display
+	GetRepoTree(ctx context.Context, in *GetRepoTreeReq, opts ...grpc.CallOption) (*GetRepoTreeResp, error)
+	// File  view  content
+	ViewFileContent(ctx context.Context, in *ViewFileReq, opts ...grpc.CallOption) (*ViewFileResp, error)
 }
 
 type codeWikiServiceClient struct {
@@ -37,16 +53,6 @@ type codeWikiServiceClient struct {
 
 func NewCodeWikiServiceClient(cc grpc.ClientConnInterface) CodeWikiServiceClient {
 	return &codeWikiServiceClient{cc}
-}
-
-func (c *codeWikiServiceClient) Analyze(ctx context.Context, in *AnalyzeReq, opts ...grpc.CallOption) (*AnalyzeResp, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AnalyzeResp)
-	err := c.cc.Invoke(ctx, CodeWikiService_Analyze_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *codeWikiServiceClient) CallChain(ctx context.Context, in *CallChainReq, opts ...grpc.CallOption) (*CallChainResp, error) {
@@ -59,12 +65,92 @@ func (c *codeWikiServiceClient) CallChain(ctx context.Context, in *CallChainReq,
 	return out, nil
 }
 
+func (c *codeWikiServiceClient) CreateRepo(ctx context.Context, in *CreateRepoReq, opts ...grpc.CallOption) (*CreateRepoResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateRepoResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_CreateRepo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *codeWikiServiceClient) ListRepos(ctx context.Context, in *ListReposReq, opts ...grpc.CallOption) (*ListReposResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListReposResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_ListRepos_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *codeWikiServiceClient) GetRepo(ctx context.Context, in *GetRepoReq, opts ...grpc.CallOption) (*GetRepoResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRepoResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_GetRepo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *codeWikiServiceClient) DeleteRepo(ctx context.Context, in *DeleteRepoReq, opts ...grpc.CallOption) (*DeleteRepoResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteRepoResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_DeleteRepo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *codeWikiServiceClient) AnalyzeRepo(ctx context.Context, in *AnalyzeRepoReq, opts ...grpc.CallOption) (*AnalyzeResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AnalyzeResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_AnalyzeRepo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *codeWikiServiceClient) GetRepoTree(ctx context.Context, in *GetRepoTreeReq, opts ...grpc.CallOption) (*GetRepoTreeResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetRepoTreeResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_GetRepoTree_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *codeWikiServiceClient) ViewFileContent(ctx context.Context, in *ViewFileReq, opts ...grpc.CallOption) (*ViewFileResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ViewFileResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_ViewFileContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CodeWikiServiceServer is the server API for CodeWikiService service.
 // All implementations must embed UnimplementedCodeWikiServiceServer
 // for forward compatibility.
 type CodeWikiServiceServer interface {
-	Analyze(context.Context, *AnalyzeReq) (*AnalyzeResp, error)
 	CallChain(context.Context, *CallChainReq) (*CallChainResp, error)
+	// Repo management
+	CreateRepo(context.Context, *CreateRepoReq) (*CreateRepoResp, error)
+	ListRepos(context.Context, *ListReposReq) (*ListReposResp, error)
+	GetRepo(context.Context, *GetRepoReq) (*GetRepoResp, error)
+	DeleteRepo(context.Context, *DeleteRepoReq) (*DeleteRepoResp, error)
+	// Analyze by repository id
+	AnalyzeRepo(context.Context, *AnalyzeRepoReq) (*AnalyzeResp, error)
+	// Repo tree display
+	GetRepoTree(context.Context, *GetRepoTreeReq) (*GetRepoTreeResp, error)
+	// File  view  content
+	ViewFileContent(context.Context, *ViewFileReq) (*ViewFileResp, error)
 	mustEmbedUnimplementedCodeWikiServiceServer()
 }
 
@@ -75,11 +161,29 @@ type CodeWikiServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedCodeWikiServiceServer struct{}
 
-func (UnimplementedCodeWikiServiceServer) Analyze(context.Context, *AnalyzeReq) (*AnalyzeResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Analyze not implemented")
-}
 func (UnimplementedCodeWikiServiceServer) CallChain(context.Context, *CallChainReq) (*CallChainResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CallChain not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) CreateRepo(context.Context, *CreateRepoReq) (*CreateRepoResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateRepo not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) ListRepos(context.Context, *ListReposReq) (*ListReposResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListRepos not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) GetRepo(context.Context, *GetRepoReq) (*GetRepoResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRepo not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) DeleteRepo(context.Context, *DeleteRepoReq) (*DeleteRepoResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRepo not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) AnalyzeRepo(context.Context, *AnalyzeRepoReq) (*AnalyzeResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AnalyzeRepo not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) GetRepoTree(context.Context, *GetRepoTreeReq) (*GetRepoTreeResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRepoTree not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) ViewFileContent(context.Context, *ViewFileReq) (*ViewFileResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ViewFileContent not implemented")
 }
 func (UnimplementedCodeWikiServiceServer) mustEmbedUnimplementedCodeWikiServiceServer() {}
 func (UnimplementedCodeWikiServiceServer) testEmbeddedByValue()                         {}
@@ -102,24 +206,6 @@ func RegisterCodeWikiServiceServer(s grpc.ServiceRegistrar, srv CodeWikiServiceS
 	s.RegisterService(&CodeWikiService_ServiceDesc, srv)
 }
 
-func _CodeWikiService_Analyze_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AnalyzeReq)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(CodeWikiServiceServer).Analyze(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CodeWikiService_Analyze_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CodeWikiServiceServer).Analyze(ctx, req.(*AnalyzeReq))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _CodeWikiService_CallChain_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CallChainReq)
 	if err := dec(in); err != nil {
@@ -138,6 +224,132 @@ func _CodeWikiService_CallChain_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CodeWikiService_CreateRepo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateRepoReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).CreateRepo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_CreateRepo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).CreateRepo(ctx, req.(*CreateRepoReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CodeWikiService_ListRepos_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListReposReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).ListRepos(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_ListRepos_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).ListRepos(ctx, req.(*ListReposReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CodeWikiService_GetRepo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRepoReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).GetRepo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_GetRepo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).GetRepo(ctx, req.(*GetRepoReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CodeWikiService_DeleteRepo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRepoReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).DeleteRepo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_DeleteRepo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).DeleteRepo(ctx, req.(*DeleteRepoReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CodeWikiService_AnalyzeRepo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AnalyzeRepoReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).AnalyzeRepo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_AnalyzeRepo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).AnalyzeRepo(ctx, req.(*AnalyzeRepoReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CodeWikiService_GetRepoTree_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRepoTreeReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).GetRepoTree(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_GetRepoTree_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).GetRepoTree(ctx, req.(*GetRepoTreeReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CodeWikiService_ViewFileContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ViewFileReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).ViewFileContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_ViewFileContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).ViewFileContent(ctx, req.(*ViewFileReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CodeWikiService_ServiceDesc is the grpc.ServiceDesc for CodeWikiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -146,12 +358,36 @@ var CodeWikiService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*CodeWikiServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Analyze",
-			Handler:    _CodeWikiService_Analyze_Handler,
-		},
-		{
 			MethodName: "CallChain",
 			Handler:    _CodeWikiService_CallChain_Handler,
+		},
+		{
+			MethodName: "CreateRepo",
+			Handler:    _CodeWikiService_CreateRepo_Handler,
+		},
+		{
+			MethodName: "ListRepos",
+			Handler:    _CodeWikiService_ListRepos_Handler,
+		},
+		{
+			MethodName: "GetRepo",
+			Handler:    _CodeWikiService_GetRepo_Handler,
+		},
+		{
+			MethodName: "DeleteRepo",
+			Handler:    _CodeWikiService_DeleteRepo_Handler,
+		},
+		{
+			MethodName: "AnalyzeRepo",
+			Handler:    _CodeWikiService_AnalyzeRepo_Handler,
+		},
+		{
+			MethodName: "GetRepoTree",
+			Handler:    _CodeWikiService_GetRepoTree_Handler,
+		},
+		{
+			MethodName: "ViewFileContent",
+			Handler:    _CodeWikiService_ViewFileContent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -103,14 +103,13 @@ func (e *Entity) AddField(field *Field) {
 }
 func (e *Entity) FindFieldByName(fieldName string) *Field {
 	if e.Type == Struct || e.Type == Interface {
-		e.fieldManager.GetFieldByName(fieldName)
+		return e.fieldManager.GetFieldByName(fieldName)
 	} else {
 		if e.vSpace == nil {
 			return nil
 		}
 		return &Field{expr: e.vSpace.Type}
 	}
-	return nil
 }
 func (e *Entity) SetValueSpace(vSpace *ast.ValueSpec) {
 	e.vSpace = vSpace

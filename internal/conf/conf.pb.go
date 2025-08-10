@@ -130,6 +130,7 @@ type Data struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Neo4J         *Data_Neo4J            `protobuf:"bytes,1,opt,name=neo4j,proto3" json:"neo4j,omitempty"`
 	PoolConfig    *PoolConfig            `protobuf:"bytes,2,opt,name=poolConfig,proto3" json:"poolConfig,omitempty"`
+	Database      *Data_Database         `protobuf:"bytes,3,opt,name=database,proto3" json:"database,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -174,6 +175,13 @@ func (x *Data) GetNeo4J() *Data_Neo4J {
 func (x *Data) GetPoolConfig() *PoolConfig {
 	if x != nil {
 		return x.PoolConfig
+	}
+	return nil
+}
+
+func (x *Data) GetDatabase() *Data_Database {
+	if x != nil {
+		return x.Database
 	}
 	return nil
 }
@@ -410,6 +418,58 @@ func (x *Data_Neo4J) GetPassword() string {
 	return ""
 }
 
+type Data_Database struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Driver        string                 `protobuf:"bytes,1,opt,name=driver,proto3" json:"driver,omitempty"`
+	Source        string                 `protobuf:"bytes,2,opt,name=source,proto3" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Data_Database) Reset() {
+	*x = Data_Database{}
+	mi := &file_conf_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Data_Database) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Data_Database) ProtoMessage() {}
+
+func (x *Data_Database) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Data_Database.ProtoReflect.Descriptor instead.
+func (*Data_Database) Descriptor() ([]byte, []int) {
+	return file_conf_proto_rawDescGZIP(), []int{2, 1}
+}
+
+func (x *Data_Database) GetDriver() string {
+	if x != nil {
+		return x.Driver
+	}
+	return ""
+}
+
+func (x *Data_Database) GetSource() string {
+	if x != nil {
+		return x.Source
+	}
+	return ""
+}
+
 var File_conf_proto protoreflect.FileDescriptor
 
 const file_conf_proto_rawDesc = "" +
@@ -430,20 +490,24 @@ const file_conf_proto_rawDesc = "" +
 	"\x04GRPC\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xc5\x01\n" +
+	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xb8\x02\n" +
 	"\x04Data\x12,\n" +
 	"\x05neo4j\x18\x01 \x01(\v2\x16.kratos.api.Data.Neo4jR\x05neo4j\x126\n" +
 	"\n" +
 	"poolConfig\x18\x02 \x01(\v2\x16.kratos.api.PoolConfigR\n" +
-	"poolConfig\x1aW\n" +
+	"poolConfig\x125\n" +
+	"\bdatabase\x18\x03 \x01(\v2\x19.kratos.api.Data.DatabaseR\bdatabase\x1aW\n" +
 	"\x05Neo4j\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1a\n" +
-	"\bpassword\x18\x03 \x01(\tR\bpassword\"D\n" +
+	"\bpassword\x18\x03 \x01(\tR\bpassword\x1a:\n" +
+	"\bDatabase\x12\x16\n" +
+	"\x06driver\x18\x01 \x01(\tR\x06driver\x12\x16\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\"D\n" +
 	"\n" +
 	"PoolConfig\x12\x1a\n" +
 	"\bpoolSize\x18\x01 \x01(\x05R\bpoolSize\x12\x1a\n" +
-	"\bblocking\x18\x02 \x01(\bR\bblockingB\x1dZ\x1bdeepwiki/internal/conf;confb\x06proto3"
+	"\bblocking\x18\x02 \x01(\bR\bblockingB\x1dZ\x1bcodewiki/internal/conf;confb\x06proto3"
 
 var (
 	file_conf_proto_rawDescOnce sync.Once
@@ -457,7 +521,7 @@ func file_conf_proto_rawDescGZIP() []byte {
 	return file_conf_proto_rawDescData
 }
 
-var file_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
 var file_conf_proto_goTypes = []any{
 	(*Bootstrap)(nil),           // 0: kratos.api.Bootstrap
 	(*Server)(nil),              // 1: kratos.api.Server
@@ -466,7 +530,8 @@ var file_conf_proto_goTypes = []any{
 	(*Server_HTTP)(nil),         // 4: kratos.api.Server.HTTP
 	(*Server_GRPC)(nil),         // 5: kratos.api.Server.GRPC
 	(*Data_Neo4J)(nil),          // 6: kratos.api.Data.Neo4j
-	(*durationpb.Duration)(nil), // 7: google.protobuf.Duration
+	(*Data_Database)(nil),       // 7: kratos.api.Data.Database
+	(*durationpb.Duration)(nil), // 8: google.protobuf.Duration
 }
 var file_conf_proto_depIdxs = []int32{
 	1, // 0: kratos.api.Bootstrap.server:type_name -> kratos.api.Server
@@ -475,13 +540,14 @@ var file_conf_proto_depIdxs = []int32{
 	5, // 3: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
 	6, // 4: kratos.api.Data.neo4j:type_name -> kratos.api.Data.Neo4j
 	3, // 5: kratos.api.Data.poolConfig:type_name -> kratos.api.PoolConfig
-	7, // 6: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	7, // 7: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	8, // [8:8] is the sub-list for method output_type
-	8, // [8:8] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	7, // 6: kratos.api.Data.database:type_name -> kratos.api.Data.Database
+	8, // 7: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	8, // 8: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	9, // [9:9] is the sub-list for method output_type
+	9, // [9:9] is the sub-list for method input_type
+	9, // [9:9] is the sub-list for extension type_name
+	9, // [9:9] is the sub-list for extension extendee
+	0, // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_conf_proto_init() }
@@ -495,7 +561,7 @@ func file_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_conf_proto_rawDesc), len(file_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
