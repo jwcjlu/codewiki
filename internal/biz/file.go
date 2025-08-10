@@ -1,6 +1,7 @@
 package biz
 
 import (
+	v1 "codewiki/api/codewiki/v1"
 	"context"
 	"fmt"
 	"go/ast"
@@ -440,4 +441,10 @@ func TextWarp(text Text) string {
 		return ""
 	}
 	return text.Text()
+}
+
+type FileContent struct {
+	Content   string
+	Language  v1.Language
+	Functions []*v1.Function
 }

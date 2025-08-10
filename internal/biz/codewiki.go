@@ -12,9 +12,9 @@ type CodeWiki struct {
 func NewCodeWiki(projectRepo ProjectRepo) *CodeWiki {
 	return &CodeWiki{projectRepo: projectRepo}
 }
-func (c *CodeWiki) QueryCallChain(ctx context.Context, startFunctionName string) ([]*v1.CallRelationship, error) {
+func (c *CodeWiki) QueryCallChain(ctx context.Context, id string) ([]*v1.CallRelationship, error) {
 
-	return c.projectRepo.QueryCallChain(ctx, startFunctionName)
+	return c.projectRepo.QueryCallChain(ctx, id)
 
 }
 
@@ -51,4 +51,21 @@ func (c *CodeWiki) AnalyzeRepo(ctx context.Context, id string) error {
 }
 func (c *CodeWiki) GetRepoTree(ctx context.Context, id string) (packages []*v1.PackageNode, files []*v1.FileNode, err error) {
 	return c.projectRepo.GetRepoTree(ctx, id)
+}
+
+func (c *CodeWiki) ViewFileContent(ctx context.Context, req *v1.ViewFileReq) (*FileContent, error) {
+	repo, err := c.projectRepo.GetRepo(ctx, req.GetRepoId())
+	if err != nil {
+		return nil, err
+	}
+	cr := CodeRepository{Repo: repo}
+	content, err := cr.ReadFile(req.Id)
+	if err != nil {
+		return nil, err
+	}
+	functions, err := c.projectRepo.GetFunctionByFileId(ctx, req.GetId())
+	if err != nil {
+		return nil, err
+	}
+	return &FileContent{Content: content, Functions: functions}, nil
 }

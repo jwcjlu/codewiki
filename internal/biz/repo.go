@@ -7,7 +7,7 @@ import (
 
 type ProjectRepo interface {
 	SaveProject(ctx context.Context, p *Project) error
-	QueryCallChain(ctx context.Context, startFunctionName string) ([]*v1.CallRelationship, error)
+	QueryCallChain(ctx context.Context, id string) ([]*v1.CallRelationship, error)
 
 	// Repo management
 	CreateRepo(ctx context.Context, req *v1.CreateRepoReq) (string, error)
@@ -18,4 +18,5 @@ type ProjectRepo interface {
 	// Repo bindings and views
 	BindRepoRoot(ctx context.Context, repoId, rootPkgId string) error
 	GetRepoTree(ctx context.Context, id string) (packages []*v1.PackageNode, files []*v1.FileNode, err error)
+	GetFunctionByFileId(ctx context.Context, fileId string) (functions []*v1.Function, err error)
 }

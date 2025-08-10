@@ -19,12 +19,19 @@ enum Language{
   Java=1;  //Java
   Python=2;//Python
   Rust=3;//Rust
+}
 
+enum FunScope{
+    Default=0;
+    Struct=1;
+    Interface=2;
+    Constant=3;
+    Variable=4;
 }
 service CodeWikiService {
   rpc CallChain(CallChainReq) returns (CallChainResp) {
     option (google.api.http) = {
-      get: "/v1/api/functions/{startFunctionName}/calls"
+      get: "/v1/api/functions/{id}/calls"
     };
     option (openapi.v3.operation) = {
       summary: "分析代码"
@@ -66,6 +73,11 @@ service CodeWikiService {
     option (google.api.http) = { get: "/v1/api/repos/{id}/tree" };
     option (openapi.v3.operation) = { summary: "仓库包/文件树" };
   }
+  // File  view  content
+  rpc ViewFileContent(ViewFileReq) returns (ViewFileResp) {
+    option (google.api.http) = { get: "/v1/api/{repoId}/file/{id}/view" };
+    option (openapi.v3.operation) = { summary: "文件/文件内容" };
+  }
 }
 message AnalyzeReq{
    RepoType repoType=1;
@@ -83,7 +95,7 @@ message AnalyzeResp{
 }
 
 message CallChainReq{
-  string startFunctionName=1;
+  string id=1;
 }
 
 message CallChainResp{
@@ -97,6 +109,10 @@ message CallRelationship{
   string callerName=2;
   string calleeId=3;
   string calleeName=4;
+  string calleeFileId=5;
+  string callerFileId=6;
+  int64 calleeScope=7;
+  int64 callerScope=8;
 }
 
 // ===== Repo Management =====
@@ -151,4 +167,23 @@ message FileNode{
   string id=1;
   string name=2;
   string pkgId=3;
+}
+
+message ViewFileReq{
+  string repoId=2;
+  string id=1;
+}
+
+message ViewFileResp{
+  string Content=1;
+  Language language=2;
+  repeated Function functions=3;
+
+}
+
+message Function{
+   string id=1;
+   string fileId=2;
+   string name=3;
+   string receiver=4;
 }

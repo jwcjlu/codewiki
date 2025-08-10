@@ -278,7 +278,7 @@ func (m *CallChainReq) validate(all bool) error {
 
 	var errors []error
 
-	// no validation rules for StartFunctionName
+	// no validation rules for Id
 
 	if len(errors) > 0 {
 		return CallChainReqMultiError(errors)
@@ -524,6 +524,14 @@ func (m *CallRelationship) validate(all bool) error {
 	// no validation rules for CalleeId
 
 	// no validation rules for CalleeName
+
+	// no validation rules for CalleeFileId
+
+	// no validation rules for CallerFileId
+
+	// no validation rules for CalleeScope
+
+	// no validation rules for CallerScope
 
 	if len(errors) > 0 {
 		return CallRelationshipMultiError(errors)
@@ -2196,3 +2204,350 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = FileNodeValidationError{}
+
+// Validate checks the field values on ViewFileReq with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ViewFileReq) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ViewFileReq with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ViewFileReqMultiError, or
+// nil if none found.
+func (m *ViewFileReq) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ViewFileReq) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for RepoId
+
+	// no validation rules for Id
+
+	if len(errors) > 0 {
+		return ViewFileReqMultiError(errors)
+	}
+
+	return nil
+}
+
+// ViewFileReqMultiError is an error wrapping multiple validation errors
+// returned by ViewFileReq.ValidateAll() if the designated constraints aren't met.
+type ViewFileReqMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ViewFileReqMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ViewFileReqMultiError) AllErrors() []error { return m }
+
+// ViewFileReqValidationError is the validation error returned by
+// ViewFileReq.Validate if the designated constraints aren't met.
+type ViewFileReqValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ViewFileReqValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ViewFileReqValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ViewFileReqValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ViewFileReqValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ViewFileReqValidationError) ErrorName() string { return "ViewFileReqValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ViewFileReqValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sViewFileReq.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ViewFileReqValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ViewFileReqValidationError{}
+
+// Validate checks the field values on ViewFileResp with the rules defined in
+// the proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *ViewFileResp) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on ViewFileResp with the rules defined
+// in the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in ViewFileRespMultiError, or
+// nil if none found.
+func (m *ViewFileResp) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *ViewFileResp) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Content
+
+	// no validation rules for Language
+
+	for idx, item := range m.GetFunctions() {
+		_, _ = idx, item
+
+		if all {
+			switch v := interface{}(item).(type) {
+			case interface{ ValidateAll() error }:
+				if err := v.ValidateAll(); err != nil {
+					errors = append(errors, ViewFileRespValidationError{
+						field:  fmt.Sprintf("Functions[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			case interface{ Validate() error }:
+				if err := v.Validate(); err != nil {
+					errors = append(errors, ViewFileRespValidationError{
+						field:  fmt.Sprintf("Functions[%v]", idx),
+						reason: "embedded message failed validation",
+						cause:  err,
+					})
+				}
+			}
+		} else if v, ok := interface{}(item).(interface{ Validate() error }); ok {
+			if err := v.Validate(); err != nil {
+				return ViewFileRespValidationError{
+					field:  fmt.Sprintf("Functions[%v]", idx),
+					reason: "embedded message failed validation",
+					cause:  err,
+				}
+			}
+		}
+
+	}
+
+	if len(errors) > 0 {
+		return ViewFileRespMultiError(errors)
+	}
+
+	return nil
+}
+
+// ViewFileRespMultiError is an error wrapping multiple validation errors
+// returned by ViewFileResp.ValidateAll() if the designated constraints aren't met.
+type ViewFileRespMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m ViewFileRespMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m ViewFileRespMultiError) AllErrors() []error { return m }
+
+// ViewFileRespValidationError is the validation error returned by
+// ViewFileResp.Validate if the designated constraints aren't met.
+type ViewFileRespValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e ViewFileRespValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e ViewFileRespValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e ViewFileRespValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e ViewFileRespValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e ViewFileRespValidationError) ErrorName() string { return "ViewFileRespValidationError" }
+
+// Error satisfies the builtin error interface
+func (e ViewFileRespValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sViewFileResp.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = ViewFileRespValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = ViewFileRespValidationError{}
+
+// Validate checks the field values on Function with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *Function) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on Function with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in FunctionMultiError, or nil
+// if none found.
+func (m *Function) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *Function) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Id
+
+	// no validation rules for FileId
+
+	// no validation rules for Name
+
+	// no validation rules for Receiver
+
+	if len(errors) > 0 {
+		return FunctionMultiError(errors)
+	}
+
+	return nil
+}
+
+// FunctionMultiError is an error wrapping multiple validation errors returned
+// by Function.ValidateAll() if the designated constraints aren't met.
+type FunctionMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m FunctionMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m FunctionMultiError) AllErrors() []error { return m }
+
+// FunctionValidationError is the validation error returned by
+// Function.Validate if the designated constraints aren't met.
+type FunctionValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e FunctionValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e FunctionValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e FunctionValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e FunctionValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e FunctionValidationError) ErrorName() string { return "FunctionValidationError" }
+
+// Error satisfies the builtin error interface
+func (e FunctionValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sFunction.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = FunctionValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = FunctionValidationError{}

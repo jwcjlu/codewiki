@@ -19,13 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CodeWikiService_CallChain_FullMethodName   = "/codewiki.v1.CodeWikiService/CallChain"
-	CodeWikiService_CreateRepo_FullMethodName  = "/codewiki.v1.CodeWikiService/CreateRepo"
-	CodeWikiService_ListRepos_FullMethodName   = "/codewiki.v1.CodeWikiService/ListRepos"
-	CodeWikiService_GetRepo_FullMethodName     = "/codewiki.v1.CodeWikiService/GetRepo"
-	CodeWikiService_DeleteRepo_FullMethodName  = "/codewiki.v1.CodeWikiService/DeleteRepo"
-	CodeWikiService_AnalyzeRepo_FullMethodName = "/codewiki.v1.CodeWikiService/AnalyzeRepo"
-	CodeWikiService_GetRepoTree_FullMethodName = "/codewiki.v1.CodeWikiService/GetRepoTree"
+	CodeWikiService_CallChain_FullMethodName       = "/codewiki.v1.CodeWikiService/CallChain"
+	CodeWikiService_CreateRepo_FullMethodName      = "/codewiki.v1.CodeWikiService/CreateRepo"
+	CodeWikiService_ListRepos_FullMethodName       = "/codewiki.v1.CodeWikiService/ListRepos"
+	CodeWikiService_GetRepo_FullMethodName         = "/codewiki.v1.CodeWikiService/GetRepo"
+	CodeWikiService_DeleteRepo_FullMethodName      = "/codewiki.v1.CodeWikiService/DeleteRepo"
+	CodeWikiService_AnalyzeRepo_FullMethodName     = "/codewiki.v1.CodeWikiService/AnalyzeRepo"
+	CodeWikiService_GetRepoTree_FullMethodName     = "/codewiki.v1.CodeWikiService/GetRepoTree"
+	CodeWikiService_ViewFileContent_FullMethodName = "/codewiki.v1.CodeWikiService/ViewFileContent"
 )
 
 // CodeWikiServiceClient is the client API for CodeWikiService service.
@@ -42,6 +43,8 @@ type CodeWikiServiceClient interface {
 	AnalyzeRepo(ctx context.Context, in *AnalyzeRepoReq, opts ...grpc.CallOption) (*AnalyzeResp, error)
 	// Repo tree display
 	GetRepoTree(ctx context.Context, in *GetRepoTreeReq, opts ...grpc.CallOption) (*GetRepoTreeResp, error)
+	// File  view  content
+	ViewFileContent(ctx context.Context, in *ViewFileReq, opts ...grpc.CallOption) (*ViewFileResp, error)
 }
 
 type codeWikiServiceClient struct {
@@ -122,6 +125,16 @@ func (c *codeWikiServiceClient) GetRepoTree(ctx context.Context, in *GetRepoTree
 	return out, nil
 }
 
+func (c *codeWikiServiceClient) ViewFileContent(ctx context.Context, in *ViewFileReq, opts ...grpc.CallOption) (*ViewFileResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ViewFileResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_ViewFileContent_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CodeWikiServiceServer is the server API for CodeWikiService service.
 // All implementations must embed UnimplementedCodeWikiServiceServer
 // for forward compatibility.
@@ -136,6 +149,8 @@ type CodeWikiServiceServer interface {
 	AnalyzeRepo(context.Context, *AnalyzeRepoReq) (*AnalyzeResp, error)
 	// Repo tree display
 	GetRepoTree(context.Context, *GetRepoTreeReq) (*GetRepoTreeResp, error)
+	// File  view  content
+	ViewFileContent(context.Context, *ViewFileReq) (*ViewFileResp, error)
 	mustEmbedUnimplementedCodeWikiServiceServer()
 }
 
@@ -166,6 +181,9 @@ func (UnimplementedCodeWikiServiceServer) AnalyzeRepo(context.Context, *AnalyzeR
 }
 func (UnimplementedCodeWikiServiceServer) GetRepoTree(context.Context, *GetRepoTreeReq) (*GetRepoTreeResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRepoTree not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) ViewFileContent(context.Context, *ViewFileReq) (*ViewFileResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ViewFileContent not implemented")
 }
 func (UnimplementedCodeWikiServiceServer) mustEmbedUnimplementedCodeWikiServiceServer() {}
 func (UnimplementedCodeWikiServiceServer) testEmbeddedByValue()                         {}
@@ -314,6 +332,24 @@ func _CodeWikiService_GetRepoTree_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CodeWikiService_ViewFileContent_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ViewFileReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).ViewFileContent(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_ViewFileContent_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).ViewFileContent(ctx, req.(*ViewFileReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CodeWikiService_ServiceDesc is the grpc.ServiceDesc for CodeWikiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -348,6 +384,10 @@ var CodeWikiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetRepoTree",
 			Handler:    _CodeWikiService_GetRepoTree_Handler,
+		},
+		{
+			MethodName: "ViewFileContent",
+			Handler:    _CodeWikiService_ViewFileContent_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

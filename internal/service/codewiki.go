@@ -20,7 +20,7 @@ func NewCodeWikiService(codeWiki *biz.CodeWiki) *CodeWikiService {
 
 func (s *CodeWikiService) CallChain(ctx context.Context, req *v1.CallChainReq) (*v1.CallChainResp, error) {
 	resp := new(v1.CallChainResp)
-	callRelations, err := s.codeWiki.QueryCallChain(ctx, req.StartFunctionName)
+	callRelations, err := s.codeWiki.QueryCallChain(ctx, req.Id)
 	if err != nil {
 		resp.Code = 1000
 		resp.Msg = err.Error()
@@ -78,4 +78,15 @@ func (s *CodeWikiService) GetRepoTree(ctx context.Context, req *v1.GetRepoTreeRe
 		return &v1.GetRepoTreeResp{}, err
 	}
 	return &v1.GetRepoTreeResp{Packages: pkgs, Files: files}, nil
+}
+func (s *CodeWikiService) ViewFileContent(ctx context.Context, req *v1.ViewFileReq) (*v1.ViewFileResp, error) {
+	fileContent, err := s.codeWiki.ViewFileContent(ctx, req)
+	if err != nil {
+		return &v1.ViewFileResp{}, err
+	}
+	return &v1.ViewFileResp{
+		Content:   fileContent.Content,
+		Language:  fileContent.Language,
+		Functions: fileContent.Functions,
+	}, err
 }

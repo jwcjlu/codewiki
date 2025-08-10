@@ -61,12 +61,6 @@ func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo Proj
 		return err
 	}
 	p.AnalyzeInterfaceImplRelations(ctx)
-	for _, relation := range p.Relations {
-		if relation.SourceID == "dragonfly@client@config@dynconfig_manager.go:dynconfigManager" {
-			fmt.Println(*relation)
-		}
-	}
-
 	return projectRepo.SaveProject(ctx, p)
 
 }

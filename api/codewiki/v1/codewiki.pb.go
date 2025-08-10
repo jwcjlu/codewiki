@@ -122,6 +122,61 @@ func (Language) EnumDescriptor() ([]byte, []int) {
 	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{1}
 }
 
+type FunScope int32
+
+const (
+	FunScope_Default   FunScope = 0
+	FunScope_Struct    FunScope = 1
+	FunScope_Interface FunScope = 2
+	FunScope_Constant  FunScope = 3
+	FunScope_Variable  FunScope = 4
+)
+
+// Enum value maps for FunScope.
+var (
+	FunScope_name = map[int32]string{
+		0: "Default",
+		1: "Struct",
+		2: "Interface",
+		3: "Constant",
+		4: "Variable",
+	}
+	FunScope_value = map[string]int32{
+		"Default":   0,
+		"Struct":    1,
+		"Interface": 2,
+		"Constant":  3,
+		"Variable":  4,
+	}
+)
+
+func (x FunScope) Enum() *FunScope {
+	p := new(FunScope)
+	*p = x
+	return p
+}
+
+func (x FunScope) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (FunScope) Descriptor() protoreflect.EnumDescriptor {
+	return file_codewiki_v1_codewiki_proto_enumTypes[2].Descriptor()
+}
+
+func (FunScope) Type() protoreflect.EnumType {
+	return &file_codewiki_v1_codewiki_proto_enumTypes[2]
+}
+
+func (x FunScope) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use FunScope.Descriptor instead.
+func (FunScope) EnumDescriptor() ([]byte, []int) {
+	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{2}
+}
+
 type AnalyzeReq struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	RepoType      RepoType               `protobuf:"varint,1,opt,name=repoType,proto3,enum=codewiki.v1.RepoType" json:"repoType,omitempty"`
@@ -267,10 +322,10 @@ func (x *AnalyzeResp) GetMsg() string {
 }
 
 type CallChainReq struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	StartFunctionName string                 `protobuf:"bytes,1,opt,name=startFunctionName,proto3" json:"startFunctionName,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CallChainReq) Reset() {
@@ -303,9 +358,9 @@ func (*CallChainReq) Descriptor() ([]byte, []int) {
 	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *CallChainReq) GetStartFunctionName() string {
+func (x *CallChainReq) GetId() string {
 	if x != nil {
-		return x.StartFunctionName
+		return x.Id
 	}
 	return ""
 }
@@ -376,6 +431,10 @@ type CallRelationship struct {
 	CallerName    string                 `protobuf:"bytes,2,opt,name=callerName,proto3" json:"callerName,omitempty"`
 	CalleeId      string                 `protobuf:"bytes,3,opt,name=calleeId,proto3" json:"calleeId,omitempty"`
 	CalleeName    string                 `protobuf:"bytes,4,opt,name=calleeName,proto3" json:"calleeName,omitempty"`
+	CalleeFileId  string                 `protobuf:"bytes,5,opt,name=calleeFileId,proto3" json:"calleeFileId,omitempty"`
+	CallerFileId  string                 `protobuf:"bytes,6,opt,name=callerFileId,proto3" json:"callerFileId,omitempty"`
+	CalleeScope   int64                  `protobuf:"varint,7,opt,name=calleeScope,proto3" json:"calleeScope,omitempty"`
+	CallerScope   int64                  `protobuf:"varint,8,opt,name=callerScope,proto3" json:"callerScope,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -436,6 +495,34 @@ func (x *CallRelationship) GetCalleeName() string {
 		return x.CalleeName
 	}
 	return ""
+}
+
+func (x *CallRelationship) GetCalleeFileId() string {
+	if x != nil {
+		return x.CalleeFileId
+	}
+	return ""
+}
+
+func (x *CallRelationship) GetCallerFileId() string {
+	if x != nil {
+		return x.CallerFileId
+	}
+	return ""
+}
+
+func (x *CallRelationship) GetCalleeScope() int64 {
+	if x != nil {
+		return x.CalleeScope
+	}
+	return 0
+}
+
+func (x *CallRelationship) GetCallerScope() int64 {
+	if x != nil {
+		return x.CallerScope
+	}
+	return 0
 }
 
 // ===== Repo Management =====
@@ -1199,6 +1286,186 @@ func (x *FileNode) GetPkgId() string {
 	return ""
 }
 
+type ViewFileReq struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        string                 `protobuf:"bytes,2,opt,name=repoId,proto3" json:"repoId,omitempty"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ViewFileReq) Reset() {
+	*x = ViewFileReq{}
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ViewFileReq) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ViewFileReq) ProtoMessage() {}
+
+func (x *ViewFileReq) ProtoReflect() protoreflect.Message {
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ViewFileReq.ProtoReflect.Descriptor instead.
+func (*ViewFileReq) Descriptor() ([]byte, []int) {
+	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *ViewFileReq) GetRepoId() string {
+	if x != nil {
+		return x.RepoId
+	}
+	return ""
+}
+
+func (x *ViewFileReq) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type ViewFileResp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Content       string                 `protobuf:"bytes,1,opt,name=Content,proto3" json:"Content,omitempty"`
+	Language      Language               `protobuf:"varint,2,opt,name=language,proto3,enum=codewiki.v1.Language" json:"language,omitempty"`
+	Functions     []*Function            `protobuf:"bytes,3,rep,name=functions,proto3" json:"functions,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ViewFileResp) Reset() {
+	*x = ViewFileResp{}
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ViewFileResp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ViewFileResp) ProtoMessage() {}
+
+func (x *ViewFileResp) ProtoReflect() protoreflect.Message {
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ViewFileResp.ProtoReflect.Descriptor instead.
+func (*ViewFileResp) Descriptor() ([]byte, []int) {
+	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *ViewFileResp) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+func (x *ViewFileResp) GetLanguage() Language {
+	if x != nil {
+		return x.Language
+	}
+	return Language_Golang
+}
+
+func (x *ViewFileResp) GetFunctions() []*Function {
+	if x != nil {
+		return x.Functions
+	}
+	return nil
+}
+
+type Function struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	FileId        string                 `protobuf:"bytes,2,opt,name=fileId,proto3" json:"fileId,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Receiver      string                 `protobuf:"bytes,4,opt,name=receiver,proto3" json:"receiver,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Function) Reset() {
+	*x = Function{}
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Function) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Function) ProtoMessage() {}
+
+func (x *Function) ProtoReflect() protoreflect.Message {
+	mi := &file_codewiki_v1_codewiki_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Function.ProtoReflect.Descriptor instead.
+func (*Function) Descriptor() ([]byte, []int) {
+	return file_codewiki_v1_codewiki_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *Function) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Function) GetFileId() string {
+	if x != nil {
+		return x.FileId
+	}
+	return ""
+}
+
+func (x *Function) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Function) GetReceiver() string {
+	if x != nil {
+		return x.Receiver
+	}
+	return ""
+}
+
 var File_codewiki_v1_codewiki_proto protoreflect.FileDescriptor
 
 const file_codewiki_v1_codewiki_proto_rawDesc = "" +
@@ -1216,13 +1483,13 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\bexcludes\x18\a \x03(\tR\bexcludes\"3\n" +
 	"\vAnalyzeResp\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x10\n" +
-	"\x03msg\x18\x02 \x01(\tR\x03msg\"<\n" +
-	"\fCallChainReq\x12,\n" +
-	"\x11startFunctionName\x18\x01 \x01(\tR\x11startFunctionName\"z\n" +
+	"\x03msg\x18\x02 \x01(\tR\x03msg\"\x1e\n" +
+	"\fCallChainReq\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"z\n" +
 	"\rCallChainResp\x12\x12\n" +
 	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x10\n" +
 	"\x03msg\x18\x02 \x01(\tR\x03msg\x12C\n" +
-	"\rcallRelations\x18\x03 \x03(\v2\x1d.codewiki.v1.CallRelationshipR\rcallRelations\"\x8a\x01\n" +
+	"\rcallRelations\x18\x03 \x03(\v2\x1d.codewiki.v1.CallRelationshipR\rcallRelations\"\x96\x02\n" +
 	"\x10CallRelationship\x12\x1a\n" +
 	"\bcallerId\x18\x01 \x01(\tR\bcallerId\x12\x1e\n" +
 	"\n" +
@@ -1231,7 +1498,11 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\bcalleeId\x18\x03 \x01(\tR\bcalleeId\x12\x1e\n" +
 	"\n" +
 	"calleeName\x18\x04 \x01(\tR\n" +
-	"calleeName\"\x90\x02\n" +
+	"calleeName\x12\"\n" +
+	"\fcalleeFileId\x18\x05 \x01(\tR\fcalleeFileId\x12\"\n" +
+	"\fcallerFileId\x18\x06 \x01(\tR\fcallerFileId\x12 \n" +
+	"\vcalleeScope\x18\a \x01(\x03R\vcalleeScope\x12 \n" +
+	"\vcallerScope\x18\b \x01(\x03R\vcallerScope\"\x90\x02\n" +
 	"\x04Repo\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x121\n" +
@@ -1280,7 +1551,19 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\bFileNode\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05pkgId\x18\x03 \x01(\tR\x05pkgId*!\n" +
+	"\x05pkgId\x18\x03 \x01(\tR\x05pkgId\"5\n" +
+	"\vViewFileReq\x12\x16\n" +
+	"\x06repoId\x18\x02 \x01(\tR\x06repoId\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"\x90\x01\n" +
+	"\fViewFileResp\x12\x18\n" +
+	"\aContent\x18\x01 \x01(\tR\aContent\x121\n" +
+	"\blanguage\x18\x02 \x01(\x0e2\x15.codewiki.v1.LanguageR\blanguage\x123\n" +
+	"\tfunctions\x18\x03 \x03(\v2\x15.codewiki.v1.FunctionR\tfunctions\"b\n" +
+	"\bFunction\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
+	"\x06fileId\x18\x02 \x01(\tR\x06fileId\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x1a\n" +
+	"\breceiver\x18\x04 \x01(\tR\breceiver*!\n" +
 	"\bRepoType\x12\t\n" +
 	"\x05Local\x10\x00\x12\n" +
 	"\n" +
@@ -1291,9 +1574,16 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\x04Java\x10\x01\x12\n" +
 	"\n" +
 	"\x06Python\x10\x02\x12\b\n" +
-	"\x04Rust\x10\x032\xe5\x06\n" +
-	"\x0fCodeWikiService\x12\x88\x01\n" +
-	"\tCallChain\x12\x19.codewiki.v1.CallChainReq\x1a\x1a.codewiki.v1.CallChainResp\"D\xbaG\x0e\x12\f分析代码\x82\xd3\xe4\x93\x02-\x12+/v1/api/functions/{startFunctionName}/calls\x12p\n" +
+	"\x04Rust\x10\x03*N\n" +
+	"\bFunScope\x12\v\n" +
+	"\aDefault\x10\x00\x12\n" +
+	"\n" +
+	"\x06Struct\x10\x01\x12\r\n" +
+	"\tInterface\x10\x02\x12\f\n" +
+	"\bConstant\x10\x03\x12\f\n" +
+	"\bVariable\x10\x042\xdf\a\n" +
+	"\x0fCodeWikiService\x12y\n" +
+	"\tCallChain\x12\x19.codewiki.v1.CallChainReq\x1a\x1a.codewiki.v1.CallChainResp\"5\xbaG\x0e\x12\f分析代码\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/api/functions/{id}/calls\x12p\n" +
 	"\n" +
 	"CreateRepo\x12\x1a.codewiki.v1.CreateRepoReq\x1a\x1b.codewiki.v1.CreateRepoResp\")\xbaG\x0e\x12\f创建仓库\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/v1/api/repos\x12j\n" +
 	"\tListRepos\x12\x19.codewiki.v1.ListReposReq\x1a\x1a.codewiki.v1.ListReposResp\"&\xbaG\x0e\x12\f仓库列表\x82\xd3\xe4\x93\x02\x0f\x12\r/v1/api/repos\x12i\n" +
@@ -1301,7 +1591,8 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\n" +
 	"DeleteRepo\x12\x1a.codewiki.v1.DeleteRepoReq\x1a\x1b.codewiki.v1.DeleteRepoResp\"+\xbaG\x0e\x12\f删除仓库\x82\xd3\xe4\x93\x02\x14*\x12/v1/api/repos/{id}\x12\x85\x01\n" +
 	"\vAnalyzeRepo\x12\x1b.codewiki.v1.AnalyzeRepoReq\x1a\x18.codewiki.v1.AnalyzeResp\"?\xbaG\x17\x12\x15按仓库触发分析\x82\xd3\xe4\x93\x02\x1f:\x01*\"\x1a/v1/api/repos/{id}/analyze\x12\x81\x01\n" +
-	"\vGetRepoTree\x12\x1b.codewiki.v1.GetRepoTreeReq\x1a\x1c.codewiki.v1.GetRepoTreeResp\"7\xbaG\x15\x12\x13仓库包/文件树\x82\xd3\xe4\x93\x02\x19\x12\x17/v1/api/repos/{id}/treeB+\n" +
+	"\vGetRepoTree\x12\x1b.codewiki.v1.GetRepoTreeReq\x1a\x1c.codewiki.v1.GetRepoTreeResp\"7\xbaG\x15\x12\x13仓库包/文件树\x82\xd3\xe4\x93\x02\x19\x12\x17/v1/api/repos/{id}/tree\x12\x87\x01\n" +
+	"\x0fViewFileContent\x12\x18.codewiki.v1.ViewFileReq\x1a\x19.codewiki.v1.ViewFileResp\"?\xbaG\x15\x12\x13文件/文件内容\x82\xd3\xe4\x93\x02!\x12\x1f/v1/api/{repoId}/file/{id}/viewB+\n" +
 	"\n" +
 	"codewikiV1P\x01Z\x1bcodewiki/api/codewiki/v1;v1b\x06proto3"
 
@@ -1317,61 +1608,69 @@ func file_codewiki_v1_codewiki_proto_rawDescGZIP() []byte {
 	return file_codewiki_v1_codewiki_proto_rawDescData
 }
 
-var file_codewiki_v1_codewiki_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_codewiki_v1_codewiki_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
+var file_codewiki_v1_codewiki_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
+var file_codewiki_v1_codewiki_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
 var file_codewiki_v1_codewiki_proto_goTypes = []any{
 	(RepoType)(0),            // 0: codewiki.v1.RepoType
 	(Language)(0),            // 1: codewiki.v1.Language
-	(*AnalyzeReq)(nil),       // 2: codewiki.v1.AnalyzeReq
-	(*AnalyzeResp)(nil),      // 3: codewiki.v1.AnalyzeResp
-	(*CallChainReq)(nil),     // 4: codewiki.v1.CallChainReq
-	(*CallChainResp)(nil),    // 5: codewiki.v1.CallChainResp
-	(*CallRelationship)(nil), // 6: codewiki.v1.CallRelationship
-	(*Repo)(nil),             // 7: codewiki.v1.Repo
-	(*CreateRepoReq)(nil),    // 8: codewiki.v1.CreateRepoReq
-	(*CreateRepoResp)(nil),   // 9: codewiki.v1.CreateRepoResp
-	(*ListReposReq)(nil),     // 10: codewiki.v1.ListReposReq
-	(*ListReposResp)(nil),    // 11: codewiki.v1.ListReposResp
-	(*GetRepoReq)(nil),       // 12: codewiki.v1.GetRepoReq
-	(*GetRepoResp)(nil),      // 13: codewiki.v1.GetRepoResp
-	(*DeleteRepoReq)(nil),    // 14: codewiki.v1.DeleteRepoReq
-	(*DeleteRepoResp)(nil),   // 15: codewiki.v1.DeleteRepoResp
-	(*AnalyzeRepoReq)(nil),   // 16: codewiki.v1.AnalyzeRepoReq
-	(*GetRepoTreeReq)(nil),   // 17: codewiki.v1.GetRepoTreeReq
-	(*GetRepoTreeResp)(nil),  // 18: codewiki.v1.GetRepoTreeResp
-	(*PackageNode)(nil),      // 19: codewiki.v1.PackageNode
-	(*FileNode)(nil),         // 20: codewiki.v1.FileNode
+	(FunScope)(0),            // 2: codewiki.v1.FunScope
+	(*AnalyzeReq)(nil),       // 3: codewiki.v1.AnalyzeReq
+	(*AnalyzeResp)(nil),      // 4: codewiki.v1.AnalyzeResp
+	(*CallChainReq)(nil),     // 5: codewiki.v1.CallChainReq
+	(*CallChainResp)(nil),    // 6: codewiki.v1.CallChainResp
+	(*CallRelationship)(nil), // 7: codewiki.v1.CallRelationship
+	(*Repo)(nil),             // 8: codewiki.v1.Repo
+	(*CreateRepoReq)(nil),    // 9: codewiki.v1.CreateRepoReq
+	(*CreateRepoResp)(nil),   // 10: codewiki.v1.CreateRepoResp
+	(*ListReposReq)(nil),     // 11: codewiki.v1.ListReposReq
+	(*ListReposResp)(nil),    // 12: codewiki.v1.ListReposResp
+	(*GetRepoReq)(nil),       // 13: codewiki.v1.GetRepoReq
+	(*GetRepoResp)(nil),      // 14: codewiki.v1.GetRepoResp
+	(*DeleteRepoReq)(nil),    // 15: codewiki.v1.DeleteRepoReq
+	(*DeleteRepoResp)(nil),   // 16: codewiki.v1.DeleteRepoResp
+	(*AnalyzeRepoReq)(nil),   // 17: codewiki.v1.AnalyzeRepoReq
+	(*GetRepoTreeReq)(nil),   // 18: codewiki.v1.GetRepoTreeReq
+	(*GetRepoTreeResp)(nil),  // 19: codewiki.v1.GetRepoTreeResp
+	(*PackageNode)(nil),      // 20: codewiki.v1.PackageNode
+	(*FileNode)(nil),         // 21: codewiki.v1.FileNode
+	(*ViewFileReq)(nil),      // 22: codewiki.v1.ViewFileReq
+	(*ViewFileResp)(nil),     // 23: codewiki.v1.ViewFileResp
+	(*Function)(nil),         // 24: codewiki.v1.Function
 }
 var file_codewiki_v1_codewiki_proto_depIdxs = []int32{
 	0,  // 0: codewiki.v1.AnalyzeReq.repoType:type_name -> codewiki.v1.RepoType
-	6,  // 1: codewiki.v1.CallChainResp.callRelations:type_name -> codewiki.v1.CallRelationship
+	7,  // 1: codewiki.v1.CallChainResp.callRelations:type_name -> codewiki.v1.CallRelationship
 	0,  // 2: codewiki.v1.Repo.repoType:type_name -> codewiki.v1.RepoType
 	1,  // 3: codewiki.v1.Repo.language:type_name -> codewiki.v1.Language
 	0,  // 4: codewiki.v1.CreateRepoReq.repoType:type_name -> codewiki.v1.RepoType
 	1,  // 5: codewiki.v1.CreateRepoReq.language:type_name -> codewiki.v1.Language
-	7,  // 6: codewiki.v1.ListReposResp.repos:type_name -> codewiki.v1.Repo
-	7,  // 7: codewiki.v1.GetRepoResp.repo:type_name -> codewiki.v1.Repo
-	19, // 8: codewiki.v1.GetRepoTreeResp.packages:type_name -> codewiki.v1.PackageNode
-	20, // 9: codewiki.v1.GetRepoTreeResp.files:type_name -> codewiki.v1.FileNode
-	4,  // 10: codewiki.v1.CodeWikiService.CallChain:input_type -> codewiki.v1.CallChainReq
-	8,  // 11: codewiki.v1.CodeWikiService.CreateRepo:input_type -> codewiki.v1.CreateRepoReq
-	10, // 12: codewiki.v1.CodeWikiService.ListRepos:input_type -> codewiki.v1.ListReposReq
-	12, // 13: codewiki.v1.CodeWikiService.GetRepo:input_type -> codewiki.v1.GetRepoReq
-	14, // 14: codewiki.v1.CodeWikiService.DeleteRepo:input_type -> codewiki.v1.DeleteRepoReq
-	16, // 15: codewiki.v1.CodeWikiService.AnalyzeRepo:input_type -> codewiki.v1.AnalyzeRepoReq
-	17, // 16: codewiki.v1.CodeWikiService.GetRepoTree:input_type -> codewiki.v1.GetRepoTreeReq
-	5,  // 17: codewiki.v1.CodeWikiService.CallChain:output_type -> codewiki.v1.CallChainResp
-	9,  // 18: codewiki.v1.CodeWikiService.CreateRepo:output_type -> codewiki.v1.CreateRepoResp
-	11, // 19: codewiki.v1.CodeWikiService.ListRepos:output_type -> codewiki.v1.ListReposResp
-	13, // 20: codewiki.v1.CodeWikiService.GetRepo:output_type -> codewiki.v1.GetRepoResp
-	15, // 21: codewiki.v1.CodeWikiService.DeleteRepo:output_type -> codewiki.v1.DeleteRepoResp
-	3,  // 22: codewiki.v1.CodeWikiService.AnalyzeRepo:output_type -> codewiki.v1.AnalyzeResp
-	18, // 23: codewiki.v1.CodeWikiService.GetRepoTree:output_type -> codewiki.v1.GetRepoTreeResp
-	17, // [17:24] is the sub-list for method output_type
-	10, // [10:17] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	8,  // 6: codewiki.v1.ListReposResp.repos:type_name -> codewiki.v1.Repo
+	8,  // 7: codewiki.v1.GetRepoResp.repo:type_name -> codewiki.v1.Repo
+	20, // 8: codewiki.v1.GetRepoTreeResp.packages:type_name -> codewiki.v1.PackageNode
+	21, // 9: codewiki.v1.GetRepoTreeResp.files:type_name -> codewiki.v1.FileNode
+	1,  // 10: codewiki.v1.ViewFileResp.language:type_name -> codewiki.v1.Language
+	24, // 11: codewiki.v1.ViewFileResp.functions:type_name -> codewiki.v1.Function
+	5,  // 12: codewiki.v1.CodeWikiService.CallChain:input_type -> codewiki.v1.CallChainReq
+	9,  // 13: codewiki.v1.CodeWikiService.CreateRepo:input_type -> codewiki.v1.CreateRepoReq
+	11, // 14: codewiki.v1.CodeWikiService.ListRepos:input_type -> codewiki.v1.ListReposReq
+	13, // 15: codewiki.v1.CodeWikiService.GetRepo:input_type -> codewiki.v1.GetRepoReq
+	15, // 16: codewiki.v1.CodeWikiService.DeleteRepo:input_type -> codewiki.v1.DeleteRepoReq
+	17, // 17: codewiki.v1.CodeWikiService.AnalyzeRepo:input_type -> codewiki.v1.AnalyzeRepoReq
+	18, // 18: codewiki.v1.CodeWikiService.GetRepoTree:input_type -> codewiki.v1.GetRepoTreeReq
+	22, // 19: codewiki.v1.CodeWikiService.ViewFileContent:input_type -> codewiki.v1.ViewFileReq
+	6,  // 20: codewiki.v1.CodeWikiService.CallChain:output_type -> codewiki.v1.CallChainResp
+	10, // 21: codewiki.v1.CodeWikiService.CreateRepo:output_type -> codewiki.v1.CreateRepoResp
+	12, // 22: codewiki.v1.CodeWikiService.ListRepos:output_type -> codewiki.v1.ListReposResp
+	14, // 23: codewiki.v1.CodeWikiService.GetRepo:output_type -> codewiki.v1.GetRepoResp
+	16, // 24: codewiki.v1.CodeWikiService.DeleteRepo:output_type -> codewiki.v1.DeleteRepoResp
+	4,  // 25: codewiki.v1.CodeWikiService.AnalyzeRepo:output_type -> codewiki.v1.AnalyzeResp
+	19, // 26: codewiki.v1.CodeWikiService.GetRepoTree:output_type -> codewiki.v1.GetRepoTreeResp
+	23, // 27: codewiki.v1.CodeWikiService.ViewFileContent:output_type -> codewiki.v1.ViewFileResp
+	20, // [20:28] is the sub-list for method output_type
+	12, // [12:20] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_codewiki_v1_codewiki_proto_init() }
@@ -1384,8 +1683,8 @@ func file_codewiki_v1_codewiki_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_codewiki_v1_codewiki_proto_rawDesc), len(file_codewiki_v1_codewiki_proto_rawDesc)),
-			NumEnums:      2,
-			NumMessages:   19,
+			NumEnums:      3,
+			NumMessages:   22,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

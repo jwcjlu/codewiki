@@ -290,17 +290,19 @@ func getImports(files []*biz.File) []*biz.Import {
 	return imports
 }
 
-func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, startFunctionName string) ([]*v1.CallRelationship, error) {
+func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, id string) ([]*v1.CallRelationship, error) {
 	ctx, _ = context.WithTimeout(ctx, 5*time.Minute)
 	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
 	defer session.Close(ctx)
-	query := `MATCH path = (start:Function {name: $startFunctionName})-[:Call*]->(end:Function)
+	query := `MATCH path = (start:Function {id: $id})-[:Call*]->(end:Function)
         UNWIND relationships(path) AS rel
         WITH startNode(rel) AS caller, endNode(rel) AS callee
         RETURN caller.id AS callerID, caller.name AS callerName,
-               callee.id AS calleeID, callee.name AS calleeName`
+               callee.id AS calleeID, callee.name AS calleeName,
+               callee.ent_id AS calleeFileID, caller.ent_id AS callerFileID,
+               callee.scope AS calleeScope, caller.scope AS callerScope`
 
-	result, err := session.Run(ctx, query, map[string]interface{}{"startFunctionName": startFunctionName},
+	result, err := session.Run(ctx, query, map[string]interface{}{"id": id},
 		func(config *neo4j.TransactionConfig) {
 
 		})
@@ -314,11 +316,52 @@ func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, startFunctio
 	}
 	for _, v := range rs {
 		relationships = append(relationships, &v1.CallRelationship{
-			CallerId:   v.Values[0].(string),
-			CallerName: v.Values[1].(string),
-			CalleeId:   v.Values[2].(string),
-			CalleeName: v.Values[3].(string),
+			CallerId:     v.Values[0].(string),
+			CallerName:   v.Values[1].(string),
+			CalleeId:     v.Values[2].(string),
+			CalleeName:   v.Values[3].(string),
+			CalleeFileId: v.Values[4].(string),
+			CallerFileId: v.Values[5].(string),
+			CalleeScope:  v.Values[6].(int64),
+			CallerScope:  v.Values[7].(int64),
 		})
 	}
 	return relationships, nil
+}
+func (projectRepo *projectRepo) GetFunctionByFileId(ctx context.Context,
+	fileId string) ([]*v1.Function, error) {
+	ctx, _ = context.WithTimeout(ctx, 5*time.Minute)
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+	var functions []*v1.Function
+	_, err := session.ExecuteRead(ctx, func(tx neo4j.ManagedTransaction) (any, error) {
+		query := `MATCH (fn:Function {ent_id: $fileId})
+        RETURN fn`
+		result, err := tx.Run(ctx, query, map[string]any{"fileId": fileId})
+		if err != nil {
+			return nil, err
+		}
+		for result.Next(ctx) {
+			rec := result.Record()
+			node, _ := rec.Get("fn")
+			if n, ok := node.(neo4j.Node); ok {
+				fn := &v1.Function{}
+				if v, ok := n.Props["id"].(string); ok {
+					fn.Id = v
+				}
+				if v, ok := n.Props["name"].(string); ok {
+					fn.Name = v
+				}
+				if v, ok := n.Props["receiver"].(string); ok {
+					fn.Receiver = v
+				}
+				if v, ok := n.Props["ent_id"].(string); ok {
+					fn.FileId = v
+				}
+				functions = append(functions, fn)
+			}
+		}
+		return nil, result.Err()
+	})
+	return functions, err
 }
