@@ -4,6 +4,7 @@ import (
 	v1 "codewiki/api/codewiki/v1"
 	"codewiki/internal/biz"
 	"context"
+	"fmt"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 	"time"
 )
@@ -37,10 +38,6 @@ func (projectRepo *projectRepo) SaveProject(ctx context.Context, project *biz.Pr
 	if err := batchSaveFunction(ctx, session, functions); err != nil {
 		return err
 	}
-	/*	methods := getMethods(entities)
-		if err := batchSaveFunction(ctx, session, methods); err != nil {
-			return err
-		}*/
 	fields := getFields(entities)
 	if err := batchSaveField(ctx, session, fields); err != nil {
 		return err
@@ -266,15 +263,6 @@ func getFunctions(files []*biz.File) []*biz.Function {
 	return functions
 }
 
-/*
-	func getMethods(entities []*biz.Entity) []*biz.Function {
-		var functions []*biz.Function
-		for _, entity := range entities {
-			functions = append(functions, entity.GetFunctions()...)
-		}
-		return functions
-	}
-*/
 func getFields(entities []*biz.Entity) []*biz.Field {
 	var fields []*biz.Field
 	for _, entity := range entities {
@@ -299,8 +287,9 @@ func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, id string) (
         WITH startNode(rel) AS caller, endNode(rel) AS callee
         RETURN caller.id AS callerID, caller.name AS callerName,
                callee.id AS calleeID, callee.name AS calleeName,
-               callee.ent_id AS calleeFileID, caller.ent_id AS callerFileID,
-               callee.scope AS calleeScope, caller.scope AS callerScope`
+               callee.file_id AS calleeFileID, caller.file_id AS callerFileID,
+               callee.scope AS calleeScope, caller.scope AS callerScope,
+               callee.ent_id AS calleeEntId, caller.ent_id AS callerEntId`
 
 	result, err := session.Run(ctx, query, map[string]interface{}{"id": id},
 		func(config *neo4j.TransactionConfig) {
@@ -314,16 +303,24 @@ func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, id string) (
 	if err != nil {
 		return nil, err
 	}
+	uniqueRelations := make(map[string]bool)
 	for _, v := range rs {
+		relationKey := fmt.Sprintf("%s->%s", v.Values[0].(string), v.Values[3].(string))
+		if uniqueRelations[relationKey] {
+			continue
+		}
+		uniqueRelations[relationKey] = true
 		relationships = append(relationships, &v1.CallRelationship{
-			CallerId:     v.Values[0].(string),
-			CallerName:   v.Values[1].(string),
-			CalleeId:     v.Values[2].(string),
-			CalleeName:   v.Values[3].(string),
-			CalleeFileId: v.Values[4].(string),
-			CallerFileId: v.Values[5].(string),
-			CalleeScope:  v.Values[6].(int64),
-			CallerScope:  v.Values[7].(int64),
+			CallerId:       v.Values[0].(string),
+			CallerName:     v.Values[1].(string),
+			CalleeId:       v.Values[2].(string),
+			CalleeName:     v.Values[3].(string),
+			CalleeFileId:   v.Values[4].(string),
+			CallerFileId:   v.Values[5].(string),
+			CalleeScope:    v.Values[6].(int64),
+			CallerScope:    v.Values[7].(int64),
+			CalleeEntityId: v.Values[8].(string),
+			CallerEntityId: v.Values[9].(string),
 		})
 	}
 	return relationships, nil
@@ -364,4 +361,67 @@ func (projectRepo *projectRepo) GetFunctionByFileId(ctx context.Context,
 		return nil, result.Err()
 	})
 	return functions, err
+}
+
+func (projectRepo *projectRepo) GetImplementByEntityId(ctx context.Context, entityID string) ([]*v1.Entity, error) {
+	ctx, _ = context.WithTimeout(ctx, 5*time.Minute)
+	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
+	defer session.Close(ctx)
+	query := `MATCH (e1:Entity)-[:Implement]->(e2:Entity{id: $entity_id})
+			OPTIONAL MATCH (e1)-[:HasMethod]->(f:Function)
+			RETURN e1.id as entity_id, 
+			   e1.name as entity_name,
+			   e1.file_id as entity_fileId,
+			   COLLECT({
+				   id: f.id,
+				   fileId: f.ent_id,
+				   name: f.name,
+				   receiver: f.receiver
+			   }) AS functions`
+
+	result, err := session.Run(ctx, query, map[string]interface{}{"entity_id": entityID},
+		func(config *neo4j.TransactionConfig) {
+
+		})
+	fmt.Println(entityID)
+	if err != nil {
+		return nil, err
+	}
+	var entities []*v1.Entity
+	for result.Next(context.Background()) {
+		record := result.Record()
+
+		// 获取实体基本信息
+		entityId, _ := record.Get("entity_id")
+		entityName, _ := record.Get("entity_name")
+		entityFileId, _ := record.Get("entity_fileId")
+		functions, _ := record.Get("functions")
+
+		// 转换函数列表
+		var funcs []*v1.Function
+		if functions != nil {
+			for _, f := range functions.([]interface{}) {
+				fMap := f.(map[string]interface{})
+				funcs = append(funcs, &v1.Function{
+					Id:       fMap["id"].(string),
+					FileId:   fMap["fileId"].(string),
+					Name:     fMap["name"].(string),
+					Receiver: fMap["receiver"].(string),
+				})
+			}
+		}
+
+		// 构建 Entity 对象
+		entities = append(entities, &v1.Entity{
+			Id:        entityId.(string),
+			Name:      entityName.(string),
+			FileId:    entityFileId.(string),
+			Functions: funcs,
+		})
+	}
+
+	if err := result.Err(); err != nil {
+		return nil, fmt.Errorf("result processing error: %w", err)
+	}
+	return entities, nil
 }

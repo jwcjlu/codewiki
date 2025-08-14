@@ -6,6 +6,32 @@ info:
     title: CodeWikiService API
     version: 0.0.1
 paths:
+    /v1/api/entity/{id}/implements:
+        get:
+            tags:
+                - CodeWikiService
+            summary: 实体/得到所有实现
+            description: interface  implement
+            operationId: CodeWikiService_GetImplement
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetImplementResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
     /v1/api/functions/{id}/calls:
         get:
             tags:
@@ -259,6 +285,10 @@ components:
                     type: string
                 callerScope:
                     type: string
+                calleeEntityId:
+                    type: string
+                callerEntityId:
+                    type: string
         CreateRepoReq:
             type: object
             properties:
@@ -290,6 +320,19 @@ components:
         DeleteRepoResp:
             type: object
             properties: {}
+        Entity:
+            type: object
+            properties:
+                name:
+                    type: string
+                fileId:
+                    type: string
+                id:
+                    type: string
+                functions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Function'
         FileNode:
             type: object
             properties:
@@ -310,6 +353,13 @@ components:
                     type: string
                 receiver:
                     type: string
+        GetImplementResp:
+            type: object
+            properties:
+                entities:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Entity'
         GetRepoResp:
             type: object
             properties:

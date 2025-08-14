@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Repo, RepoTreeResp, Function, CallRelation, Node, NodePosition } from '../types';
-import { listRepos, createRepo, deleteRepo, analyzeRepo, getRepoTree, viewFileContent, fetchFunctionCalls } from '../services/api';
+import { listRepos, createRepo, deleteRepo, analyzeRepo, getRepoTree, viewFileContent, fetchFunctionCalls, getImplement } from '../services/api';
 import CodeViewer from './CodeViewer';
 import CallGraph from './CallGraph';
 import NodeDetails from './NodeDetails';
@@ -48,7 +48,7 @@ const RepoManager: React.FC = () => {
   const [treeLoading, setTreeLoading] = useState(false);
   const [filter, setFilter] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [expandedPkgs, setExpandedPkgs] = useState<Set<string>>(new Set());
+  const [expandedPkgs, setExpandedPkgs] = useState<Set<string>>(new Set(['root']));
   const [viewingFile, setViewingFile] = useState<{ content: string; language: string; fileName: string; functions: Function[]; highlightFunction?: string } | null>(null);
   // 新增：当前高亮的文件ID
   const [highlightedFileId, setHighlightedFileId] = useState<string | null>(null);
@@ -61,6 +61,378 @@ const RepoManager: React.FC = () => {
   const [selectedCallGraphNode, setSelectedCallGraphNode] = useState<Node | null>(null);
   const [callGraphLoading, setCallGraphLoading] = useState(false);
   const [callGraphError, setCallGraphError] = useState<string | null>(null);
+
+  // 新增：接口与实现的虚线连接关系
+  const [interfaceImplementationLinks, setInterfaceImplementationLinks] = useState<Map<string, string>>(new Map());
+  
+  // 新增：处理调用图更新 - 改进版本
+  const handleUpdateCallGraph = (callRelations: CallRelation[], selectedNodeId?: string) => {
+    console.log('RepoManager: handleUpdateCallGraph called with', callRelations.length, 'relations, selectedNodeId:', selectedNodeId);
+    
+    // 如果提供了 selectedNodeId，先清理之前该节点的实现调用链
+    if (selectedNodeId) {
+      // 清理旧的接口实现连接关系
+      setInterfaceImplementationLinks(prevLinks => {
+        const updatedLinks = new Map(prevLinks);
+        // 删除与当前选中节点相关的接口实现连接
+        updatedLinks.forEach((implId, interfaceId) => {
+          // 如果接口ID或实现ID与当前选中节点相关，则删除该连接
+          if (interfaceId === selectedNodeId || implId === selectedNodeId) {
+            updatedLinks.delete(interfaceId);
+          }
+        });
+        return updatedLinks;
+      });
+      
+      setCallGraphNodes(prevNodes => {
+        const updatedNodes = new Map(prevNodes);
+        
+        // 找到并删除之前该节点的实现调用链节点
+        const nodesToRemove = new Set<string>();
+        
+        // 遍历所有节点，找到属于之前实现调用链的节点
+        updatedNodes.forEach((node, nodeId) => {
+          // 如果节点属于之前的实现调用链，则标记为删除
+          if (node.implementationChainId && node.implementationChainId !== implementationChainId) {
+            nodesToRemove.add(nodeId);
+          }
+        });
+        
+        // 删除标记的节点
+        nodesToRemove.forEach(nodeId => {
+          updatedNodes.delete(nodeId);
+        });
+        
+        return updatedNodes;
+      });
+      
+      // 清理可见节点集合，移除之前实现调用链的节点
+      setVisibleCallGraphNodes(prevVisible => {
+        const newVisible = new Set(prevVisible);
+        
+        // 移除属于之前实现调用链的节点
+        prevVisible.forEach(nodeId => {
+          const node = callGraphNodes.get(nodeId);
+          if (node && node.implementationChainId && node.implementationChainId !== implementationChainId) {
+            newVisible.delete(nodeId);
+          }
+        });
+        
+        return newVisible;
+      });
+    }
+    
+    // 将新的调用关系转换为节点，保持与主调用链相同的逻辑
+    const newNodes = new Map<string, Node>();
+    
+    // 为新的实现调用链生成一个唯一标识
+    const implementationChainId = `impl_${selectedNodeId || 'unknown'}_${Date.now()}`;
+    console.log(`创建新的实现调用链: ${implementationChainId}`);
+    
+    // 确定实现调用链的根节点
+    // 如果 callRelations 不为空，第一个调用者就是实现调用链的根节点
+    const implementationRootId = callRelations.length > 0 ? callRelations[0].callerId : null;
+    
+    // 如果提供了 selectedNodeId（接口方法），我们需要在接口方法和实现方法之间建立连接
+    if (selectedNodeId && implementationRootId) {
+      // 创建接口方法节点（如果不存在）
+      if (!newNodes.has(selectedNodeId)) {
+        const existingInterfaceNode = callGraphNodes.get(selectedNodeId);
+        if (existingInterfaceNode) {
+          const interfaceNode: Node = {
+            ...existingInterfaceNode,
+            children: new Set<string>(),
+            parents: new Set<string>(),
+            expanded: true,
+            implementationChainId: implementationChainId
+          };
+          newNodes.set(selectedNodeId, interfaceNode);
+        }
+      }
+      
+      // 创建实现方法节点（如果不存在）
+      if (!newNodes.has(implementationRootId)) {
+        const existingImplNode = callGraphNodes.get(implementationRootId);
+        if (existingImplNode) {
+          const implNode: Node = {
+            ...existingImplNode,
+            children: new Set<string>(),
+            parents: new Set<string>(),
+            // 实现方法默认展开，方便查看调用链
+            expanded: true,
+            implementationChainId: implementationChainId
+          };
+          newNodes.set(implementationRootId, implNode);
+        }
+      }
+      
+      // 建立接口方法到实现方法的连接
+      const interfaceNode = newNodes.get(selectedNodeId);
+      const implNode = newNodes.get(implementationRootId);
+      if (interfaceNode && implNode) {
+        interfaceNode.children.add(implementationRootId);
+        implNode.parents.add(selectedNodeId);
+        console.log(`建立接口到实现的连接: ${selectedNodeId} -> ${implementationRootId}`);
+      }
+    }
+    
+    // 设置实现调用链的根节点为接口方法（用于可见性控制）
+    const rootNodeId = selectedNodeId;
+    
+    callRelations.forEach((relation, index) => {
+      // 创建调用者节点
+      if (!newNodes.has(relation.callerId)) {
+        // 检查是否已存在于主调用图中
+        const existingCaller = callGraphNodes.get(relation.callerId);
+        if (existingCaller) {
+          // 如果已存在，复制现有节点信息，但重置关系
+          newNodes.set(relation.callerId, {
+            ...existingCaller,
+            children: new Set(),
+            parents: new Set(),
+            // 实现方法默认展开，其他节点默认闭合
+            expanded: existingCaller.expanded || relation.callerId === implementationRootId,
+            // 标记为属于当前实现调用链
+            implementationChainId: implementationChainId
+          });
+        } else {
+          // 如果不存在，创建新节点
+          newNodes.set(relation.callerId, {
+            id: relation.callerId,
+            name: relation.callerName,
+            type: 'caller',
+            level: 0,
+            // 实现方法默认展开，其他节点默认闭合
+            expanded: relation.callerId === implementationRootId,
+            scope: relation.callerScope,
+            entityId: relation.callerEntityId,
+            fileId: relation.callerFileId,
+            children: new Set(),
+            parents: new Set(),
+            // 标记为属于当前实现调用链
+            implementationChainId: implementationChainId
+          });
+        }
+      } else {
+        // 如果节点已存在，确保它有正确的 implementationChainId
+        const existingNode = newNodes.get(relation.callerId)!;
+        existingNode.implementationChainId = implementationChainId;
+      }
+      
+      // 创建被调用者节点
+      if (!newNodes.has(relation.calleeId)) {
+        // 检查是否已存在于主调用图中
+        const existingCallee = callGraphNodes.get(relation.calleeId);
+        if (existingCallee) {
+          // 如果已存在，复制现有节点信息，但重置关系
+          newNodes.set(relation.calleeId, {
+            ...existingCallee,
+            children: new Set(),
+            parents: new Set(),
+            // 实现方法默认展开，其他节点默认闭合
+            expanded: existingCallee.expanded || relation.calleeId === implementationRootId,
+            // 标记为属于当前实现调用链
+            implementationChainId: implementationChainId
+          });
+        } else {
+          // 如果不存在，创建新节点
+          newNodes.set(relation.calleeId, {
+            id: relation.calleeId,
+            name: relation.calleeName,
+            type: 'callee',
+            level: 1,
+            // 实现方法默认展开，其他节点默认闭合
+            expanded: relation.calleeId === implementationRootId,
+            scope: relation.calleeScope,
+            entityId: relation.calleeEntityId,
+            fileId: relation.calleeFileId,
+            children: new Set(),
+            parents: new Set(),
+            // 标记为属于当前实现调用链
+            implementationChainId
+          });
+        }
+      } else {
+        // 如果节点已存在，确保它有正确的 implementationChainId
+        const existingNode = newNodes.get(relation.calleeId)!;
+        existingNode.implementationChainId = implementationChainId;
+      }
+      
+      // 建立父子关系
+      const callerNode = newNodes.get(relation.callerId)!;
+      const calleeNode = newNodes.get(relation.calleeId)!;
+      
+      callerNode.children.add(relation.calleeId);
+      calleeNode.parents.add(relation.callerId);
+      
+      console.log(`建立父子关系: ${relation.callerId} -> ${relation.calleeId}`);
+      console.log(`调用者节点 ${relation.callerId} 的子节点:`, Array.from(callerNode.children));
+      console.log(`被调用者节点 ${relation.calleeId} 的父节点:`, Array.from(calleeNode.parents));
+    });
+    
+    // 调试：显示创建的节点信息
+    console.log(`创建了 ${newNodes.size} 个节点，实现调用链ID: ${implementationChainId}`);
+    console.log(`根节点ID: ${rootNodeId}`);
+    newNodes.forEach((node, id) => {
+      console.log(`节点 ${id}: implementationChainId = ${node.implementationChainId}, children = ${Array.from(node.children)}, parents = ${Array.from(node.parents)}`);
+    });
+    
+
+    
+    // 建立接口与实现之间的虚线连接关系
+    const newInterfaceLinks = new Map<string, string>();
+    
+    // 遍历新的调用关系，查找接口与实现的连接
+    callRelations.forEach((relation) => {
+      // 如果被调用者是接口（scope === '3'），且调用者是实现类
+      if (relation.calleeScope === '3' && relation.callerScope === '1') {
+        // 建立接口到实现的虚线连接
+        newInterfaceLinks.set(relation.calleeId, relation.callerId);
+      }
+      
+      // 如果调用者是接口（scope === '3'），且被调用者是实现类
+      if (relation.callerScope === '3' && relation.calleeScope === '1') {
+        // 建立接口到实现的虚线连接
+        newInterfaceLinks.set(relation.callerId, relation.calleeId);
+      }
+    });
+    
+    // 更新接口实现连接关系
+    setInterfaceImplementationLinks(prevLinks => {
+      const updatedLinks = new Map(prevLinks);
+      newInterfaceLinks.forEach((implId, interfaceId) => {
+        updatedLinks.set(interfaceId, implId);
+      });
+      return updatedLinks;
+    });
+    
+    // 更新现有的调用图节点
+    setCallGraphNodes(prevNodes => {
+      const updatedNodes = new Map(prevNodes);
+      
+      // 添加新节点
+      newNodes.forEach((node, id) => {
+        updatedNodes.set(id, node);
+      });
+      
+      return updatedNodes;
+    });
+    
+    // 将新节点添加到可见节点集合，显示接口方法和实现方法
+    setVisibleCallGraphNodes(prevVisible => {
+      const newVisible = new Set(prevVisible);
+      
+      // 显示接口方法（根节点）
+      if (rootNodeId) {
+        newVisible.add(rootNodeId);
+        console.log(`添加接口方法到可见集合: ${rootNodeId}`);
+      }
+      
+      // 显示实现方法（接口方法的直接子节点）
+      if (rootNodeId) {
+        const interfaceNode = newNodes.get(rootNodeId);
+        if (interfaceNode && interfaceNode.children.size > 0) {
+          console.log(`接口方法有 ${interfaceNode.children.size} 个实现:`, Array.from(interfaceNode.children));
+          interfaceNode.children.forEach(implId => {
+            newVisible.add(implId);
+            console.log(`添加实现方法到可见集合: ${implId}`);
+            
+            // 如果实现方法有子节点且是展开的，也显示其直接子节点
+            const implNode = newNodes.get(implId);
+            if (implNode && implNode.expanded && implNode.children.size > 0) {
+              console.log(`实现方法有 ${implNode.children.size} 个子节点:`, Array.from(implNode.children));
+              implNode.children.forEach(childId => {
+                newVisible.add(childId);
+                console.log(`添加实现方法的子节点到可见集合: ${childId}`);
+                
+                // 递归显示展开节点的子节点
+                const addExpandedChildren = (nodeId: string, depth: number = 0) => {
+                  if (depth > 5) return; // 防止无限递归
+                  const node = newNodes.get(nodeId);
+                  if (node && node.expanded && node.children.size > 0) {
+                    node.children.forEach(childId => {
+                      newVisible.add(childId);
+                      console.log(`添加第${depth + 1}层子节点到可见集合: ${childId}`);
+                      addExpandedChildren(childId, depth + 1);
+                    });
+                  }
+                };
+                
+                addExpandedChildren(childId);
+              });
+            }
+          });
+        } else {
+          console.log(`接口方法没有实现:`, interfaceNode);
+        }
+      }
+      
+      console.log(`最终可见节点集合:`, Array.from(newVisible));
+      return newVisible;
+    });
+    
+    // 重新计算布局，确保新节点放在当前选中节点的后面，使用与主图一致的间距
+    setTimeout(() => {
+      // 使用与主图一致的间距常量
+      const FIXED_GAP_X = 280;  // 水平间距固定为280
+      const FIXED_GAP_Y = 120;  // 垂直间距固定为120
+      
+      // 使用 newNodes 和现有的 callGraphNodePositions 来计算位置
+      const positions = new Map<string, NodePosition>();
+      
+      if (rootNodeId && callGraphNodePositions.has(rootNodeId)) {
+        const rootPosition = callGraphNodePositions.get(rootNodeId)!;
+        
+        // 为新的调用链节点分配位置
+        newNodes.forEach((node, nodeId) => {
+          if (nodeId === rootNodeId) {
+            // 接口方法保持原位置
+            positions.set(nodeId, rootPosition);
+          } else if (node.parents.has(rootNodeId)) {
+            // 实现方法放在接口方法的右侧，使用主图间距
+            const x = rootPosition.x + FIXED_GAP_X;
+            const y = rootPosition.y;
+            const newPos = { x, y };
+            positions.set(nodeId, newPos);
+          } else {
+            // 其他节点按层级排列在实现方法的右侧，使用主图间距
+            const level = node.level;
+            const x = rootPosition.x + (FIXED_GAP_X * 2) + (level * FIXED_GAP_X);
+            const y = rootPosition.y + (level * FIXED_GAP_Y);
+            const newPos = { x, y };
+            positions.set(nodeId, newPos);
+          }
+        });
+      } else {
+        // 如果没有根节点位置，使用默认布局
+        const newVisibleNodes = new Set(newNodes.keys());
+        const positions = calculateGraphLayout(newNodes, newVisibleNodes, callGraphNodePositions);
+        
+        // 更新位置
+        setCallGraphNodePositions(prevPositions => {
+          const newPositions = new Map(prevPositions);
+          positions.forEach((pos, id) => {
+            newPositions.set(id, pos);
+          });
+          return newPositions;
+        });
+        return;
+      }
+      
+      // 更新位置
+      setCallGraphNodePositions(prevPositions => {
+        const newPositions = new Map(prevPositions);
+        positions.forEach((pos, id) => {
+          newPositions.set(id, pos);
+        });
+        return newPositions;
+      });
+    }, 100);
+    
+    showToast('success', `成功更新调用链，添加 ${callRelations.length} 个调用关系`);
+    
+
+  };
 
   const showToast = (type: 'success' | 'error', message: string) => {
     setToast({ type, message });
@@ -165,8 +537,8 @@ const RepoManager: React.FC = () => {
       // 构建函数ID（使用函数的id字段）
       const functionId = func.id;
       
-      // 获取调用关系数据
-      const relationships = await fetchFunctionCalls(functionId);
+      // 获取调用关系数据，传递函数名称用于更好的日志记录
+      const relationships = await fetchFunctionCalls(functionId, func.name);
       
       if (relationships.length === 0) {
         setCallGraphError('没有找到该函数的调用关系');
@@ -334,6 +706,12 @@ const RepoManager: React.FC = () => {
     const fileById = new Map(tree.files.map(f => [f.id, f]));
     const pkgChildren = new Map<string, string[]>();
     const filesByPkg = new Map<string, string[]>();
+    
+    // 新增：文件名搜索相关状态
+    const [fileSearchQuery, setFileSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<Array<{ id: string; name: string; pkgName: string; pkgPath: string }>>([]);
+    const [showSearchResults, setShowSearchResults] = useState(false);
+    const [selectedResultIndex, setSelectedResultIndex] = useState(-1); // 当前选中的搜索结果索引
 
     // 构建包层次结构
     tree.packages.forEach(pkg => {
@@ -378,13 +756,282 @@ const RepoManager: React.FC = () => {
       setExpandedPkgs(allPkgIds);
     };
 
+    // 新增：文件名搜索逻辑
+    const searchFiles = (query: string) => {
+      if (!query.trim()) {
+        setSearchResults([]);
+        setShowSearchResults(false);
+        return;
+      }
+
+      const results: Array<{ id: string; name: string; pkgName: string; pkgPath: string }> = [];
+      const queryLower = query.toLowerCase();
+
+      // 遍历所有文件，查找匹配的文件名
+      tree.files.forEach(file => {
+        if (file.name.toLowerCase().includes(queryLower)) {
+          // 找到文件所属的包
+          const pkg = pkgById.get(file.pkgId);
+          if (pkg) {
+            // 构建包的完整路径
+            const pkgPath = buildPackagePath(pkg.id);
+            results.push({
+              id: file.id,
+              name: file.name,
+              pkgName: pkg.name,
+              pkgPath: pkgPath
+            });
+          }
+        }
+      });
+
+      // 按相关性排序：完全匹配 > 开头匹配 > 包含匹配
+      results.sort((a, b) => {
+        const aName = a.name.toLowerCase();
+        const bName = b.name.toLowerCase();
+        
+        // 完全匹配优先级最高
+        if (aName === queryLower && bName !== queryLower) return -1;
+        if (bName === queryLower && aName !== queryLower) return 1;
+        
+        // 开头匹配优先级次之
+        if (aName.startsWith(queryLower) && !bName.startsWith(queryLower)) return -1;
+        if (bName.startsWith(queryLower) && !aName.startsWith(queryLower)) return 1;
+        
+        // 按文件名长度排序（短文件名优先）
+        return aName.length - bName.length;
+      });
+
+      setSearchResults(results.slice(0, 20)); // 限制结果数量
+      setShowSearchResults(true);
+      setSelectedResultIndex(-1); // 重置选中索引
+    };
+
+    // 新增：构建包的完整路径
+    const buildPackagePath = (pkgId: string): string => {
+      const path: string[] = [];
+      let currentPkgId = pkgId;
+      
+      while (currentPkgId) {
+        const pkg = pkgById.get(currentPkgId);
+        if (pkg) {
+          path.unshift(pkg.name);
+          currentPkgId = pkg.parentId || '';
+        } else {
+          break;
+        }
+      }
+      
+      return path.join('/');
+    };
+
+    // 新增：处理文件搜索选择
+    const handleFileSelect = (fileId: string) => {
+      // 展开到该文件所在的包
+      const file = fileById.get(fileId);
+      if (file) {
+        console.log(`开始处理文件选择: ${file.name}, 文件ID: ${fileId}`);
+        console.log(`文件所属包ID: ${file.pkgId}`);
+        
+        // 收集所有需要展开的包ID
+        const packagesToExpand = new Set<string>();
+        
+        // 添加根节点
+        packagesToExpand.add('root');
+        if (rootId && rootId !== 'root') {
+          packagesToExpand.add(rootId);
+        }
+        
+        // 递归收集所有父包ID
+        const collectParentPackages = (pkgId: string) => {
+          packagesToExpand.add(pkgId);
+          const pkg = pkgById.get(pkgId);
+          if (pkg && pkg.parentId) {
+            collectParentPackages(pkg.parentId);
+          }
+        };
+        
+        // 收集从文件包到根节点的所有包ID
+        collectParentPackages(file.pkgId);
+        
+        console.log(`需要展开的包ID列表:`, Array.from(packagesToExpand));
+        
+        // 更新展开状态
+        setExpandedPkgs(packagesToExpand);
+        
+        // 高亮该文件
+        setHighlightedFileId(fileId);
+        
+        // 关闭搜索结果
+        setShowSearchResults(false);
+        setFileSearchQuery('');
+        setSelectedResultIndex(-1); // 重置选中索引
+        
+        // 显示展开的包结构信息
+        const expandedPackages = getExpandedPackagePath(file.pkgId);
+        console.log(`展开的包路径: ${expandedPackages.join(' -> ')}`);
+        
+        // 使用更智能的等待机制，等待DOM更新完成
+        setTimeout(() => {
+          waitForFileElement(fileId);
+        }, 200); // 给React状态更新一些时间
+      }
+    };
+
+    // 新增：获取展开的包路径
+    const getExpandedPackagePath = (pkgId: string): string[] => {
+      const path: string[] = [];
+      let currentPkgId = pkgId;
+      
+      while (currentPkgId) {
+        const pkg = pkgById.get(currentPkgId);
+        if (pkg) {
+          path.unshift(pkg.name);
+          currentPkgId = pkg.parentId || '';
+        } else {
+          break;
+        }
+      }
+      
+      // 添加根节点
+      if (rootId && rootId !== 'root') {
+        path.unshift(rootId);
+      }
+      path.unshift('root');
+      
+      return path;
+    };
+
+    // 新增：等待文件元素出现
+    const waitForFileElement = (fileId: string, maxAttempts: number = 10, attempt: number = 0) => {
+      if (attempt >= maxAttempts) {
+        console.error(`等待文件元素超时: ${fileId}, 已尝试 ${maxAttempts} 次`);
+        console.log(`当前展开的包:`, Array.from(expandedPkgs));
+        console.log(`当前可见的文件元素:`, document.querySelectorAll('[data-file-id]').length);
+        return;
+      }
+      
+      const fileElement = document.querySelector(`[data-file-id="${fileId}"]`) as HTMLElement;
+      if (fileElement) {
+        console.log(`文件元素已找到: ${fileId}, 尝试次数: ${attempt + 1}`);
+        // 文件元素已存在，执行滚动
+        scrollToFileInTree(fileId);
+      } else {
+        console.log(`等待文件元素: ${fileId}, 尝试次数: ${attempt + 1}/${maxAttempts}`);
+        console.log(`当前展开的包:`, Array.from(expandedPkgs));
+        console.log(`当前可见的文件元素:`, document.querySelectorAll('[data-file-id]').length);
+        
+        // 检查文件是否应该可见
+        const file = fileById.get(fileId);
+        if (file) {
+          console.log(`文件 ${file.name} 应该在包 ${file.pkgId} 中`);
+          console.log(`包 ${file.pkgId} 是否展开:`, expandedPkgs.has(file.pkgId));
+        }
+        
+        // 等待100ms后重试
+        setTimeout(() => {
+          waitForFileElement(fileId, maxAttempts, attempt + 1);
+        }, 100);
+      }
+    };
+
+    // 新增：滚动到树中的文件位置
+    const scrollToFileInTree = (fileId: string) => {
+      const fileElement = document.querySelector(`[data-file-id="${fileId}"]`) as HTMLElement;
+      if (fileElement) {
+        // 滚动到文件元素位置
+        fileElement.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center',
+          inline: 'nearest'
+        });
+        
+        // 添加闪烁动画效果，让用户更容易看到
+        fileElement.style.animation = 'fileHighlight 1s ease-in-out';
+        
+        // 动画结束后移除动画样式
+        setTimeout(() => {
+          fileElement.style.animation = '';
+        }, 1000);
+        
+        console.log(`成功滚动到文件: ${fileId}`);
+      } else {
+        console.error(`滚动时文件元素未找到: ${fileId}`);
+      }
+    };
+
+    // 新增：键盘导航处理
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+      if (!showSearchResults || searchResults.length === 0) return;
+
+      switch (e.key) {
+        case 'ArrowDown':
+          e.preventDefault();
+          setSelectedResultIndex(prev => 
+            prev < searchResults.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case 'ArrowUp':
+          e.preventDefault();
+          setSelectedResultIndex(prev => 
+            prev > 0 ? prev - 1 : searchResults.length - 1
+          );
+          break;
+        case 'Enter':
+          e.preventDefault();
+          if (selectedResultIndex >= 0 && selectedResultIndex < searchResults.length) {
+            const selectedResult = searchResults[selectedResultIndex];
+            handleFileSelect(selectedResult.id);
+          }
+          break;
+        case 'Escape':
+          e.preventDefault();
+          setShowSearchResults(false);
+          setSelectedResultIndex(-1);
+          break;
+      }
+    };
+
+    // 新增：滚动到选中项
+    useEffect(() => {
+      if (selectedResultIndex >= 0 && showSearchResults) {
+        const resultElement = document.querySelector(`[data-result-index="${selectedResultIndex}"]`) as HTMLElement;
+        if (resultElement) {
+          resultElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest' 
+          });
+        }
+      }
+    }, [selectedResultIndex, showSearchResults]);
+
+    // 新增：点击外部区域关闭搜索结果
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        const target = event.target as HTMLElement;
+        if (!target.closest('[data-search-container]')) {
+          setShowSearchResults(false);
+        }
+      };
+
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
+    }, []);
+
     const renderPkg = (pkgId: string | 'root', level: number) => {
       const ids = pkgChildren.get(pkgId) || [];
       const isRoot = pkgId === (rootId || 'root');
       const isExpanded = expandedPkgs.has(pkgId as string) || isRoot;
       
-      // 限制默认展开深度，避免显示过多内容
-      const shouldShowChildren = isExpanded && (isRoot || level < 2);
+      // 显示子包：根节点默认展开，其他节点根据用户手动展开状态显示
+      const shouldShowChildren = isExpanded;
+      
+      // 调试信息
+      if (isRoot) {
+        console.log(`渲染根节点: ${pkgId}, 展开状态: ${isExpanded}, 子包数量: ${ids.length}`);
+      }
       
       return (
         <div key={pkgId} style={{ marginLeft: level * 16 }}>
@@ -406,7 +1053,8 @@ const RepoManager: React.FC = () => {
           {shouldShowChildren && ids.map(id => renderPkg(id, level + 1))}
           {!isRoot && isExpanded && (filesByPkg.get(pkgId as string) || []).map(fid => (
             <div 
-              key={fid} 
+              key={fid}
+              data-file-id={fid}
               style={{ 
                 marginLeft: 24, 
                 color: '#374151', 
@@ -444,6 +1092,159 @@ const RepoManager: React.FC = () => {
 
     return (
       <div style={{ border: '1px solid #eee', borderRadius: 12, padding: 12, background: '#fff' }}>
+        {/* 新增：文件名搜索框 */}
+        <div 
+          data-search-container
+          style={{ 
+            marginBottom: '12px',
+            position: 'relative'
+          }}
+        >
+          <div style={{ 
+            display: 'flex', 
+            gap: '8px', 
+            alignItems: 'center'
+          }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input
+                type="text"
+                placeholder="🔍 搜索文件名..."
+                value={fileSearchQuery}
+                onChange={(e) => {
+                  const query = e.target.value;
+                  setFileSearchQuery(query);
+                  searchFiles(query);
+                }}
+                onFocus={() => {
+                  if (fileSearchQuery.trim()) {
+                    setShowSearchResults(true);
+                  }
+                }}
+                onKeyDown={handleSearchKeyDown}
+                style={{
+                  ...styles.input,
+                  padding: '8px 12px',
+                  fontSize: '13px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px'
+                }}
+              />
+              
+              {/* 搜索结果下拉框 */}
+              {showSearchResults && searchResults.length > 0 && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  zIndex: 1000,
+                  maxHeight: '300px',
+                  overflowY: 'auto'
+                }}>
+                  {searchResults.map((result, index) => (
+                    <div
+                      key={result.id}
+                      data-result-index={index}
+                      onClick={() => handleFileSelect(result.id)}
+                      style={{
+                        padding: '8px 12px',
+                        cursor: 'pointer',
+                        borderBottom: index < searchResults.length - 1 ? '1px solid #f3f4f6' : 'none',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '2px',
+                        transition: 'background-color 0.2s',
+                        backgroundColor: index === selectedResultIndex ? '#3b82f6' : 'transparent',
+                        color: index === selectedResultIndex ? 'white' : 'inherit'
+                      }}
+                      onMouseEnter={(e) => {
+                        if (index !== selectedResultIndex) {
+                          e.currentTarget.style.backgroundColor = '#f9fafb';
+                        }
+                        setSelectedResultIndex(index);
+                      }}
+                      onMouseLeave={(e) => {
+                        if (index !== selectedResultIndex) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
+                    >
+                      <div style={{ 
+                        fontWeight: '500', 
+                        color: index === selectedResultIndex ? 'white' : '#374151',
+                        fontSize: '13px'
+                      }}>
+                        📄 {result.name}
+                      </div>
+                      <div style={{ 
+                        fontSize: '11px', 
+                        color: index === selectedResultIndex ? 'rgba(255,255,255,0.8)' : '#6b7280',
+                        fontFamily: 'monospace'
+                      }}>
+                        📁 {result.pkgPath}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {fileSearchQuery && (
+              <button
+                onClick={() => {
+                  setFileSearchQuery('');
+                  setSearchResults([]);
+                  setShowSearchResults(false);
+                }}
+                style={{
+                  ...styles.btn,
+                  fontSize: '11px',
+                  padding: '6px 10px',
+                  background: '#f3f4f6',
+                  border: '1px solid #d1d5db'
+                }}
+              >
+                清空
+              </button>
+            )}
+          </div>
+          
+          {/* 搜索结果统计和键盘提示 */}
+          {searchResults.length > 0 && (
+            <div style={{
+              display: 'flex',
+              gap: '8px',
+              marginTop: '4px',
+              alignItems: 'center'
+            }}>
+              <div style={{
+                fontSize: '11px',
+                color: '#6b7280',
+                padding: '4px 8px',
+                backgroundColor: '#f3f4f6',
+                borderRadius: '4px',
+                display: 'inline-block'
+              }}>
+                找到 {searchResults.length} 个匹配文件
+              </div>
+              <div style={{
+                fontSize: '10px',
+                color: '#9ca3af',
+                padding: '4px 8px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '4px',
+                border: '1px solid #e5e7eb'
+              }}>
+                ⌨️ ↑↓ 选择 | Enter 确认 | Esc 关闭
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* 新增：树形视图控制按钮 */}
         <div style={{ 
           display: 'flex', 
@@ -479,10 +1280,18 @@ const RepoManager: React.FC = () => {
             展开所有
           </button>
           <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: 'auto', alignSelf: 'center' }}>
-            默认只展开前2层，点击包名展开/折叠
+            点击包名展开/折叠，支持无限层级
           </span>
         </div>
-        {renderPkg((rootId || 'root') as any, 0)}
+        <div style={{ 
+          maxHeight: '600px', 
+          overflowY: 'auto',
+          border: '1px solid #e5e7eb',
+          borderRadius: '6px',
+          padding: '8px'
+        }}>
+          {renderPkg((rootId || 'root') as any, 0)}
+        </div>
       </div>
     );
   };
@@ -550,6 +1359,8 @@ const RepoManager: React.FC = () => {
       );
     }
 
+
+
     return (
       <CallGraph
         nodes={callGraphNodes}
@@ -558,6 +1369,7 @@ const RepoManager: React.FC = () => {
         onNodeClick={handleCallGraphNodeClick}
         onNodeToggle={handleCallGraphNodeToggle}
         focusedNodeId={selectedCallGraphNode?.id}
+        interfaceImplementationLinks={interfaceImplementationLinks}
       />
     );
   };
@@ -761,7 +1573,7 @@ const RepoManager: React.FC = () => {
                   <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#374151' }}>操作说明：</h4>
                   <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px', lineHeight: '1.5' }}>
                     <li>点击仓库名称查看结构</li>
-                    <li>点击包名展开/折叠子包</li>
+                    <li>点击包名展开/折叠子包（支持无限层级）</li>
                     <li>点击文件名查看代码内容</li>
                   </ul>
                 </div>
@@ -780,6 +1592,7 @@ const RepoManager: React.FC = () => {
             selectedNode={selectedCallGraphNode}
             onClose={() => setSelectedCallGraphNode(null)}
             onViewFileDetails={handleViewFileDetails}
+            onUpdateCallGraph={handleUpdateCallGraph}
           />
         )}
       </div>
@@ -789,6 +1602,21 @@ const RepoManager: React.FC = () => {
       @keyframes spin { 
         0% { transform: rotate(0deg); } 
         100% { transform: rotate(360deg); } 
+      }
+      
+      @keyframes fileHighlight {
+        0% { 
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+        }
+        50% { 
+          transform: scale(1.02);
+          box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.3);
+        }
+        100% { 
+          transform: scale(1);
+          box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+        }
       }
     `}</style>
     </>

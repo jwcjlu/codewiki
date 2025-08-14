@@ -19,7 +19,8 @@ export const initializeNodes = (relationships: CallRelation[]): Map<string, Node
         children: new Set(),
         parents: new Set(),
         fileId: rel.callerFileId,
-        scope: rel.callerScope
+        scope: rel.callerScope,
+        entityId: rel.callerEntityId
       });
     }
     
@@ -33,7 +34,8 @@ export const initializeNodes = (relationships: CallRelation[]): Map<string, Node
         children: new Set(),
         parents: new Set(),
         fileId: rel.calleeFileId,
-        scope: rel.calleeScope
+        scope: rel.calleeScope,
+        entityId: rel.calleeEntityId
       });
     }
     

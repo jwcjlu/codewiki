@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 )
 
 type Project struct {
@@ -214,7 +213,7 @@ func GetModuleName(goModPath string) (string, error) {
 }
 func (p *Project) shouldInclude(path string) bool {
 	ext := filepath.Ext(path)
-	if !strings.HasPrefix(ext, p.LanguagePrefix()) {
+	if ext != p.LanguagePrefix() {
 		return false
 	}
 	for _, exclude := range p.config.Excludes {

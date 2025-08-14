@@ -138,7 +138,8 @@ func batchSaveFunction(ctx context.Context, session neo4j.SessionWithContext, fu
 			pkg_id: fn.pkg_id,
 			scope: fn.scope,
 			receiver: fn.receiver,
-			ent_id: fn.ent_id
+			ent_id: fn.ent_id,
+            file_id: fn.file_id
 		})
 		`
 	var params []map[string]any
@@ -202,39 +203,6 @@ func batchSaveField(ctx context.Context, session neo4j.SessionWithContext, field
 
 }
 
-/*
-	func (f *Function) batchSaveParamOrResult(session neo4j.Session, field *Field, relType string) error {
-		// 这里简化处理，实际应用中需要根据Field.Type解析出对应的Entity ID
-		// 假设我们已经有一个方法可以将类型表达式转换为Entity ID
-		entityID, err := resolveTypeToEntityID(field.Type)
-		if err != nil {
-			return err
-		}
-
-		if entityID == "" {
-			return nil
-		}
-
-		_, err = session.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
-			query := fmt.Sprintf(`
-	        MATCH (fn:Function {id: $func_id}), (e:Entity {id: $entity_id})
-	        MERGE (fn)-[:%s]->(e)`, relType)
-
-			params := map[string]interface{}{
-				"func_id":   f.ID,
-				"entity_id": entityID,
-			}
-
-			result, err := tx.Run(query, params)
-			if err != nil {
-				return nil, err
-			}
-			return result.Consume()
-		})
-
-		return err
-	}
-*/
 func batchSaveImport(ctx context.Context, session neo4j.SessionWithContext, imports []*biz.Import) error {
 
 	query := `
@@ -264,7 +232,7 @@ func batchSaveImport(ctx context.Context, session neo4j.SessionWithContext, impo
 
 	return err
 }
-func batchSaveRelation(ctx1 context.Context, neo4jDriver neo4j.DriverWithContext, relations []*biz.Relation) error {
+func batchSaveRelation(ctx context.Context, neo4jDriver neo4j.DriverWithContext, relations []*biz.Relation) error {
 
 	// 将 Relation 结构体转换为 Neo4j 支持的格式
 	relMaps := make(map[string][]map[string]interface{})
@@ -276,7 +244,7 @@ func batchSaveRelation(ctx1 context.Context, neo4jDriver neo4j.DriverWithContext
 			"confidence": rel.Confidence,
 		})
 	}
-	ctx, _ := context.WithTimeout(ctx1, 10*time.Minute)
+	ctx, _ = context.WithTimeout(ctx, 10*time.Minute)
 	session := neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
 	defer session.Close(ctx)
 	for Type, params := range relMaps {

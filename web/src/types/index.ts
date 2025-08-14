@@ -7,6 +7,8 @@ export interface CallRelation {
   calleeFileId: string;
   callerScope: string;
   calleeScope: string;
+  calleeEntityId?: string;
+  callerEntityId?: string;
 }
 
 export type RepoType = 'Local' | 'Github';
@@ -75,6 +77,8 @@ export interface Node {
   parents: Set<string>;
   fileId?: string; // 添加文件ID字段
   scope?: string; // 添加作用域字段
+  entityId?: string; // 添加实体ID字段
+  implementationChainId?: string; // 标识节点属于哪个实现调用链
 }
 
 export interface NodePosition {
@@ -104,5 +108,21 @@ export interface ViewFileReq {
 export interface ViewFileResp {
   Content: string;
   language: string;
+  functions: Function[];
+}
+
+// 新增：实现接口相关类型
+export interface GetImplementReq {
+  id: string;
+}
+
+export interface GetImplementResp {
+  entities: Entity[];
+}
+
+export interface Entity {
+  name: string;
+  fileId: string;
+  id: string;
   functions: Function[];
 }

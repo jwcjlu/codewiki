@@ -1,6 +1,6 @@
 GOHOSTOS:=$(shell go env GOHOSTOS)
 GOPATH:=$(shell go env GOPATH)
-VERSION=$(shell git describe --tags --always)
+VERSION=$(shell git describe --tags --always 2>/dev/null || echo 'dev')
 
 ifeq ($(GOHOSTOS), windows)
 	#the `find.exe` is different from `find` in bash/shell.
@@ -47,7 +47,18 @@ api:
 .PHONY: build
 # build
 build:
-	mkdir -p bin/ && go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/ ./...
+	@echo "Building codewiki..."
+	@mkdir -p bin/
+	@CGO_ENABLED=0 go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/server ./cmd/codewiki
+	@echo "Build completed: ./bin/server"
+
+.PHONY: build-windows
+# build for Windows
+build-windows:
+	@echo "Building codewiki for Windows..."
+	@mkdir -p bin/
+	@CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags "-X main.Version=$(VERSION)" -o ./bin/server.exe ./cmd/codewiki
+	@echo "Build completed: ./bin/server.exe"
 
 .PHONY: generate
 # generate
@@ -61,6 +72,11 @@ all:
 	make api;
 	make config;
 	make generate;
+
+.PHONY: docker-build
+# docker build
+docker-build:
+	docker build -t codewiki:latest .
 
 # show help
 help:

@@ -138,7 +138,10 @@ func (file *File) AddEntity(entity *Entity) {
 	file.entityManager.AddEntity(entity)
 }
 func (file *File) EntityCount() int {
-	return len(file.entityManager.entities)
+	return len(file.entityManager.entities) + file.FunctionCount()
+}
+func (file *File) FunctionCount() int {
+	return len(file.functionManager.functions)
 }
 func (file *File) GetEntity(name string) *Entity {
 	return file.entityManager.GetEntity(name)

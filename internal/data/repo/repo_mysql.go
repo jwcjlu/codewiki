@@ -158,3 +158,7 @@ func (r *compositeRepo) DeleteRepo(ctx context.Context, id string) error {
 	})
 
 }
+
+func (r *compositeRepo) GetImplementByEntityId(ctx context.Context, entityID string) ([]*v1.Entity, error) {
+	return r.g.GetImplementByEntityId(ctx, entityID)
+}

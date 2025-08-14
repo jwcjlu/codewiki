@@ -69,3 +69,10 @@ func (c *CodeWiki) ViewFileContent(ctx context.Context, req *v1.ViewFileReq) (*F
 	}
 	return &FileContent{Content: content, Functions: functions}, nil
 }
+func (c *CodeWiki) GetImplements(ctx context.Context, entityId string) ([]*v1.Entity, error) {
+	entities, err := c.projectRepo.GetImplementByEntityId(ctx, entityId)
+	if err != nil {
+		return nil, err
+	}
+	return entities, nil
+}

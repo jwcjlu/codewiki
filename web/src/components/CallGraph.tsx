@@ -9,6 +9,7 @@ interface CallGraphProps {
   onNodeClick: (nodeId: string) => void;
   onNodeToggle: (nodeId: string) => void;
   focusedNodeId?: string;
+  interfaceImplementationLinks?: Map<string, string>; // 接口ID -> 实现ID的映射
 }
 
 interface Line {
@@ -31,7 +32,8 @@ const CallGraph: React.FC<CallGraphProps> = ({
   nodePositions,
   onNodeClick,
   onNodeToggle,
-  focusedNodeId
+  focusedNodeId,
+  interfaceImplementationLinks = new Map()
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [draggedNode, setDraggedNode] = useState<string | null>(null);
@@ -119,6 +121,44 @@ const CallGraph: React.FC<CallGraphProps> = ({
         }
       }
     });
+  });
+
+  // 生成接口与实现之间的虚线连接
+  const interfaceLines: Line[] = [];
+  interfaceImplementationLinks.forEach((implId, interfaceId) => {
+    // 检查接口和实现节点是否都可见
+    if (visibleNodes.has(interfaceId) && visibleNodes.has(implId)) {
+      const interfacePosition = nodePositionsLocal.get(interfaceId);
+      const implPosition = nodePositionsLocal.get(implId);
+      
+      if (interfacePosition && implPosition) {
+        // 计算连接线的起点和终点
+        const dx = implPosition.x - interfacePosition.x;
+        const dy = implPosition.y - interfacePosition.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance > 0) {
+          const unitX = dx / distance;
+          const unitY = dy / distance;
+          
+          // 起点：从接口节点边缘开始
+          const startX = interfacePosition.x + unitX * 25;
+          const startY = interfacePosition.y + unitY * 25;
+          
+          // 终点：到实现节点边缘结束
+          const endX = implPosition.x - unitX * 25;
+          const endY = implPosition.y - unitY * 25;
+          
+          interfaceLines.push({
+            id: `interface-${interfaceId}-${implId}`,
+            x1: startX,
+            y1: startY,
+            x2: endX,
+            y2: endY
+          });
+        }
+      }
+    }
   });
 
   // 生成节点
@@ -284,15 +324,12 @@ const CallGraph: React.FC<CallGraphProps> = ({
   const nodeRadius = 25;
   const labelFontSize = 12;
 
-  console.log('CallGraph渲染 - 生成的线条数量:', lines.length);
-  console.log('CallGraph渲染 - 生成的节点数量:', nodeElements.length);
-  
-  // 调试：检查哪些节点有子节点
-  nodeElements.forEach(({ id, node }) => {
-    if (node.children.size > 0) {
-      console.log(`节点 ${id} 有 ${node.children.size} 个子节点:`, Array.from(node.children));
-    }
-  });
+  // 调试：检查实现调用链节点
+  const implementationNodes = nodeElements.filter(({ node }) => node.implementationChainId);
+  console.log(`实现调用链节点数量: ${implementationNodes.length}`);
+  if (implementationNodes.length > 0) {
+    console.log(`实现调用链节点:`, implementationNodes.map(({ id, node }) => `${id} (链ID: ${node.implementationChainId})`));
+  }
 
   return (
     <div style={{
@@ -419,6 +456,41 @@ const CallGraph: React.FC<CallGraphProps> = ({
               </g>
             );
           })}
+
+          {/* 接口与实现的虚线连接 */}
+          {interfaceLines.map((line) => (
+            <g key={line.id}>
+              {/* 虚线箭头标记 */}
+              <defs>
+                <marker
+                  id={`dashed-arrow-${line.id}`}
+                  markerWidth="10"
+                  markerHeight="8"
+                  refX="9"
+                  refY="4"
+                  orient="auto"
+                >
+                  <polygon
+                    points="0 0, 10 4, 0 8"
+                    fill="#9CA3AF"
+                    stroke="#6B7280"
+                    strokeWidth="0.8"
+                  />
+                </marker>
+              </defs>
+              
+              {/* 虚线连接 */}
+              <path
+                d={`M ${line.x1} ${line.y1} L ${line.x2} ${line.y2}`}
+                stroke="#9CA3AF"
+                strokeWidth="2"
+                fill="none"
+                markerEnd={`url(#dashed-arrow-${line.id})`}
+                opacity="0.7"
+                strokeDasharray="5,5"
+              />
+            </g>
+          ))}
 
           {/* 节点 */}
           {nodeElements.map(({ id, node, position }) => {

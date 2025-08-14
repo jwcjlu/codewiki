@@ -78,6 +78,11 @@ service CodeWikiService {
     option (google.api.http) = { get: "/v1/api/{repoId}/file/{id}/view" };
     option (openapi.v3.operation) = { summary: "文件/文件内容" };
   }
+  // interface  implement
+  rpc GetImplement(GetImplementReq) returns (GetImplementResp) {
+    option (google.api.http) = { get: "/v1/api/entity/{id}/implements" };
+    option (openapi.v3.operation) = { summary: "实体/得到所有实现" };
+  }
 }
 message AnalyzeReq{
    RepoType repoType=1;
@@ -113,6 +118,8 @@ message CallRelationship{
   string callerFileId=6;
   int64 calleeScope=7;
   int64 callerScope=8;
+  string calleeEntityId=9;
+  string callerEntityId=10;
 }
 
 // ===== Repo Management =====
@@ -186,4 +193,19 @@ message Function{
    string fileId=2;
    string name=3;
    string receiver=4;
+}
+
+message Entity{
+  string name=1;
+  string fileId=2;
+  string id=3;
+  repeated Function functions=4;
+}
+
+message GetImplementReq{
+  string id=1;
+}
+
+message GetImplementResp{
+  repeated Entity entities=1;
 }

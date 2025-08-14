@@ -90,3 +90,13 @@ func (s *CodeWikiService) ViewFileContent(ctx context.Context, req *v1.ViewFileR
 		Functions: fileContent.Functions,
 	}, err
 }
+
+func (s *CodeWikiService) GetImplement(ctx context.Context, req *v1.GetImplementReq) (*v1.GetImplementResp, error) {
+	resp := new(v1.GetImplementResp)
+	entities, err := s.codeWiki.GetImplements(ctx, req.GetId())
+	if err != nil {
+		return resp, err
+	}
+	resp.Entities = entities
+	return resp, nil
+}
