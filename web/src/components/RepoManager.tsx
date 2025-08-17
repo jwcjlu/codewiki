@@ -5,6 +5,7 @@ import CodeViewer from './CodeViewer';
 import CallGraph from './CallGraph';
 import NodeDetails from './NodeDetails';
 import CodeSearch from './CodeSearch';
+import ErrorBoundary from './ErrorBoundary';
 import { initializeNodes, calculateGraphLayout } from '../utils/graphUtils';
 
 // 新增：树状布局计算函数
@@ -1652,10 +1653,12 @@ const RepoManager: React.FC = () => {
         ) : activeTab === 'search' ? (
           <div>
             {selectedRepoId ? (
-              <CodeSearch 
-                repoId={selectedRepoId} 
-                repoName={repos.find(r => r.id === selectedRepoId)?.name || '未知仓库'} 
-              />
+              <ErrorBoundary>
+                <CodeSearch 
+                  repoId={selectedRepoId} 
+                  repoName={repos.find(r => r.id === selectedRepoId)?.name || '未知仓库'} 
+                />
+              </ErrorBoundary>
             ) : (
               <div style={{ 
                 textAlign: 'center', 

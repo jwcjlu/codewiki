@@ -17,7 +17,6 @@ type Project struct {
 	pkgs        map[string]*Package
 	Relations   []*Relation
 	Root        *Package
-	RepoId      string
 	Repo        *v1.Repo
 	relationMap map[string]bool
 	indexer     *Indexer
@@ -65,7 +64,7 @@ func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo Proj
 	p.AnalyzeInterfaceImplRelations(ctx)
 	for _, pkg := range p.pkgs {
 		if pkg.Name == "vminformer" {
-			go p.indexer.Indexer(ctx, pkg)
+			go p.indexer.Indexer(ctx, pkg, p.Repo)
 		}
 	}
 	return projectRepo.SaveProject(ctx, p)
@@ -80,7 +79,7 @@ func (p *Project) ParseCode(ctx context.Context, rootPath string) (*Package, err
 		}
 		p.module = module
 	}
-	root := NewPackage(p.shouldInclude, p, p.RepoId, filepath.Base(rootPath))
+	root := NewPackage(p.shouldInclude, p, p.Repo.Id, filepath.Base(rootPath))
 	p.RootPath = filepath.Base(rootPath)
 	err = root.Parse(ctx, rootPath)
 	if err != nil {
@@ -116,7 +115,7 @@ func (p *Project) GetEntity(pkgName, key string) *Entity {
 
 	}
 	if len(p.RootPath) > 0 {
-		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s@%s", p.RepoId, p.RootPath, pkgName)]
+		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s@%s", p.Repo.Id, p.RootPath, pkgName)]
 	}
 	if ok {
 		return pkg.GetEntity(key)
@@ -138,7 +137,7 @@ func (p *Project) GetPackageByName(pkgName string) *Package {
 		return pkg
 	}
 	if len(p.RootPath) > 0 {
-		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s@%s", p.RepoId, p.RootPath, pkgName)]
+		pkg, ok = p.pkgs[fmt.Sprintf("%s@%s@%s", p.Repo.Id, p.RootPath, pkgName)]
 	}
 	return pkg
 }

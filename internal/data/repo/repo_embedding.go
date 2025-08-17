@@ -91,12 +91,23 @@ func (m *Milvus) SearchCodeChunk(ctx context.Context, req *biz.SearchCodeChunksR
 	}
 	var results []*biz.CodeChunk
 	for _, resultSet := range resultSets {
-		var result []*biz.CodeChunk
-		err = resultSet.Unmarshal(&result)
-		if err != nil {
-			return nil, err
+
+		for index := 0; index < resultSet.ResultCount; index++ {
+			result := &biz.CodeChunk{}
+			if value, err := resultSet.GetColumn("content").GetAsString(index); err != nil {
+				return nil, err
+			} else {
+				result.Content = value
+			}
+			if value, err := resultSet.GetColumn("path").GetAsString(index); err != nil {
+				return nil, err
+			} else {
+				result.Path = value
+			}
+
+			results = append(results, result)
 		}
-		results = append(results, result...)
+
 	}
 	return results, nil
 }

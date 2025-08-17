@@ -34,6 +34,28 @@ type File struct {
 	pkg *Package
 }
 
+func (file *File) BuildRawCodeChunk() *CodeChunk {
+	data, err := file.ReadFileContent()
+	if err != nil {
+		return nil
+	}
+	if len(data) == 0 {
+		return nil
+	}
+	return &CodeChunk{
+		Path:    file.FilePath,
+		Content: string(data),
+		Scope:   ChunkFileScope,
+		Id:      file.ID,
+	}
+}
+func (file *File) SourceCode() (string, error) {
+	data, err := file.ReadFileContent()
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
 func (file *File) GetCurrentPkg() *Package {
 	return file.pkg
 }
