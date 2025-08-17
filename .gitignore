@@ -119,7 +119,7 @@ dist
 # Storybook build outputs
 .out
 .storybook-out
-
+configs/config.yaml
 # Temporary folders
 tmp/
 temp/
