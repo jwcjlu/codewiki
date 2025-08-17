@@ -6,6 +6,101 @@ import CallGraph from './CallGraph';
 import NodeDetails from './NodeDetails';
 import { initializeNodes, calculateGraphLayout } from '../utils/graphUtils';
 
+// 新增：树状布局计算函数
+const calculateTreeLayout = (
+  nodes: Map<string, Node>,
+  visibleNodes: Set<string>
+): Map<string, NodePosition> => {
+  const positions = new Map<string, NodePosition>();
+  const levels = new Map<number, string[]>();
+  
+  // 重置所有节点的层级
+  visibleNodes.forEach(nodeId => {
+    const node = nodes.get(nodeId);
+    if (node) {
+      node.level = 0;
+    }
+  });
+  
+  // 分配层级 - 使用拓扑排序
+  const assignLevels = (nodeId: string, level: number, visited: Set<string>) => {
+    if (visited.has(nodeId)) return;
+    visited.add(nodeId);
+    
+    const node = nodes.get(nodeId);
+    if (!node) return;
+    
+    // 确保节点层级不小于当前层级
+    node.level = Math.max(node.level, level);
+    
+    if (!levels.has(level)) {
+      levels.set(level, []);
+    }
+    if (!levels.get(level)!.includes(nodeId)) {
+      levels.get(level)!.push(nodeId);
+    }
+    
+    // 为子节点分配下一层级
+    node.children.forEach(childId => {
+      if (visibleNodes.has(childId)) {
+        assignLevels(childId, level + 1, visited);
+      }
+    });
+  };
+  
+  // 从根节点开始分配层级
+  const visited = new Set<string>();
+  visibleNodes.forEach(nodeId => {
+    const node = nodes.get(nodeId);
+    if (node && node.parents.size === 0) {
+      assignLevels(nodeId, 0, visited);
+    }
+  });
+  
+  // 处理剩余的节点（可能是孤立的）
+  visibleNodes.forEach(nodeId => {
+    if (!visited.has(nodeId)) {
+      const node = nodes.get(nodeId);
+      if (node) {
+        const maxLevel = levels.size > 0 ? Math.max(...Array.from(levels.keys())) : 0;
+        assignLevels(nodeId, maxLevel + 1, visited);
+      }
+    }
+  });
+  
+  // 如果没有找到任何层级，将所有节点放在同一层级
+  if (levels.size === 0) {
+    levels.set(0, Array.from(visibleNodes));
+  }
+  
+  // 树状布局使用固定的间距
+  const TREE_GAP_X = 200;  // 水平间距
+  const TREE_GAP_Y = 100;  // 垂直间距
+  
+  // 根节点固定在左上角(0,0)
+  const baseX = 0;
+  const baseY = 0;
+  
+  // 从左到右（按层级）布局，每一列（层）垂直等间距排布
+  const sortedLevels = Array.from(levels.keys()).sort((a, b) => a - b);
+  
+  sortedLevels.forEach((level) => {
+    const x = baseX + level * TREE_GAP_X;
+    const nodeIds = levels.get(level)!;
+    
+    // 计算该层级节点的Y坐标，使其垂直居中
+    const totalHeight = (nodeIds.length - 1) * TREE_GAP_Y;
+    const startY = baseY - totalHeight / 2;
+    
+    nodeIds.forEach((nodeId, index) => {
+      const y = startY + index * TREE_GAP_Y;
+      positions.set(nodeId, { x, y });
+    });
+  });
+  
+  return positions;
+};
+
 const repoTypeOptions = [
   { label: '本地', value: 0, color: '#27AE60' },
   { label: 'GitHub', value: 1, color: '#3498DB' },
@@ -318,58 +413,10 @@ const RepoManager: React.FC = () => {
       return updatedNodes;
     });
     
-    // 将新节点添加到可见节点集合，显示接口方法和实现方法
-    setVisibleCallGraphNodes(prevVisible => {
-      const newVisible = new Set(prevVisible);
-      
-      // 显示接口方法（根节点）
-      if (rootNodeId) {
-        newVisible.add(rootNodeId);
-        console.log(`添加接口方法到可见集合: ${rootNodeId}`);
-      }
-      
-      // 显示实现方法（接口方法的直接子节点）
-      if (rootNodeId) {
-        const interfaceNode = newNodes.get(rootNodeId);
-        if (interfaceNode && interfaceNode.children.size > 0) {
-          console.log(`接口方法有 ${interfaceNode.children.size} 个实现:`, Array.from(interfaceNode.children));
-          interfaceNode.children.forEach(implId => {
-            newVisible.add(implId);
-            console.log(`添加实现方法到可见集合: ${implId}`);
-            
-            // 如果实现方法有子节点且是展开的，也显示其直接子节点
-            const implNode = newNodes.get(implId);
-            if (implNode && implNode.expanded && implNode.children.size > 0) {
-              console.log(`实现方法有 ${implNode.children.size} 个子节点:`, Array.from(implNode.children));
-              implNode.children.forEach(childId => {
-                newVisible.add(childId);
-                console.log(`添加实现方法的子节点到可见集合: ${childId}`);
-                
-                // 递归显示展开节点的子节点
-                const addExpandedChildren = (nodeId: string, depth: number = 0) => {
-                  if (depth > 5) return; // 防止无限递归
-                  const node = newNodes.get(nodeId);
-                  if (node && node.expanded && node.children.size > 0) {
-                    node.children.forEach(childId => {
-                      newVisible.add(childId);
-                      console.log(`添加第${depth + 1}层子节点到可见集合: ${childId}`);
-                      addExpandedChildren(childId, depth + 1);
-                    });
-                  }
-                };
-                
-                addExpandedChildren(childId);
-              });
-            }
-          });
-        } else {
-          console.log(`接口方法没有实现:`, interfaceNode);
-        }
-      }
-      
-      console.log(`最终可见节点集合:`, Array.from(newVisible));
-      return newVisible;
-    });
+    // 对于Mermaid布局，显示所有节点以获得完整的调用图
+    const allNodes = new Set(newNodes.keys());
+    setVisibleCallGraphNodes(allNodes);
+    console.log(`Mermaid布局显示所有节点:`, Array.from(allNodes));
     
     // 重新计算布局，确保新节点放在当前选中节点的后面，使用与主图一致的间距
     setTimeout(() => {
@@ -404,18 +451,18 @@ const RepoManager: React.FC = () => {
           }
         });
       } else {
-        // 如果没有根节点位置，使用默认布局
-        const newVisibleNodes = new Set(newNodes.keys());
-        const positions = calculateGraphLayout(newNodes, newVisibleNodes, callGraphNodePositions);
+        // 现在默认使用Mermaid布局，不需要预先计算位置
+        // const newVisibleNodes = new Set(newNodes.keys());
+        // const positions = calculateTreeLayout(newNodes, newVisibleNodes);
         
         // 更新位置
-        setCallGraphNodePositions(prevPositions => {
-          const newPositions = new Map(prevPositions);
-          positions.forEach((pos, id) => {
-            newPositions.set(id, pos);
-          });
-          return newPositions;
-        });
+        // setCallGraphNodePositions(prevPositions => {
+        //   const newPositions = new Map(prevPositions);
+        //   positions.forEach((pos, id) => {
+        //     newPositions.set(id, pos);
+        //   });
+        //   return newPositions;
+        // });
         return;
       }
       
@@ -562,9 +609,13 @@ const RepoManager: React.FC = () => {
         rootNodes.add(relationships[0].callerId);
       }
 
-      setVisibleCallGraphNodes(rootNodes);
-      const positions = calculateGraphLayout(newNodes, rootNodes);
-      setCallGraphNodePositions(positions);
+      // 对于Mermaid布局，显示所有节点以获得完整的调用图
+      const allNodes = new Set(newNodes.keys());
+      setVisibleCallGraphNodes(allNodes);
+      
+      // 现在默认使用Mermaid布局，不需要预先计算位置
+      // const positions = calculateTreeLayout(newNodes, rootNodes);
+      // setCallGraphNodePositions(positions);
       setSelectedCallGraphNode(null);
       
       // 关闭文件查看器
@@ -685,8 +736,11 @@ const RepoManager: React.FC = () => {
       node.expanded = true;
     }
 
-    setVisibleCallGraphNodes(newVisibleNodes);
-    setCallGraphNodePositions(calculateGraphLayout(callGraphNodes, newVisibleNodes));
+    // 对于Mermaid布局，始终显示所有节点以获得完整的调用图
+    const allNodes = new Set(callGraphNodes.keys());
+    setVisibleCallGraphNodes(allNodes);
+    // 现在默认使用Mermaid布局，不需要重新计算位置
+    // setCallGraphNodePositions(calculateTreeLayout(callGraphNodes, newVisibleNodes));
   };
 
 
