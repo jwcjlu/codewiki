@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import Prism from 'prismjs';
 import 'prismjs/themes/prism-tomorrow.css';
 import 'prismjs/components/prism-go';
@@ -19,6 +19,11 @@ interface CodeViewerProps {
 
 const CodeViewer: React.FC<CodeViewerProps> = ({ content, language, fileName, functions, onClose, onFunctionClick, highlightFunction }) => {
   const codeRef = useRef<HTMLElement>(null);
+  
+  // 新增：左右导航相关状态
+  const [currentFunctionIndex, setCurrentFunctionIndex] = useState<number>(-1);
+  const [isNavigating, setIsNavigating] = useState(false);
+  const [isEnterPressed, setIsEnterPressed] = useState(false);
 
   useEffect(() => {
     if (codeRef.current) {
@@ -36,6 +41,11 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ content, language, fileName, fu
             setTimeout(() => {
               scrollToAndHighlightFunction(highlightFunction);
             }, 100);
+          } else {
+            // 如果没有指定高亮函数，自动选择第一个函数作为导航起始点
+            setTimeout(() => {
+              setCurrentFunctionIndex(0);
+            }, 200);
           }
         }
       }, 50);
@@ -75,7 +85,7 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ content, language, fileName, fu
             const clickableSpan = document.createElement('span');
             clickableSpan.className = 'clickable-function';
             clickableSpan.setAttribute('data-function-id', func.id);
-            clickableSpan.style.cssText = 'color: #60a5fa; cursor: pointer; text-decoration: underline; border-bottom: 1px dotted #60a5fa;';
+            clickableSpan.style.cssText = 'color:rgb(12, 97, 201); cursor: pointer; text-decoration: underline; border-bottom: 1px dotted #60a5fa;';
             clickableSpan.title = `点击查看 ${funcName} 的调用链`;
             clickableSpan.textContent = funcName;
             
@@ -113,13 +123,20 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ content, language, fileName, fu
           block: 'center' 
         });
         
-        // 添加高亮效果
-        element.classList.add('highlighted-function');
-        
-        // 3秒后移除高亮
-        setTimeout(() => {
-          element.classList.remove('highlighted-function');
-        }, 3000);
+        // 根据导航状态选择高亮样式
+        if (isNavigating) {
+          element.classList.add('navigating-function');
+          // 导航状态的高亮持续时间较短
+          setTimeout(() => {
+            element.classList.remove('navigating-function');
+          }, 2000);
+        } else {
+          element.classList.add('highlighted-function');
+          // 普通高亮持续时间较长
+          setTimeout(() => {
+            element.classList.remove('highlighted-function');
+          }, 3000);
+        }
         
         console.log(`Scrolled to and highlighted function: ${functionName}`);
         return;
@@ -127,6 +144,97 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ content, language, fileName, fu
     }
     
     console.log(`Function ${functionName} not found in code`);
+  };
+
+  // 新增：左右导航函数
+  const navigateToFunction = (direction: 'left' | 'right') => {
+    if (!functions || functions.length === 0) return;
+    
+    let newIndex: number;
+    if (direction === 'left') {
+      newIndex = currentFunctionIndex <= 0 ? functions.length - 1 : currentFunctionIndex - 1;
+    } else {
+      newIndex = currentFunctionIndex >= functions.length - 1 ? 0 : currentFunctionIndex + 1;
+    }
+    
+    setCurrentFunctionIndex(newIndex);
+    setIsNavigating(true);
+    
+    // 高亮并滚动到目标函数
+    const targetFunction = functions[newIndex];
+    if (targetFunction) {
+      scrollToAndHighlightFunction(targetFunction.name);
+      
+      // 2秒后取消导航状态
+      setTimeout(() => {
+        setIsNavigating(false);
+      }, 2000);
+    }
+  };
+
+  // 新增：处理键盘事件
+  const handleKeyDown = (event: KeyboardEvent) => {
+    // 只在有函数且没有其他输入焦点时响应
+    if (!functions || functions.length === 0) return;
+    
+    // 检查是否在输入框中
+    const target = event.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.contentEditable === 'true') {
+      return;
+    }
+    
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        navigateToFunction('left');
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        navigateToFunction('right');
+        break;
+      case 'Enter':
+        event.preventDefault();
+        let targetFunction: Function | null = null;
+        
+        // 如果有当前选中的函数，使用它
+        if (currentFunctionIndex >= 0 && currentFunctionIndex < functions.length) {
+          targetFunction = functions[currentFunctionIndex];
+        } else if (functions.length > 0) {
+          // 如果没有选中的函数，自动选择第一个
+          targetFunction = functions[0];
+          setCurrentFunctionIndex(0);
+        }
+        
+        if (targetFunction) {
+          console.log(`Enter key pressed, viewing call chain for: ${targetFunction.name}`);
+          
+          // 设置 Enter 键按下状态，提供视觉反馈
+          setIsEnterPressed(true);
+          
+          // 自动高亮并滚动到目标函数
+          scrollToAndHighlightFunction(targetFunction.name);
+          
+          // 短暂显示反馈后恢复
+          setTimeout(() => {
+            setIsEnterPressed(false);
+          }, 500);
+          
+          // 调用函数点击处理
+          handleFunctionClick(targetFunction);
+        }
+        break;
+      case 'Escape':
+        event.preventDefault();
+        setCurrentFunctionIndex(-1);
+        setIsNavigating(false);
+        // 移除所有高亮
+        const codeElement = codeRef.current;
+        if (codeElement) {
+          const highlightedElements = codeElement.querySelectorAll('.highlighted-function');
+          highlightedElements.forEach(el => el.classList.remove('highlighted-function'));
+        }
+        break;
+    }
   };
 
   const getPrismLanguage = (lang: string): string => {
@@ -233,6 +341,17 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ content, language, fileName, fu
     };
   }, [functions]); // 只依赖 functions，不依赖 renderCodeWithClickableFunctions
 
+  // 新增：键盘事件监听器
+  useEffect(() => {
+    // 添加全局键盘事件监听器
+    document.addEventListener('keydown', handleKeyDown);
+    
+    // 清理函数
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [functions, currentFunctionIndex]); // 依赖 functions 和 currentFunctionIndex
+
   return (
     <div style={{
       position: 'fixed',
@@ -309,6 +428,33 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ content, language, fileName, fu
           </div>
         )}
 
+                {/* 新增：左右导航提示 */}
+        {functions && functions.length > 0 && (
+          <div 
+            className={`${isNavigating ? 'navigation-active' : ''} ${isEnterPressed ? 'enter-pressed' : ''}`}
+            style={{
+              padding: '12px 20px',
+              borderBottom: '1px solid #eee',
+              background: isEnterPressed ? '#10b981' : '#fef3c7',
+              fontSize: 13,
+              color: isEnterPressed ? '#ffffff' : '#92400e',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            ⌨️ 快捷键：<span style={{ fontWeight: 'bold' }}>← →</span> 左右导航函数 | <span style={{ fontWeight: 'bold' }}>Enter</span> 查看调用链 | <span style={{ fontWeight: 'bold' }}>ESC</span> 取消导航
+            {currentFunctionIndex >= 0 && (
+              <span style={{ marginLeft: '16px', fontWeight: 'bold', color: isEnterPressed ? '#ffffff' : '#dc2626' }}>
+                当前: {currentFunctionIndex + 1}/{functions.length} - {functions[currentFunctionIndex]?.name}
+              </span>
+            )}
+            {isEnterPressed && (
+              <span style={{ marginLeft: '16px', fontWeight: 'bold', color: '#ffffff' }}>
+                🚀 正在查看 {functions[currentFunctionIndex]?.name || functions[0]?.name} 的调用链...
+              </span>
+            )}
+          </div>
+        )}
+
         <div style={{
           flex: 1,
           overflow: 'auto',
@@ -352,6 +498,62 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ content, language, fileName, fu
         @keyframes pulse {
           from { box-shadow: 0 0 10px rgba(255, 235, 59, 0.8); }
           to { box-shadow: 0 0 20px rgba(255, 235, 59, 1); }
+        }
+
+        /* 新增：导航状态样式 */
+        .navigating-function {
+          background-color: #3b82f6 !important;
+          color: #ffffff !important;
+          padding: 2px 4px !important;
+          border-radius: 4px !important;
+          box-shadow: 0 0 15px rgba(59, 130, 246, 0.8) !important;
+          animation: navigate-pulse 0.8s ease-in-out infinite alternate !important;
+        }
+        
+        @keyframes navigate-pulse {
+          from { 
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.8);
+            transform: scale(1.05);
+          }
+          to { 
+            box-shadow: 0 0 25px rgba(59, 130, 246, 1);
+            transform: scale(1.1);
+          }
+        }
+
+        /* 导航提示高亮 */
+        .navigation-active {
+          background-color: #fef3c7 !important;
+          border-left: 4px solid #f59e0b !important;
+          animation: navigation-highlight 2s ease-in-out;
+        }
+        
+        @keyframes navigation-highlight {
+          0%, 100% { background-color: #fef3c7; }
+          50% { background-color: #fde68a; }
+        }
+
+        /* Enter 键按下效果 */
+        .enter-pressed {
+          background-color: #10b981 !important;
+          color: #ffffff !important;
+          border-left: 4px solid #059669 !important;
+          animation: enter-press 0.5s ease-in-out;
+        }
+        
+        @keyframes enter-press {
+          0% { 
+            background-color: #fef3c7;
+            transform: scale(1);
+          }
+          50% { 
+            background-color: #10b981;
+            transform: scale(1.02);
+          }
+          100% { 
+            background-color: #10b981;
+            transform: scale(1);
+          }
         }
       `}</style>
     </div>

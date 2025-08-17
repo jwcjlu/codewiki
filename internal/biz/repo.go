@@ -19,4 +19,10 @@ type ProjectRepo interface {
 	BindRepoRoot(ctx context.Context, repoId, rootPkgId string) error
 	GetRepoTree(ctx context.Context, id string) (packages []*v1.PackageNode, files []*v1.FileNode, err error)
 	GetFunctionByFileId(ctx context.Context, fileId string) (functions []*v1.Function, err error)
+	GetImplementByEntityId(ctx context.Context, entityID string) (entities []*v1.Entity, err error)
+}
+
+type IndexerRepo interface {
+	SaveCodeChunk(ctx context.Context, projectName, partition string, codeChunks []*CodeChunk) error
+	SearchCodeChunk(ctx context.Context, req *SearchCodeChunksReq) ([]*CodeChunk, error)
 }

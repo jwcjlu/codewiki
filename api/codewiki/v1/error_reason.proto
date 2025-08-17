@@ -24,6 +24,6 @@ enum ErrorReason {
   ParseCodeError=1000;
   AnalyzeRelations=1001;
   AnalyzeDependencies=1002;
-
-
+  NotSupportLLM=1003;
+  NotSupportQA=1004;
 }

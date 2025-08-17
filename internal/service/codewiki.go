@@ -1,21 +1,27 @@
 package service
 
 import (
-	"context"
-
 	v1 "codewiki/api/codewiki/v1"
 	"codewiki/internal/biz"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+
+	"github.com/gorilla/mux"
 )
 
 // CodeWikiService is a DeepWiki service.
 type CodeWikiService struct {
 	v1.UnimplementedCodeWikiServiceServer
 	codeWiki *biz.CodeWiki
+	qa       *biz.QAEngine
 }
 
 // NewCodeWikiService new a CodeWiki service.
-func NewCodeWikiService(codeWiki *biz.CodeWiki) *CodeWikiService {
-	return &CodeWikiService{codeWiki: codeWiki}
+func NewCodeWikiService(codeWiki *biz.CodeWiki, qa *biz.QAEngine) *CodeWikiService {
+	return &CodeWikiService{codeWiki: codeWiki, qa: qa}
 }
 
 func (s *CodeWikiService) CallChain(ctx context.Context, req *v1.CallChainReq) (*v1.CallChainResp, error) {
@@ -89,4 +95,79 @@ func (s *CodeWikiService) ViewFileContent(ctx context.Context, req *v1.ViewFileR
 		Language:  fileContent.Language,
 		Functions: fileContent.Functions,
 	}, err
+}
+
+func (s *CodeWikiService) GetImplement(ctx context.Context, req *v1.GetImplementReq) (*v1.GetImplementResp, error) {
+	resp := new(v1.GetImplementResp)
+	entities, err := s.codeWiki.GetImplements(ctx, req.GetId())
+	if err != nil {
+		return resp, err
+	}
+	resp.Entities = entities
+	return resp, nil
+}
+
+type AnswerHandler struct {
+	s *CodeWikiService
+}
+
+func NewAnswerHandler(s *CodeWikiService) *AnswerHandler {
+	return &AnswerHandler{s: s}
+}
+func (ah *AnswerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "SSE not supported", http.StatusInternalServerError)
+		return
+	}
+	raws := mux.Vars(r)
+	vars := make(url.Values, len(raws))
+	for k, v := range raws {
+		vars[k] = []string{v}
+	}
+	values := r.URL.Query()
+	question := values.Get("question")
+	id := raws["id"]
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	resp := make(chan *v1.AnswerResp)
+
+	err := ah.s.qa.Answer(context.Background(), &v1.AnswerReq{
+		Id:       id,
+		Question: question,
+	}, resp)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	defer func() {
+		close(resp)
+
+	}()
+	for {
+		// 使用SSE格式发送数据
+		select {
+		case v, isClose := <-resp:
+			if !isClose {
+				return
+			}
+			data, err := json.Marshal(v)
+			if err != nil {
+				continue
+			}
+			fmt.Println(string(data))
+			// 关键修复：使用正确的SSE格式 "data: {json}\n\n"
+			_, err = fmt.Fprintf(w, "data: %s\n\n", string(data))
+			if err != nil {
+				fmt.Println(err)
+			}
+			flusher.Flush()
+			if v.IsComplete {
+				return
+			}
+		}
+
+	}
 }

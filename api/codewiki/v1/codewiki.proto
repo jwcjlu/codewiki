@@ -78,6 +78,15 @@ service CodeWikiService {
     option (google.api.http) = { get: "/v1/api/{repoId}/file/{id}/view" };
     option (openapi.v3.operation) = { summary: "文件/文件内容" };
   }
+  // interface  implement
+  rpc GetImplement(GetImplementReq) returns (GetImplementResp) {
+    option (google.api.http) = { get: "/v1/api/entity/{id}/implements" };
+    option (openapi.v3.operation) = { summary: "实体/得到所有实现" };
+  }  // interface  implement
+  rpc Answer(AnswerReq) returns (stream AnswerResp) {
+    option (google.api.http) = { get: "/v1/api/project/{id}/answer" };
+    option (openapi.v3.operation) = { summary: "项目/回答" };
+  }
 }
 message AnalyzeReq{
    RepoType repoType=1;
@@ -113,6 +122,8 @@ message CallRelationship{
   string callerFileId=6;
   int64 calleeScope=7;
   int64 callerScope=8;
+  string calleeEntityId=9;
+  string callerEntityId=10;
 }
 
 // ===== Repo Management =====
@@ -150,7 +161,10 @@ message GetRepoResp{ Repo repo=1; }
 message DeleteRepoReq{ string id=1; }
 message DeleteRepoResp{}
 
-message AnalyzeRepoReq{ string id=1; }
+message AnalyzeRepoReq{
+  string id=1;
+  
+}
 
 message GetRepoTreeReq{ string id=1; }
 message GetRepoTreeResp{
@@ -186,4 +200,33 @@ message Function{
    string fileId=2;
    string name=3;
    string receiver=4;
+}
+
+message Entity{
+  string name=1;
+  string fileId=2;
+  string id=3;
+  repeated Function functions=4;
+}
+
+message GetImplementReq{
+  string id=1;
+}
+
+message GetImplementResp{
+  repeated Entity entities=1;
+}
+
+message AnswerReq{
+  string id=1;
+  string question=2;
+}
+
+message AnswerResp{
+  string answer = 1;
+  bool is_streaming = 2;  // 是否为流式响应
+  bool is_complete = 3;   // 是否完成
+  string chunk = 4;       // 流式数据块
+  int32 chunk_index = 5;  // 数据块索引
+  string error = 6;       // 错误信息
 }

@@ -39,6 +39,8 @@ const (
 	ErrorReason_ParseCodeError      ErrorReason = 1000
 	ErrorReason_AnalyzeRelations    ErrorReason = 1001
 	ErrorReason_AnalyzeDependencies ErrorReason = 1002
+	ErrorReason_NotSupportLLM       ErrorReason = 1003
+	ErrorReason_NotSupportQA        ErrorReason = 1004
 )
 
 // Enum value maps for ErrorReason.
@@ -58,6 +60,8 @@ var (
 		1000: "ParseCodeError",
 		1001: "AnalyzeRelations",
 		1002: "AnalyzeDependencies",
+		1003: "NotSupportLLM",
+		1004: "NotSupportQA",
 	}
 	ErrorReason_value = map[string]int32{
 		"_":                   0,
@@ -74,6 +78,8 @@ var (
 		"ParseCodeError":      1000,
 		"AnalyzeRelations":    1001,
 		"AnalyzeDependencies": 1002,
+		"NotSupportLLM":       1003,
+		"NotSupportQA":        1004,
 	}
 )
 
@@ -108,7 +114,7 @@ var File_codewiki_v1_error_reason_proto protoreflect.FileDescriptor
 
 const file_codewiki_v1_error_reason_proto_rawDesc = "" +
 	"\n" +
-	"\x1ecodewiki/v1/error_reason.proto\x12\vcodewiki.v1\x1a\x13errors/errors.proto*\x8f\x02\n" +
+	"\x1ecodewiki/v1/error_reason.proto\x12\vcodewiki.v1\x1a\x13errors/errors.proto*\xb6\x02\n" +
 	"\vErrorReason\x12\x05\n" +
 	"\x01_\x10\x00\x12\x17\n" +
 	"\rParamValidate\x10\x01\x1a\x04\xa8E\x90\x03\x12\x0e\n" +
@@ -127,7 +133,9 @@ const file_codewiki_v1_error_reason_proto_rawDesc = "" +
 	"\x12\x13\n" +
 	"\x0eParseCodeError\x10\xe8\a\x12\x15\n" +
 	"\x10AnalyzeRelations\x10\xe9\a\x12\x18\n" +
-	"\x13AnalyzeDependencies\x10\xea\a\x1a\x04\xa0E\xf4\x03B9\n" +
+	"\x13AnalyzeDependencies\x10\xea\a\x12\x12\n" +
+	"\rNotSupportLLM\x10\xeb\a\x12\x11\n" +
+	"\fNotSupportQA\x10\xec\a\x1a\x04\xa0E\xf4\x03B9\n" +
 	"\vcodewiki.v1P\x01Z\x1bcodewiki/api/codewiki/v1;v1\xa2\x02\n" +
 	"codewikiV1b\x06proto3"
 

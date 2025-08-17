@@ -131,6 +131,8 @@ type Data struct {
 	Neo4J         *Data_Neo4J            `protobuf:"bytes,1,opt,name=neo4j,proto3" json:"neo4j,omitempty"`
 	PoolConfig    *PoolConfig            `protobuf:"bytes,2,opt,name=poolConfig,proto3" json:"poolConfig,omitempty"`
 	Database      *Data_Database         `protobuf:"bytes,3,opt,name=database,proto3" json:"database,omitempty"`
+	Llm           *Data_LLM              `protobuf:"bytes,4,opt,name=llm,proto3" json:"llm,omitempty"`
+	Embedding     *Data_Embedding        `protobuf:"bytes,5,opt,name=embedding,proto3" json:"embedding,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -182,6 +184,20 @@ func (x *Data) GetPoolConfig() *PoolConfig {
 func (x *Data) GetDatabase() *Data_Database {
 	if x != nil {
 		return x.Database
+	}
+	return nil
+}
+
+func (x *Data) GetLlm() *Data_LLM {
+	if x != nil {
+		return x.Llm
+	}
+	return nil
+}
+
+func (x *Data) GetEmbedding() *Data_Embedding {
+	if x != nil {
+		return x.Embedding
 	}
 	return nil
 }
@@ -470,6 +486,142 @@ func (x *Data_Database) GetSource() string {
 	return ""
 }
 
+type Data_LLM struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	BaseURL        string                 `protobuf:"bytes,1,opt,name=baseURL,proto3" json:"baseURL,omitempty"`
+	ApiKey         string                 `protobuf:"bytes,2,opt,name=apiKey,proto3" json:"apiKey,omitempty"`
+	EmbeddingModel string                 `protobuf:"bytes,3,opt,name=embeddingModel,proto3" json:"embeddingModel,omitempty"`
+	LlmModelName   string                 `protobuf:"bytes,4,opt,name=llmModelName,proto3" json:"llmModelName,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *Data_LLM) Reset() {
+	*x = Data_LLM{}
+	mi := &file_conf_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Data_LLM) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Data_LLM) ProtoMessage() {}
+
+func (x *Data_LLM) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Data_LLM.ProtoReflect.Descriptor instead.
+func (*Data_LLM) Descriptor() ([]byte, []int) {
+	return file_conf_proto_rawDescGZIP(), []int{2, 2}
+}
+
+func (x *Data_LLM) GetBaseURL() string {
+	if x != nil {
+		return x.BaseURL
+	}
+	return ""
+}
+
+func (x *Data_LLM) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *Data_LLM) GetEmbeddingModel() string {
+	if x != nil {
+		return x.EmbeddingModel
+	}
+	return ""
+}
+
+func (x *Data_LLM) GetLlmModelName() string {
+	if x != nil {
+		return x.LlmModelName
+	}
+	return ""
+}
+
+type Data_Embedding struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ApiURL        string                 `protobuf:"bytes,1,opt,name=apiURL,proto3" json:"apiURL,omitempty"`
+	ApiKey        string                 `protobuf:"bytes,2,opt,name=apiKey,proto3" json:"apiKey,omitempty"`
+	ModelName     string                 `protobuf:"bytes,3,opt,name=modelName,proto3" json:"modelName,omitempty"`
+	Dimension     int32                  `protobuf:"varint,4,opt,name=dimension,proto3" json:"dimension,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Data_Embedding) Reset() {
+	*x = Data_Embedding{}
+	mi := &file_conf_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Data_Embedding) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Data_Embedding) ProtoMessage() {}
+
+func (x *Data_Embedding) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Data_Embedding.ProtoReflect.Descriptor instead.
+func (*Data_Embedding) Descriptor() ([]byte, []int) {
+	return file_conf_proto_rawDescGZIP(), []int{2, 3}
+}
+
+func (x *Data_Embedding) GetApiURL() string {
+	if x != nil {
+		return x.ApiURL
+	}
+	return ""
+}
+
+func (x *Data_Embedding) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *Data_Embedding) GetModelName() string {
+	if x != nil {
+		return x.ModelName
+	}
+	return ""
+}
+
+func (x *Data_Embedding) GetDimension() int32 {
+	if x != nil {
+		return x.Dimension
+	}
+	return 0
+}
+
 var File_conf_proto protoreflect.FileDescriptor
 
 const file_conf_proto_rawDesc = "" +
@@ -490,20 +642,32 @@ const file_conf_proto_rawDesc = "" +
 	"\x04GRPC\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xb8\x02\n" +
+	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\x99\x05\n" +
 	"\x04Data\x12,\n" +
 	"\x05neo4j\x18\x01 \x01(\v2\x16.kratos.api.Data.Neo4jR\x05neo4j\x126\n" +
 	"\n" +
 	"poolConfig\x18\x02 \x01(\v2\x16.kratos.api.PoolConfigR\n" +
 	"poolConfig\x125\n" +
-	"\bdatabase\x18\x03 \x01(\v2\x19.kratos.api.Data.DatabaseR\bdatabase\x1aW\n" +
+	"\bdatabase\x18\x03 \x01(\v2\x19.kratos.api.Data.DatabaseR\bdatabase\x12&\n" +
+	"\x03llm\x18\x04 \x01(\v2\x14.kratos.api.Data.LLMR\x03llm\x128\n" +
+	"\tembedding\x18\x05 \x01(\v2\x1a.kratos.api.Data.EmbeddingR\tembedding\x1aW\n" +
 	"\x05Neo4j\x12\x16\n" +
 	"\x06target\x18\x01 \x01(\tR\x06target\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x03 \x01(\tR\bpassword\x1a:\n" +
 	"\bDatabase\x12\x16\n" +
 	"\x06driver\x18\x01 \x01(\tR\x06driver\x12\x16\n" +
-	"\x06source\x18\x02 \x01(\tR\x06source\"D\n" +
+	"\x06source\x18\x02 \x01(\tR\x06source\x1a\x83\x01\n" +
+	"\x03LLM\x12\x18\n" +
+	"\abaseURL\x18\x01 \x01(\tR\abaseURL\x12\x16\n" +
+	"\x06apiKey\x18\x02 \x01(\tR\x06apiKey\x12&\n" +
+	"\x0eembeddingModel\x18\x03 \x01(\tR\x0eembeddingModel\x12\"\n" +
+	"\fllmModelName\x18\x04 \x01(\tR\fllmModelName\x1aw\n" +
+	"\tEmbedding\x12\x16\n" +
+	"\x06apiURL\x18\x01 \x01(\tR\x06apiURL\x12\x16\n" +
+	"\x06apiKey\x18\x02 \x01(\tR\x06apiKey\x12\x1c\n" +
+	"\tmodelName\x18\x03 \x01(\tR\tmodelName\x12\x1c\n" +
+	"\tdimension\x18\x04 \x01(\x05R\tdimension\"D\n" +
 	"\n" +
 	"PoolConfig\x12\x1a\n" +
 	"\bpoolSize\x18\x01 \x01(\x05R\bpoolSize\x12\x1a\n" +
@@ -521,7 +685,7 @@ func file_conf_proto_rawDescGZIP() []byte {
 	return file_conf_proto_rawDescData
 }
 
-var file_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_conf_proto_goTypes = []any{
 	(*Bootstrap)(nil),           // 0: kratos.api.Bootstrap
 	(*Server)(nil),              // 1: kratos.api.Server
@@ -531,23 +695,27 @@ var file_conf_proto_goTypes = []any{
 	(*Server_GRPC)(nil),         // 5: kratos.api.Server.GRPC
 	(*Data_Neo4J)(nil),          // 6: kratos.api.Data.Neo4j
 	(*Data_Database)(nil),       // 7: kratos.api.Data.Database
-	(*durationpb.Duration)(nil), // 8: google.protobuf.Duration
+	(*Data_LLM)(nil),            // 8: kratos.api.Data.LLM
+	(*Data_Embedding)(nil),      // 9: kratos.api.Data.Embedding
+	(*durationpb.Duration)(nil), // 10: google.protobuf.Duration
 }
 var file_conf_proto_depIdxs = []int32{
-	1, // 0: kratos.api.Bootstrap.server:type_name -> kratos.api.Server
-	2, // 1: kratos.api.Bootstrap.data:type_name -> kratos.api.Data
-	4, // 2: kratos.api.Server.http:type_name -> kratos.api.Server.HTTP
-	5, // 3: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
-	6, // 4: kratos.api.Data.neo4j:type_name -> kratos.api.Data.Neo4j
-	3, // 5: kratos.api.Data.poolConfig:type_name -> kratos.api.PoolConfig
-	7, // 6: kratos.api.Data.database:type_name -> kratos.api.Data.Database
-	8, // 7: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	8, // 8: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	9, // [9:9] is the sub-list for method output_type
-	9, // [9:9] is the sub-list for method input_type
-	9, // [9:9] is the sub-list for extension type_name
-	9, // [9:9] is the sub-list for extension extendee
-	0, // [0:9] is the sub-list for field type_name
+	1,  // 0: kratos.api.Bootstrap.server:type_name -> kratos.api.Server
+	2,  // 1: kratos.api.Bootstrap.data:type_name -> kratos.api.Data
+	4,  // 2: kratos.api.Server.http:type_name -> kratos.api.Server.HTTP
+	5,  // 3: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
+	6,  // 4: kratos.api.Data.neo4j:type_name -> kratos.api.Data.Neo4j
+	3,  // 5: kratos.api.Data.poolConfig:type_name -> kratos.api.PoolConfig
+	7,  // 6: kratos.api.Data.database:type_name -> kratos.api.Data.Database
+	8,  // 7: kratos.api.Data.llm:type_name -> kratos.api.Data.LLM
+	9,  // 8: kratos.api.Data.embedding:type_name -> kratos.api.Data.Embedding
+	10, // 9: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	10, // 10: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	11, // [11:11] is the sub-list for method output_type
+	11, // [11:11] is the sub-list for method input_type
+	11, // [11:11] is the sub-list for extension type_name
+	11, // [11:11] is the sub-list for extension extendee
+	0,  // [0:11] is the sub-list for field type_name
 }
 
 func init() { file_conf_proto_init() }
@@ -561,7 +729,7 @@ func file_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_conf_proto_rawDesc), len(file_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   8,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

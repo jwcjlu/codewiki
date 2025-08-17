@@ -3,21 +3,23 @@ package biz
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"os"
 	"path/filepath"
 )
 
 type Package struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	ParentID    string `json:"parent_id"`
-	Path        string
-	Packages    []*Package
-	Files       []*File
-	filter      func(path string) bool
-	entityCount int
-	project     *Project
+	ID           string `json:"id"`
+	Name         string `json:"name"`
+	ParentID     string `json:"parent_id"`
+	Path         string
+	Packages     []*Package
+	Files        []*File
+	filter       func(path string) bool
+	entityCount  int
+	project      *Project
+	filesContent strings.Builder
 }
 
 func NewPackage(filter func(path string) bool, project *Project, parentID, name string) *Package {
@@ -30,6 +32,10 @@ func NewPackage(filter func(path string) bool, project *Project, parentID, name 
 	}
 	project.AddPackage(pkg)
 	return pkg
+}
+
+func (p *Package) AppendFileCode(path, content string) {
+	p.filesContent.WriteString(fmt.Sprintf("// File: %s\n%s\n\n", path, content))
 }
 
 func (p *Package) Parse(ctx context.Context, rootPath string) error {
@@ -56,8 +62,8 @@ func (p *Package) Parse(ctx context.Context, rootPath string) error {
 				continue
 			}
 
-			file := NewFile(dir.Name(), p)
-			if err = file.Parse(filepath.Join(rootPath, dir.Name())); err != nil {
+			file := NewFile(rootPath, dir.Name(), p)
+			if err = file.Parse(file.FilePath); err != nil {
 				return err
 			}
 			p.Files = append(p.Files, file)

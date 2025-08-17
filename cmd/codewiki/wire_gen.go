@@ -11,6 +11,7 @@ import (
 	"codewiki/internal/conf"
 	"codewiki/internal/data"
 	"codewiki/internal/data/repo"
+	"codewiki/internal/pkg/llm"
 	"codewiki/internal/server"
 	"codewiki/internal/service"
 	"github.com/go-kratos/kratos/v2"
@@ -40,10 +41,16 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 		cleanup()
 		return nil, nil, err
 	}
-	codeWiki := biz.NewCodeWiki(projectRepo)
-	codeWikiService := service.NewCodeWikiService(codeWiki)
+	config := biz.NewConfig(confData)
+	llmLLM := llm.NewLLM(config)
+	indexerRepo := repo.NewMilvus(confData)
+	indexer := biz.NewIndexer(llmLLM, indexerRepo)
+	codeWiki := biz.NewCodeWiki(projectRepo, indexer)
+	qaEngine := biz.NewQAEngine(llmLLM, indexer, projectRepo)
+	codeWikiService := service.NewCodeWikiService(codeWiki, qaEngine)
 	httpServer := server.NewHTTPServer(confServer, codeWikiService, logger)
-	app := newApp(logger, httpServer)
+	grpcServer := server.NewGRPCServer(confServer, codeWikiService, logger)
+	app := newApp(logger, httpServer, grpcServer)
 	return app, func() {
 		cleanup()
 	}, nil

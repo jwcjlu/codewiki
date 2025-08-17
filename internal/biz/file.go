@@ -17,6 +17,7 @@ type File struct {
 	Name     string `json:"name"`
 	PkgID    string `json:"pkg_id"`
 	FilePath string `json:"file_path"`
+	fset     *token.FileSet
 
 	// AST相关
 	f1 *ast.File
@@ -33,17 +34,41 @@ type File struct {
 	pkg *Package
 }
 
+func (file *File) BuildRawCodeChunk() *CodeChunk {
+	data, err := file.ReadFileContent()
+	if err != nil {
+		return nil
+	}
+	if len(data) == 0 {
+		return nil
+	}
+	return &CodeChunk{
+		Path:    file.FilePath,
+		Content: string(data),
+		Scope:   ChunkFileScope,
+		Id:      file.ID,
+	}
+}
+func (file *File) SourceCode() (string, error) {
+	data, err := file.ReadFileContent()
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
 func (file *File) GetCurrentPkg() *Package {
 	return file.pkg
 }
 
 // NewFile 创建新的文件对象
-func NewFile(name string, pkg *Package) *File {
+func NewFile(dir, name string, pkg *Package) *File {
 	file := &File{
-		Name:  name,
-		PkgID: pkg.ID,
-		ID:    fmt.Sprintf("%s@%s", pkg.ID, name),
-		pkg:   pkg,
+		Name:     name,
+		PkgID:    pkg.ID,
+		ID:       fmt.Sprintf("%s@%s", pkg.ID, name),
+		pkg:      pkg,
+		FilePath: filepath.Join(dir, name),
+		fset:     token.NewFileSet(),
 	}
 
 	// 初始化各个管理器
@@ -53,9 +78,12 @@ func NewFile(name string, pkg *Package) *File {
 
 	return file
 }
+
+func (file *File) ReadFileContent() ([]byte, error) {
+	return GetFileContent(file.FilePath)
+}
 func (file *File) Parse(filePath string) error {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filePath, nil, parser.AllErrors|parser.ParseComments)
+	f, err := parser.ParseFile(file.fset, filePath, nil, parser.AllErrors|parser.ParseComments)
 	if err != nil {
 		return err
 	}
@@ -138,7 +166,10 @@ func (file *File) AddEntity(entity *Entity) {
 	file.entityManager.AddEntity(entity)
 }
 func (file *File) EntityCount() int {
-	return len(file.entityManager.entities)
+	return len(file.entityManager.entities) + file.FunctionCount()
+}
+func (file *File) FunctionCount() int {
+	return len(file.functionManager.functions)
 }
 func (file *File) GetEntity(name string) *Entity {
 	return file.entityManager.GetEntity(name)
@@ -400,6 +431,7 @@ func (v *FileVisitor) handleFuncDecl(node *ast.FuncDecl) {
 		PkgID:    file.PkgID,
 		FileId:   file.ID,
 		file:     file,
+		decl:     node,
 		ID:       fmt.Sprintf("%s:%s", file.PkgID, node.Name.Name),
 	}
 	fun.Parse(node.Type)
