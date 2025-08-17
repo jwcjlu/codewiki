@@ -133,6 +133,11 @@ export interface AnswerReq {
 
 export interface AnswerResp {
   answer: string;
+  is_streaming?: boolean;  // 是否为流式响应
+  is_complete?: boolean;   // 是否完成
+  chunk?: string;          // 流式数据块
+  chunk_index?: number;    // 数据块索引
+  error?: string;          // 错误信息
 }
 
 export interface ViewFileReq {

@@ -1,10 +1,15 @@
 package service
 
 import (
-	"context"
-
 	v1 "codewiki/api/codewiki/v1"
 	"codewiki/internal/biz"
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+
+	"github.com/gorilla/mux"
 )
 
 // CodeWikiService is a DeepWiki service.
@@ -102,13 +107,67 @@ func (s *CodeWikiService) GetImplement(ctx context.Context, req *v1.GetImplement
 	return resp, nil
 }
 
-func (s *CodeWikiService) Answer(ctx context.Context, req *v1.AnswerReq) (*v1.AnswerResp, error) {
-	resp := new(v1.AnswerResp)
-	answer, err := s.qa.HandleQuestion(ctx, req)
-	if err != nil {
-		return resp, err
-	}
-	resp.Answer = answer
-	return resp, nil
+type AnswerHandler struct {
+	s *CodeWikiService
+}
 
+func NewAnswerHandler(s *CodeWikiService) *AnswerHandler {
+	return &AnswerHandler{s: s}
+}
+func (ah *AnswerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "SSE not supported", http.StatusInternalServerError)
+		return
+	}
+	raws := mux.Vars(r)
+	vars := make(url.Values, len(raws))
+	for k, v := range raws {
+		vars[k] = []string{v}
+	}
+	values := r.URL.Query()
+	question := values.Get("question")
+	id := raws["id"]
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	resp := make(chan *v1.AnswerResp)
+
+	err := ah.s.qa.Answer(context.Background(), &v1.AnswerReq{
+		Id:       id,
+		Question: question,
+	}, resp)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	defer func() {
+		close(resp)
+
+	}()
+	for {
+		// 使用SSE格式发送数据
+		select {
+		case v, isClose := <-resp:
+			if !isClose {
+				return
+			}
+			data, err := json.Marshal(v)
+			if err != nil {
+				continue
+			}
+			fmt.Println(string(data))
+			// 关键修复：使用正确的SSE格式 "data: {json}\n\n"
+			_, err = fmt.Fprintf(w, "data: %s\n\n", string(data))
+			if err != nil {
+				fmt.Println(err)
+			}
+			flusher.Flush()
+			if v.IsComplete {
+				return
+			}
+		}
+
+	}
 }

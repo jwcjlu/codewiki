@@ -49,7 +49,7 @@ type CodeWikiServiceClient interface {
 	ViewFileContent(ctx context.Context, in *ViewFileReq, opts ...grpc.CallOption) (*ViewFileResp, error)
 	// interface  implement
 	GetImplement(ctx context.Context, in *GetImplementReq, opts ...grpc.CallOption) (*GetImplementResp, error)
-	Answer(ctx context.Context, in *AnswerReq, opts ...grpc.CallOption) (*AnswerResp, error)
+	Answer(ctx context.Context, in *AnswerReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnswerResp], error)
 }
 
 type codeWikiServiceClient struct {
@@ -150,15 +150,24 @@ func (c *codeWikiServiceClient) GetImplement(ctx context.Context, in *GetImpleme
 	return out, nil
 }
 
-func (c *codeWikiServiceClient) Answer(ctx context.Context, in *AnswerReq, opts ...grpc.CallOption) (*AnswerResp, error) {
+func (c *codeWikiServiceClient) Answer(ctx context.Context, in *AnswerReq, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AnswerResp], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(AnswerResp)
-	err := c.cc.Invoke(ctx, CodeWikiService_Answer_FullMethodName, in, out, cOpts...)
+	stream, err := c.cc.NewStream(ctx, &CodeWikiService_ServiceDesc.Streams[0], CodeWikiService_Answer_FullMethodName, cOpts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &grpc.GenericClientStream[AnswerReq, AnswerResp]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CodeWikiService_AnswerClient = grpc.ServerStreamingClient[AnswerResp]
 
 // CodeWikiServiceServer is the server API for CodeWikiService service.
 // All implementations must embed UnimplementedCodeWikiServiceServer
@@ -178,7 +187,7 @@ type CodeWikiServiceServer interface {
 	ViewFileContent(context.Context, *ViewFileReq) (*ViewFileResp, error)
 	// interface  implement
 	GetImplement(context.Context, *GetImplementReq) (*GetImplementResp, error)
-	Answer(context.Context, *AnswerReq) (*AnswerResp, error)
+	Answer(*AnswerReq, grpc.ServerStreamingServer[AnswerResp]) error
 	mustEmbedUnimplementedCodeWikiServiceServer()
 }
 
@@ -216,8 +225,8 @@ func (UnimplementedCodeWikiServiceServer) ViewFileContent(context.Context, *View
 func (UnimplementedCodeWikiServiceServer) GetImplement(context.Context, *GetImplementReq) (*GetImplementResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetImplement not implemented")
 }
-func (UnimplementedCodeWikiServiceServer) Answer(context.Context, *AnswerReq) (*AnswerResp, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Answer not implemented")
+func (UnimplementedCodeWikiServiceServer) Answer(*AnswerReq, grpc.ServerStreamingServer[AnswerResp]) error {
+	return status.Errorf(codes.Unimplemented, "method Answer not implemented")
 }
 func (UnimplementedCodeWikiServiceServer) mustEmbedUnimplementedCodeWikiServiceServer() {}
 func (UnimplementedCodeWikiServiceServer) testEmbeddedByValue()                         {}
@@ -402,23 +411,16 @@ func _CodeWikiService_GetImplement_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CodeWikiService_Answer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AnswerReq)
-	if err := dec(in); err != nil {
-		return nil, err
+func _CodeWikiService_Answer_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(AnswerReq)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(CodeWikiServiceServer).Answer(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: CodeWikiService_Answer_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CodeWikiServiceServer).Answer(ctx, req.(*AnswerReq))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(CodeWikiServiceServer).Answer(m, &grpc.GenericServerStream[AnswerReq, AnswerResp]{ServerStream: stream})
 }
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type CodeWikiService_AnswerServer = grpc.ServerStreamingServer[AnswerResp]
 
 // CodeWikiService_ServiceDesc is the grpc.ServiceDesc for CodeWikiService service.
 // It's only intended for direct use with grpc.RegisterService,
@@ -463,11 +465,13 @@ var CodeWikiService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetImplement",
 			Handler:    _CodeWikiService_GetImplement_Handler,
 		},
+	},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "Answer",
-			Handler:    _CodeWikiService_Answer_Handler,
+			StreamName:    "Answer",
+			Handler:       _CodeWikiService_Answer_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "codewiki/v1/codewiki.proto",
 }

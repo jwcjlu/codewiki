@@ -18,43 +18,55 @@ type QAEngine struct {
 func NewQAEngine(llm *llm.LLM, indexer *Indexer, repo ProjectRepo) *QAEngine {
 	return &QAEngine{llm: llm, indexer: indexer, repo: repo}
 }
-func (qa *QAEngine) HandleQuestion(ctx context.Context, req *v1.AnswerReq) (string, error) {
+func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan *v1.AnswerResp) error {
 	repo, err := qa.repo.GetRepo(ctx, req.GetId())
 	if err != nil {
-		return "", fmt.Errorf("query repo err:%v", err)
+		return fmt.Errorf("query repo err:%v", err)
 	}
 	// 搜索相似代码片段
 	results, err := qa.indexer.SearchCode(ctx, repo, req.GetQuestion())
 	if err != nil {
-		return "", fmt.Errorf("indexer search code %s err:%v", req.GetQuestion(), err)
+		return fmt.Errorf("indexer search code %s err:%v", req.GetQuestion(), err)
 	}
 	// 生成自然语言回答
 	var contents []string
 	for _, result := range results {
 		contents = append(contents, result.Content)
 	}
-	answer, err := qa.generateAnswer(ctx, req.GetQuestion(), contents)
-	if err != nil {
-		return "", err
-	}
-	return answer, nil
+	return qa.generateAnswer(ctx, req.GetQuestion(), contents, resp)
+
 }
 
-func (qa *QAEngine) generateAnswer(ctx context.Context, question string, contexts []string) (string, error) {
-	prompt := fmt.Sprintf(`基于以下代码片段回答问题：
-%s
+func (qa *QAEngine) generateAnswer(ctx context.Context,
+	question string,
+	contexts []string,
+	resp chan *v1.AnswerResp) error {
+	prompt := fmt.Sprintf(`基于以下代码片段回答问题：%s问题：%s答案：`, strings.Join(contexts, "\n\n"), question)
+	receive := llm.NewChatResponseStreamReceive()
+	go func() {
+		defer close(resp)
+		for {
+			select {
+			case v, isClose := <-receive.Chunk:
+				if !isClose {
+					break
+				}
+				resp <- &v1.AnswerResp{
+					IsStreaming: true,
+					IsComplete:  v.IsComplete,
+					Chunk:       v.Content,
+					ChunkIndex:  v.ChunkIndex,
+					Error:       v.Error,
+				}
 
-问题：%s
-答案：`, strings.Join(contexts, "\n\n"), question)
-	resp, err := qa.llm.Completions(ctx, llm.ChatRequest{
+			}
+		}
+	}()
+	go qa.llm.CompletionStream(ctx, llm.ChatRequest{
 		Model: GetLLMModel(),
 		Messages: []llm.Message{
 			{Role: "user", Content: prompt},
 		},
-		MaxTokens: 0,
-	})
-	if err != nil {
-		return "", err
-	}
-	return resp.Choices[0].Message.Content, nil
+	}, receive)
+	return nil
 }

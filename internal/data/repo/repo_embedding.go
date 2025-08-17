@@ -4,7 +4,6 @@ import (
 	"codewiki/internal/biz"
 	"codewiki/internal/conf"
 	"context"
-	"fmt"
 	"github.com/milvus-io/milvus/client/v2/entity"
 	"strings"
 
@@ -65,9 +64,6 @@ func (m *Milvus) SaveCodeChunk(ctx context.Context, projectName, partition strin
 		scopeColumn,
 		codeVectorColumn,
 	))
-	if err != nil {
-		fmt.Println(err)
-	}
 	return err
 }
 

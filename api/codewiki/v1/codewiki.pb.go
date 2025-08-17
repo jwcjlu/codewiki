@@ -1693,6 +1693,11 @@ func (x *AnswerReq) GetQuestion() string {
 type AnswerResp struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Answer        string                 `protobuf:"bytes,1,opt,name=answer,proto3" json:"answer,omitempty"`
+	IsStreaming   bool                   `protobuf:"varint,2,opt,name=is_streaming,json=isStreaming,proto3" json:"is_streaming,omitempty"` // 是否为流式响应
+	IsComplete    bool                   `protobuf:"varint,3,opt,name=is_complete,json=isComplete,proto3" json:"is_complete,omitempty"`    // 是否完成
+	Chunk         string                 `protobuf:"bytes,4,opt,name=chunk,proto3" json:"chunk,omitempty"`                                 // 流式数据块
+	ChunkIndex    int32                  `protobuf:"varint,5,opt,name=chunk_index,json=chunkIndex,proto3" json:"chunk_index,omitempty"`    // 数据块索引
+	Error         string                 `protobuf:"bytes,6,opt,name=error,proto3" json:"error,omitempty"`                                 // 错误信息
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1730,6 +1735,41 @@ func (*AnswerResp) Descriptor() ([]byte, []int) {
 func (x *AnswerResp) GetAnswer() string {
 	if x != nil {
 		return x.Answer
+	}
+	return ""
+}
+
+func (x *AnswerResp) GetIsStreaming() bool {
+	if x != nil {
+		return x.IsStreaming
+	}
+	return false
+}
+
+func (x *AnswerResp) GetIsComplete() bool {
+	if x != nil {
+		return x.IsComplete
+	}
+	return false
+}
+
+func (x *AnswerResp) GetChunk() string {
+	if x != nil {
+		return x.Chunk
+	}
+	return ""
+}
+
+func (x *AnswerResp) GetChunkIndex() int32 {
+	if x != nil {
+		return x.ChunkIndex
+	}
+	return 0
+}
+
+func (x *AnswerResp) GetError() string {
+	if x != nil {
+		return x.Error
 	}
 	return ""
 }
@@ -1846,10 +1886,17 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\bentities\x18\x01 \x03(\v2\x13.codewiki.v1.EntityR\bentities\"7\n" +
 	"\tAnswerReq\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1a\n" +
-	"\bquestion\x18\x02 \x01(\tR\bquestion\"$\n" +
+	"\bquestion\x18\x02 \x01(\tR\bquestion\"\xb5\x01\n" +
 	"\n" +
 	"AnswerResp\x12\x16\n" +
-	"\x06answer\x18\x01 \x01(\tR\x06answer*!\n" +
+	"\x06answer\x18\x01 \x01(\tR\x06answer\x12!\n" +
+	"\fis_streaming\x18\x02 \x01(\bR\visStreaming\x12\x1f\n" +
+	"\vis_complete\x18\x03 \x01(\bR\n" +
+	"isComplete\x12\x14\n" +
+	"\x05chunk\x18\x04 \x01(\tR\x05chunk\x12\x1f\n" +
+	"\vchunk_index\x18\x05 \x01(\x05R\n" +
+	"chunkIndex\x12\x14\n" +
+	"\x05error\x18\x06 \x01(\tR\x05error*!\n" +
 	"\bRepoType\x12\t\n" +
 	"\x05Local\x10\x00\x12\n" +
 	"\n" +
@@ -1867,7 +1914,7 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\x06Struct\x10\x01\x12\r\n" +
 	"\tInterface\x10\x02\x12\f\n" +
 	"\bConstant\x10\x03\x12\f\n" +
-	"\bVariable\x10\x042\xe5\t\n" +
+	"\bVariable\x10\x042\xe7\t\n" +
 	"\x0fCodeWikiService\x12y\n" +
 	"\tCallChain\x12\x19.codewiki.v1.CallChainReq\x1a\x1a.codewiki.v1.CallChainResp\"5\xbaG\x0e\x12\f分析代码\x82\xd3\xe4\x93\x02\x1e\x12\x1c/v1/api/functions/{id}/calls\x12p\n" +
 	"\n" +
@@ -1879,8 +1926,8 @@ const file_codewiki_v1_codewiki_proto_rawDesc = "" +
 	"\vAnalyzeRepo\x12\x1b.codewiki.v1.AnalyzeRepoReq\x1a\x18.codewiki.v1.AnalyzeResp\"?\xbaG\x17\x12\x15按仓库触发分析\x82\xd3\xe4\x93\x02\x1f:\x01*\"\x1a/v1/api/repos/{id}/analyze\x12\x81\x01\n" +
 	"\vGetRepoTree\x12\x1b.codewiki.v1.GetRepoTreeReq\x1a\x1c.codewiki.v1.GetRepoTreeResp\"7\xbaG\x15\x12\x13仓库包/文件树\x82\xd3\xe4\x93\x02\x19\x12\x17/v1/api/repos/{id}/tree\x12\x87\x01\n" +
 	"\x0fViewFileContent\x12\x18.codewiki.v1.ViewFileReq\x1a\x19.codewiki.v1.ViewFileResp\"?\xbaG\x15\x12\x13文件/文件内容\x82\xd3\xe4\x93\x02!\x12\x1f/v1/api/{repoId}/file/{id}/view\x12\x91\x01\n" +
-	"\fGetImplement\x12\x1c.codewiki.v1.GetImplementReq\x1a\x1d.codewiki.v1.GetImplementResp\"D\xbaG\x1b\x12\x19实体/得到所有实现\x82\xd3\xe4\x93\x02 \x12\x1e/v1/api/entity/{id}/implements\x12p\n" +
-	"\x06Answer\x12\x16.codewiki.v1.AnswerReq\x1a\x17.codewiki.v1.AnswerResp\"5\xbaG\x0f\x12\r项目/回答\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/api/project/{id}/answerB+\n" +
+	"\fGetImplement\x12\x1c.codewiki.v1.GetImplementReq\x1a\x1d.codewiki.v1.GetImplementResp\"D\xbaG\x1b\x12\x19实体/得到所有实现\x82\xd3\xe4\x93\x02 \x12\x1e/v1/api/entity/{id}/implements\x12r\n" +
+	"\x06Answer\x12\x16.codewiki.v1.AnswerReq\x1a\x17.codewiki.v1.AnswerResp\"5\xbaG\x0f\x12\r项目/回答\x82\xd3\xe4\x93\x02\x1d\x12\x1b/v1/api/project/{id}/answer0\x01B+\n" +
 	"\n" +
 	"codewikiV1P\x01Z\x1bcodewiki/api/codewiki/v1;v1b\x06proto3"
 

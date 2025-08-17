@@ -111,3 +111,25 @@ type ChatResponse struct {
 		Message Message `json:"message"`
 	} `json:"choices"`
 }
+
+type ChatResponseStreamReceive struct {
+	Chunk    chan StreamResponse
+	isClosed bool
+}
+
+func (cr *ChatResponseStreamReceive) IsClose() bool {
+	return cr.isClosed
+}
+func (cr *ChatResponseStreamReceive) Close() {
+	cr.isClosed = true
+}
+func NewChatResponseStreamReceive() *ChatResponseStreamReceive {
+	return &ChatResponseStreamReceive{Chunk: make(chan StreamResponse)}
+}
+
+type StreamResponse struct {
+	Content    string `json:"content"`
+	Error      string `json:"error,omitempty"`
+	IsComplete bool   `json:"is_complete"`
+	ChunkIndex int32  `json:"chunk_index"`
+}

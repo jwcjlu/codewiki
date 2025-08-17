@@ -3057,6 +3057,16 @@ func (m *AnswerResp) validate(all bool) error {
 
 	// no validation rules for Answer
 
+	// no validation rules for IsStreaming
+
+	// no validation rules for IsComplete
+
+	// no validation rules for Chunk
+
+	// no validation rules for ChunkIndex
+
+	// no validation rules for Error
+
 	if len(errors) > 0 {
 		return AnswerRespMultiError(errors)
 	}

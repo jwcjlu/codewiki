@@ -162,6 +162,12 @@ const RepoManager: React.FC = () => {
   // 新增：接口与实现的虚线连接关系
   const [interfaceImplementationLinks, setInterfaceImplementationLinks] = useState<Map<string, string>>(new Map());
   
+  // 优化：使用useMemo缓存repoName计算，避免不必要的重新渲染
+  const selectedRepoName = useMemo(() => {
+    if (!selectedRepoId) return '';
+    return repos.find(r => r.id === selectedRepoId)?.name || '未知仓库';
+  }, [repos, selectedRepoId]);
+  
   // 新增：处理调用图更新 - 改进版本
   const handleUpdateCallGraph = (callRelations: CallRelation[], selectedNodeId?: string) => {
     console.log('RepoManager: handleUpdateCallGraph called with', callRelations.length, 'relations, selectedNodeId:', selectedNodeId);
@@ -1655,8 +1661,9 @@ const RepoManager: React.FC = () => {
             {selectedRepoId ? (
               <ErrorBoundary>
                 <CodeSearch 
+                  key={selectedRepoId} // 添加key确保组件稳定性
                   repoId={selectedRepoId} 
-                  repoName={repos.find(r => r.id === selectedRepoId)?.name || '未知仓库'} 
+                  repoName={selectedRepoName} 
                 />
               </ErrorBoundary>
             ) : (

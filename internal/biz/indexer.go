@@ -114,9 +114,5 @@ func (idx *Indexer) SearchCode(ctx context.Context, repo *v1.Repo, query string)
 		ProjectName: repo.Name,
 		Partition:   repo.Id,
 	})
-	if err != nil {
-		return nil, err
-	}
-
 	return results, nil
 }

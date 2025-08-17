@@ -83,7 +83,7 @@ service CodeWikiService {
     option (google.api.http) = { get: "/v1/api/entity/{id}/implements" };
     option (openapi.v3.operation) = { summary: "实体/得到所有实现" };
   }  // interface  implement
-  rpc Answer(AnswerReq) returns (AnswerResp) {
+  rpc Answer(AnswerReq) returns (stream AnswerResp) {
     option (google.api.http) = { get: "/v1/api/project/{id}/answer" };
     option (openapi.v3.operation) = { summary: "项目/回答" };
   }
@@ -223,5 +223,10 @@ message AnswerReq{
 }
 
 message AnswerResp{
-  string answer=1;
+  string answer = 1;
+  bool is_streaming = 2;  // 是否为流式响应
+  bool is_complete = 3;   // 是否完成
+  string chunk = 4;       // 流式数据块
+  int32 chunk_index = 5;  // 数据块索引
+  string error = 6;       // 错误信息
 }

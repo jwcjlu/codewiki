@@ -33,13 +33,13 @@ func NewLLM(llmConfig *Config) *LLM {
 	return &LLM{client: openai.NewClientWithConfig(config), httpClient: http.DefaultClient, Config: llmConfig}
 }
 
-func (client *LLM) Enable() bool {
-	return client.client != nil
+func (llm *LLM) Enable() bool {
+	return llm.client != nil
 }
-func (client *LLM) Completions(ctx context.Context, chatReq ChatRequest) (*ChatResponse, error) {
+func (llm *LLM) Completions(ctx context.Context, chatReq ChatRequest) (*ChatResponse, error) {
 	// 调用API
-	resp, err := client.client.CreateChatCompletion(
-		context.Background(),
+	resp, err := llm.client.CreateChatCompletion(
+		context.WithoutCancel(ctx),
 		chatReq.ChatRequest(),
 	)
 	if err != nil {
@@ -57,18 +57,58 @@ func (client *LLM) Completions(ctx context.Context, chatReq ChatRequest) (*ChatR
 	}
 	return response, nil
 }
-
-func (client *LLM) Embeddings(ctx context.Context, embeddingRequest EmbeddingRequest) (*EmbeddingResponse, error) {
-	url := fmt.Sprintf("%s/embeddings", client.BaseURL)
+func (llm *LLM) CompletionStream(ctx context.Context, chatReq ChatRequest, receive *ChatResponseStreamReceive) error {
+	// 调用API
+	stream, err := llm.client.CreateChatCompletionStream(
+		context.WithoutCancel(ctx),
+		chatReq.ChatRequest(),
+	)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		stream.Close()
+		close(receive.Chunk)
+	}()
+	index := 0
+	for {
+		if receive.IsClose() {
+			return nil
+		}
+		response, err := stream.Recv()
+		if err == io.EOF {
+			receive.Chunk <- StreamResponse{
+				IsComplete: true,
+			}
+			break
+		}
+		if err != nil {
+			receive.Chunk <- StreamResponse{
+				IsComplete: true,
+				Error:      err.Error(),
+			}
+			break
+		}
+		receive.Chunk <- StreamResponse{
+			IsComplete: false,
+			Content:    response.Choices[0].Delta.Content,
+			ChunkIndex: int32(index),
+		}
+		index++
+	}
+	return nil
+}
+func (llm *LLM) Embeddings(ctx context.Context, embeddingRequest EmbeddingRequest) (*EmbeddingResponse, error) {
+	url := fmt.Sprintf("%s/embeddings", llm.BaseURL)
 
 	jsonBody, _ := json.Marshal(embeddingRequest)
 
 	// 创建HTTP请求
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(jsonBody))
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+client.ApiKey)
+	req.Header.Set("Authorization", "Bearer "+llm.ApiKey)
 
-	resp, err := client.httpClient.Do(req)
+	resp, err := llm.httpClient.Do(req)
 	if err != nil {
 		panic(err)
 	}

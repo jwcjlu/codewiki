@@ -1,7 +1,6 @@
 import { CallRelation, ApiResponse, CreateRepoReq, ListReposResp, GetRepoResp, RepoTreeResp, ViewFileResp, GetImplementResp, AnswerReq, AnswerResp } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000/v1/api';
-
 // ---- Mock for call graph (kept) ----
 const mockData: CallRelation[] = [
   { callerId: 'main', callerName: 'main', calleeId: 'processData', calleeName: 'processData', callerFileId: 'main.go', calleeFileId: 'main.go', callerScope: 'main', calleeScope: 'main', callerEntityId: 'main_entity', calleeEntityId: 'process_data_entity' },
@@ -294,18 +293,168 @@ export async function getImplement(entityId: string): Promise<GetImplementResp> 
   }
 }
 
-// 更新：使用后端已存在的Answer接口
-export const askQuestion = async (req: AnswerReq): Promise<AnswerResp> => {
+// 更新：使用Server-Sent Events (SSE)调用Answer接口，支持流式响应
+export const askQuestion = async (
+  req: AnswerReq, 
+  signal?: AbortSignal,
+  onChunk?: (chunk: string, isComplete: boolean) => void
+): Promise<AnswerResp> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/project/${req.id}/answer?question=${encodeURIComponent(req.question)}`);
+    console.log('开始SSE流式请求:', req);
     
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    return await response.json();
+    // 使用EventSource进行SSE流式请求
+    return new Promise((resolve, reject) => {
+      let fullAnswer = '';
+      let isComplete = false;
+      
+      // 创建EventSource连接
+      const eventSource = new EventSource(
+        `${API_BASE_URL}/project/${req.id}/answer?question=${encodeURIComponent(req.question)}`,
+        { withCredentials: true }
+      );
+
+      // 处理连接打开
+      eventSource.onopen = () => {
+        console.log('SSE连接已建立');
+      };
+
+      // 处理消息接收
+      eventSource.onmessage = (event) => {
+        try {
+          console.log('收到SSE消息:', event.data);
+          
+          // 解析SSE数据
+          const data = JSON.parse(event.data);
+          console.log('解析的SSE数据:', data);
+          
+          if (data.error) {
+            reject(new Error(data.error));
+            eventSource.close();
+            return;
+          }
+
+          if (data.chunk) {
+            fullAnswer += data.chunk;
+            onChunk?.(data.chunk, false);
+          }
+
+          if (data.is_complete) {
+            isComplete = true;
+            onChunk?.(data.chunk || fullAnswer, true);
+            eventSource.close();
+          }
+        } catch (parseError) {
+          console.log('SSE数据解析失败，作为纯文本处理:', event.data);
+          fullAnswer += event.data;
+          onChunk?.(event.data, false);
+        }
+      };
+
+      // 处理错误
+      eventSource.onerror = (error) => {
+        console.error('SSE连接错误:', error);
+        if (!isComplete) {
+          reject(new Error('SSE连接失败'));
+        }
+        eventSource.close();
+      };
+
+      // 处理连接关闭
+      eventSource.addEventListener('close', () => {
+        console.log('SSE连接已关闭');
+        if (!isComplete) {
+          isComplete = true;
+          onChunk?.(fullAnswer, true);
+        }
+        resolve({
+          answer: fullAnswer,
+          is_streaming: true,
+          is_complete: true
+        });
+      });
+
+      // 处理AbortSignal
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          console.log('SSE请求被取消');
+          eventSource.close();
+          reject(new Error('SSE请求已取消'));
+        });
+      }
+    });
   } catch (error) {
-    console.error('Error asking question:', error);
+    console.error('SSE askQuestion错误:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error;
+    }
+    console.error('Error asking question via SSE:', error);
+    throw error;
+  }
+};
+
+// 兼容性函数：非流式SSE版本
+export const askQuestionLegacy = async (req: AnswerReq, signal?: AbortSignal): Promise<AnswerResp> => {
+  try {
+    console.log('开始非流式SSE调用:', req);
+    
+    // 使用SSE但等待完整响应
+    return new Promise((resolve, reject) => {
+      let fullAnswer = '';
+      let isComplete = false;
+      
+      const eventSource = new EventSource(
+        `${API_BASE_URL}/project/${req.id}/answer?question=${encodeURIComponent(req.question)}`,
+        { withCredentials: true }
+      );
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('data', data);
+          if (data.error) {
+            reject(new Error(data.error));
+            eventSource.close();
+            return;
+          }
+          console.log('data', data);
+          if (data.chunk) {
+            fullAnswer += data.chunk;
+          }
+
+          if (data.is_complete) {
+            isComplete = true;
+            eventSource.close();
+            resolve({
+              answer: fullAnswer,
+              is_streaming: true,
+              is_complete: true
+            });
+          }
+        } catch (parseError) {
+          fullAnswer += event.data;
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        if (!isComplete) {
+          reject(new Error('SSE连接失败'));
+        }
+        eventSource.close();
+      };
+
+      // 处理AbortSignal
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          eventSource.close();
+          reject(new Error('SSE请求已取消'));
+        });
+      }
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw error;
+    }
+    console.error('Error asking question via SSE:', error);
     throw error;
   }
 };

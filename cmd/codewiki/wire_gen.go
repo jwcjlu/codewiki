@@ -49,7 +49,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	qaEngine := biz.NewQAEngine(llmLLM, indexer, projectRepo)
 	codeWikiService := service.NewCodeWikiService(codeWiki, qaEngine)
 	httpServer := server.NewHTTPServer(confServer, codeWikiService, logger)
-	app := newApp(logger, httpServer)
+	grpcServer := server.NewGRPCServer(confServer, codeWikiService, logger)
+	app := newApp(logger, httpServer, grpcServer)
 	return app, func() {
 		cleanup()
 	}, nil

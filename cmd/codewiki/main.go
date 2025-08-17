@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	kgrpc "github.com/go-kratos/kratos/v2/transport/grpc"
 	"os"
 
 	"codewiki/internal/conf"
@@ -32,7 +33,7 @@ func init() {
 	flag.StringVar(&flagconf, "conf", "D:\\workspace\\golang\\codewiki\\configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(logger log.Logger, hs *http.Server) *kratos.App {
+func newApp(logger log.Logger, hs *http.Server, gs *kgrpc.Server) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
@@ -41,6 +42,7 @@ func newApp(logger log.Logger, hs *http.Server) *kratos.App {
 		kratos.Logger(logger),
 		kratos.Server(
 			hs,
+			gs,
 		),
 	)
 }
