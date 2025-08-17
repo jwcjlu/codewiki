@@ -100,6 +100,41 @@ export interface Function {
   receiver: string;
 }
 
+// 新增：代码搜索相关的类型定义
+export interface SearchCodeReq {
+  repoId: string;
+  query: string;
+  limit?: number;
+  similarity_threshold?: number;
+}
+
+export interface SearchResult {
+  id: string;
+  path: string;
+  content: string;
+  document: string;
+  logic: string;
+  scope: string;
+  similarity_score: number;
+  highlights: string[];
+}
+
+export interface SearchCodeResp {
+  code: number;
+  msg: string;
+  results: SearchResult[];
+}
+
+// 更新：使用后端已存在的Answer接口
+export interface AnswerReq {
+  id: string; // 项目ID
+  question: string;
+}
+
+export interface AnswerResp {
+  answer: string;
+}
+
 export interface ViewFileReq {
   repoId: string;
   id: string;

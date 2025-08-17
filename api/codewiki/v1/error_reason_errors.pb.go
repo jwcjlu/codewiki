@@ -178,3 +178,27 @@ func IsAnalyzeDependencies(err error) bool {
 func ErrorAnalyzeDependencies(format string, args ...interface{}) *errors.Error {
 	return errors.New(500, ErrorReason_AnalyzeDependencies.String(), fmt.Sprintf(format, args...))
 }
+
+func IsNotSupportLLM(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_NotSupportLLM.String() && e.Code == 500
+}
+
+func ErrorNotSupportLLM(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, ErrorReason_NotSupportLLM.String(), fmt.Sprintf(format, args...))
+}
+
+func IsNotSupportQA(err error) bool {
+	if err == nil {
+		return false
+	}
+	e := errors.FromError(err)
+	return e.Reason == ErrorReason_NotSupportQA.String() && e.Code == 500
+}
+
+func ErrorNotSupportQA(format string, args ...interface{}) *errors.Error {
+	return errors.New(500, ErrorReason_NotSupportQA.String(), fmt.Sprintf(format, args...))
+}

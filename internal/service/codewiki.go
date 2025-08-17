@@ -11,11 +11,12 @@ import (
 type CodeWikiService struct {
 	v1.UnimplementedCodeWikiServiceServer
 	codeWiki *biz.CodeWiki
+	qa       *biz.QAEngine
 }
 
 // NewCodeWikiService new a CodeWiki service.
-func NewCodeWikiService(codeWiki *biz.CodeWiki) *CodeWikiService {
-	return &CodeWikiService{codeWiki: codeWiki}
+func NewCodeWikiService(codeWiki *biz.CodeWiki, qa *biz.QAEngine) *CodeWikiService {
+	return &CodeWikiService{codeWiki: codeWiki, qa: qa}
 }
 
 func (s *CodeWikiService) CallChain(ctx context.Context, req *v1.CallChainReq) (*v1.CallChainResp, error) {
@@ -99,4 +100,15 @@ func (s *CodeWikiService) GetImplement(ctx context.Context, req *v1.GetImplement
 	}
 	resp.Entities = entities
 	return resp, nil
+}
+
+func (s *CodeWikiService) Answer(ctx context.Context, req *v1.AnswerReq) (*v1.AnswerResp, error) {
+	resp := new(v1.AnswerResp)
+	answer, err := s.qa.HandleQuestion(ctx, req)
+	if err != nil {
+		return resp, err
+	}
+	resp.Answer = answer
+	return resp, nil
+
 }

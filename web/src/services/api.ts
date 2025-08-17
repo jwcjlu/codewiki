@@ -1,4 +1,4 @@
-import { CallRelation, ApiResponse, CreateRepoReq, ListReposResp, GetRepoResp, RepoTreeResp, ViewFileResp, GetImplementResp } from '../types';
+import { CallRelation, ApiResponse, CreateRepoReq, ListReposResp, GetRepoResp, RepoTreeResp, ViewFileResp, GetImplementResp, AnswerReq, AnswerResp } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000/v1/api';
 
@@ -293,3 +293,19 @@ export async function getImplement(entityId: string): Promise<GetImplementResp> 
     return { entities: [] };
   }
 }
+
+// 更新：使用后端已存在的Answer接口
+export const askQuestion = async (req: AnswerReq): Promise<AnswerResp> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/project/${req.id}/answer?question=${encodeURIComponent(req.question)}`);
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error asking question:', error);
+    throw error;
+  }
+};

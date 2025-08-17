@@ -84,7 +84,7 @@ func (e *Entity) CountFunction() int {
 
 }
 func (e *Entity) FindMethodByName(name string) *Function {
-	if e == nil {
+	if e == nil && e.functionManager == nil {
 		return nil
 	}
 	return e.functionManager.GetMethodByName(name)
@@ -219,20 +219,44 @@ func (e *Entity) IsImplInterface(interfaceEntity *Entity) bool {
 
 // Function 实例方法,结构体的方法
 type Function struct {
-	EntId    string         `json:"ent_id"`
-	Name     string         `json:"name"`
-	Params   []*Field       `json:"params"`
-	Results  []*Field       `json:"results"`
-	Data     *ast.BlockStmt `json:"data"`
-	Document string         `json:"document"`
-	Comment  string         `json:"comment"`
-	PkgID    string         `json:"pkg_id"`
-	FileId   string         `json:"file_id"`
+	EntId   string         `json:"ent_id"`
+	Name    string         `json:"name"`
+	Params  []*Field       `json:"params"`
+	Results []*Field       `json:"results"`
+	Data    *ast.BlockStmt `json:"data"`
+
+	Document string `json:"document"`
+	Comment  string `json:"comment"`
+	PkgID    string `json:"pkg_id"`
+	FileId   string `json:"file_id"`
 	expr     ast.Expr
 	Scope    ScopeType `json:"scope"`
 	Receiver string    `json:"receiver"`
 	ID       string    `json:"id"`
 	file     *File
+	decl     *ast.FuncDecl
+}
+
+func (f *Function) readFileContent() ([]byte, error) {
+	if f.file == nil {
+		return nil, nil
+	}
+	return f.file.ReadFileContent()
+}
+func (f *Function) ReaderSourceCode() string {
+	if f.decl == nil || f.file == nil || len(f.file.FilePath) == 0 {
+		return ""
+	}
+	content, err := f.readFileContent()
+	if err != nil || content == nil {
+		return ""
+	}
+	start := f.file.fset.Position(f.decl.Pos()).Offset
+	end := f.file.fset.Position(f.decl.End()).Offset
+	if len(content) < end {
+		return ""
+	}
+	return string(content[start:end])
 }
 
 func (f *Function) sameFunctionSignature(function *Function) bool {
@@ -261,6 +285,20 @@ func (f *Function) sameFunctionSignature(function *Function) bool {
 	return true
 }
 
+func (f *Function) BuildRawCodeChunk() *CodeChunk {
+	sourceCode := f.ReaderSourceCode()
+	if len(sourceCode) == 0 {
+		return nil
+	}
+	return &CodeChunk{
+		Path:     f.FileId,
+		Content:  f.ReaderSourceCode(),
+		Document: f.Document,
+		Scope:    ChunkFunctionScope,
+		Id:       f.ID,
+	}
+
+}
 func (f *Function) Parse(node *ast.FuncType) {
 	if node.Params != nil {
 		for _, param := range node.Params.List {
@@ -313,6 +351,9 @@ func (fm *FunctionManager) AddMethod(fun *Function) {
 }
 
 func (fm *FunctionManager) GetMethodByName(methodName string) *Function {
+	if fm == nil || fm.methodMap == nil {
+		return nil
+	}
 	return fm.methodMap[methodName]
 }
 
@@ -337,7 +378,28 @@ type Field struct {
 	ObjType  string    `json:"obj_type"`
 	ID       string    `json:"id"`
 	file     *File
+	field    *ast.Field
 }
+
+func (field *Field) FieldName() string {
+	if len(field.Name) > 0 {
+		return field.Name
+	}
+	if field.field == nil {
+		return field.ObjType
+	}
+	switch ft := field.field.Type.(type) {
+	case *ast.StarExpr:
+		ident, ok := ft.X.(*ast.Ident)
+		if ok {
+			return ident.Name
+		}
+	case *ast.Ident:
+		return ft.Name
+	}
+	return field.ObjType
+}
+
 type FieldManager struct {
 	fields    []*Field
 	fieldsMap map[string]*Field
@@ -371,6 +433,7 @@ func buildField(field *ast.Field, scope ScopeType) *Field {
 			Scope:    scope,
 			ObjType:  types.ExprString(field.Type),
 			Comment:  TextWarp(field.Comment),
+			field:    field,
 		}
 	} else {
 		pField = &Field{
@@ -380,6 +443,7 @@ func buildField(field *ast.Field, scope ScopeType) *Field {
 			Scope:    scope,
 			ObjType:  types.ExprString(field.Type),
 			Comment:  TextWarp(field.Comment),
+			field:    field,
 		}
 	}
 

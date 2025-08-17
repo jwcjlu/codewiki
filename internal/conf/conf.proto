@@ -35,9 +35,24 @@ message Data {
     string driver = 1;
     string source = 2;
   }
+  message LLM{
+    string baseURL=1;
+    string apiKey=2;
+    string embeddingModel=3;
+    string llmModelName=4;
+
+  }
+  message Embedding{
+    string apiURL=1;
+    string apiKey=2;
+    string modelName=3;
+    int32 dimension=4;
+  }
   Neo4j neo4j = 1;
   PoolConfig poolConfig=2;
   Database database = 3;
+  LLM llm=4;
+  Embedding embedding=5;
 }
 
 message PoolConfig{

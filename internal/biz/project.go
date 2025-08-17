@@ -18,7 +18,9 @@ type Project struct {
 	Relations   []*Relation
 	Root        *Package
 	RepoId      string
+	Repo        *v1.Repo
 	relationMap map[string]bool
+	indexer     *Indexer
 }
 type Config struct {
 	Language v1.Language
@@ -26,14 +28,15 @@ type Config struct {
 	Excludes []string
 }
 
-func NewProject(repo *v1.Repo) *Project {
+func NewProject(repo *v1.Repo, indexer *Indexer) *Project {
 	return &Project{config: &Config{
 		Language: repo.Language,
 		Excludes: repo.Excludes,
 	},
 		pkgs:        make(map[string]*Package),
 		relationMap: make(map[string]bool),
-		RepoId:      repo.Id,
+		Repo:        repo,
+		indexer:     indexer,
 	}
 }
 
@@ -60,6 +63,11 @@ func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo Proj
 		return err
 	}
 	p.AnalyzeInterfaceImplRelations(ctx)
+	for _, pkg := range p.pkgs {
+		if pkg.Name == "vminformer" {
+			go p.indexer.Indexer(ctx, pkg)
+		}
+	}
 	return projectRepo.SaveProject(ctx, p)
 
 }

@@ -4,6 +4,7 @@ import { listRepos, createRepo, deleteRepo, analyzeRepo, getRepoTree, viewFileCo
 import CodeViewer from './CodeViewer';
 import CallGraph from './CallGraph';
 import NodeDetails from './NodeDetails';
+import CodeSearch from './CodeSearch';
 import { initializeNodes, calculateGraphLayout } from '../utils/graphUtils';
 
 // 新增：树状布局计算函数
@@ -149,7 +150,7 @@ const RepoManager: React.FC = () => {
   const [highlightedFileId, setHighlightedFileId] = useState<string | null>(null);
   
   // 新增：调用图相关状态
-  const [activeTab, setActiveTab] = useState<'tree' | 'callgraph'>('tree');
+  const [activeTab, setActiveTab] = useState<'tree' | 'callgraph' | 'search'>('tree');
   const [callGraphNodes, setCallGraphNodes] = useState<Map<string, Node>>(new Map());
   const [visibleCallGraphNodes, setVisibleCallGraphNodes] = useState<Set<string>>(new Set());
   const [callGraphNodePositions, setCallGraphNodePositions] = useState<Map<string, NodePosition>>(new Map());
@@ -1570,7 +1571,7 @@ const RepoManager: React.FC = () => {
           {selectedRepoId && <span style={{ fontSize: 12, color: '#6b7280' }}>Repo ID: {selectedRepoId}</span>}
         </div>
         
-        {/* 标签页切换 */}
+        {/* 标签页按钮 */}
         <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
           <button 
             onClick={() => setActiveTab('tree')} 
@@ -1591,6 +1592,16 @@ const RepoManager: React.FC = () => {
             }}
           >
             调用图
+          </button>
+          <button 
+            onClick={() => setActiveTab('search')} 
+            style={{ 
+              ...styles.btn, 
+              ...(activeTab === 'search' ? styles.btnPrimary : styles.btnGhost),
+              padding: '8px 16px'
+            }}
+          >
+            AI问答
           </button>
         </div>
 
@@ -1634,11 +1645,52 @@ const RepoManager: React.FC = () => {
               </div>
             )}
           </div>
-        ) : (
+        ) : activeTab === 'callgraph' ? (
           <div>
             {renderCallGraphContent()}
           </div>
-        )}
+        ) : activeTab === 'search' ? (
+          <div>
+            {selectedRepoId ? (
+              <CodeSearch 
+                repoId={selectedRepoId} 
+                repoName={repos.find(r => r.id === selectedRepoId)?.name || '未知仓库'} 
+              />
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '50px', 
+                color: '#6b7280',
+                background: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px'
+              }}>
+                <div style={{ fontSize: '48px', marginBottom: '20px' }}>🤖</div>
+                <h3 style={{ margin: '0 0 16px 0', color: '#374151' }}>AI问答</h3>
+                <p style={{ margin: '0 0 20px 0', fontSize: '14px' }}>
+                  请先选择左侧仓库，然后使用自然语言提问
+                </p>
+                <div style={{ 
+                  background: '#fff', 
+                  border: '1px solid #e5e7eb', 
+                  borderRadius: '6px', 
+                  padding: '12px', 
+                  textAlign: 'left',
+                  maxWidth: '400px',
+                  margin: '0 auto'
+                }}>
+                  <h4 style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#374151' }}>功能说明：</h4>
+                  <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px', lineHeight: '1.5' }}>
+                    <li>基于AI的智能代码问答</li>
+                    <li>支持自然语言提问，如"如何实现用户认证"</li>
+                    <li>AI会基于代码库内容提供准确回答</li>
+                    <li>帮助理解代码逻辑和架构设计</li>
+                  </ul>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : null}
         
         {/* 调用图节点详情 */}
         {activeTab === 'callgraph' && selectedCallGraphNode && (

@@ -8,18 +8,20 @@ import (
 	"github.com/go-kratos/kratos/v2/log"
 	"github.com/google/wire"
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
+	"github.com/qdrant/go-client/qdrant"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"time"
 )
 
 // ProviderSet is data providers.
-var ProviderSet = wire.NewSet(NewData, NewDriverWithContext, NewGormDB, repo.NewCompositeRepo)
+var ProviderSet = wire.NewSet(NewData, NewDriverWithContext, NewGormDB, repo.NewCompositeRepo, repo.NewMilvus)
 
 // Data .
 type Data struct {
-	neo4jDriver neo4j.DriverWithContext
-	gormDB      *gorm.DB
+	neo4jDriver  neo4j.DriverWithContext
+	gormDB       *gorm.DB
+	pointsClient *qdrant.PointsClient
 }
 
 // NewData .

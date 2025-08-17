@@ -28,6 +28,7 @@ const (
 	CodeWikiService_GetRepoTree_FullMethodName     = "/codewiki.v1.CodeWikiService/GetRepoTree"
 	CodeWikiService_ViewFileContent_FullMethodName = "/codewiki.v1.CodeWikiService/ViewFileContent"
 	CodeWikiService_GetImplement_FullMethodName    = "/codewiki.v1.CodeWikiService/GetImplement"
+	CodeWikiService_Answer_FullMethodName          = "/codewiki.v1.CodeWikiService/Answer"
 )
 
 // CodeWikiServiceClient is the client API for CodeWikiService service.
@@ -48,6 +49,7 @@ type CodeWikiServiceClient interface {
 	ViewFileContent(ctx context.Context, in *ViewFileReq, opts ...grpc.CallOption) (*ViewFileResp, error)
 	// interface  implement
 	GetImplement(ctx context.Context, in *GetImplementReq, opts ...grpc.CallOption) (*GetImplementResp, error)
+	Answer(ctx context.Context, in *AnswerReq, opts ...grpc.CallOption) (*AnswerResp, error)
 }
 
 type codeWikiServiceClient struct {
@@ -148,6 +150,16 @@ func (c *codeWikiServiceClient) GetImplement(ctx context.Context, in *GetImpleme
 	return out, nil
 }
 
+func (c *codeWikiServiceClient) Answer(ctx context.Context, in *AnswerReq, opts ...grpc.CallOption) (*AnswerResp, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AnswerResp)
+	err := c.cc.Invoke(ctx, CodeWikiService_Answer_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CodeWikiServiceServer is the server API for CodeWikiService service.
 // All implementations must embed UnimplementedCodeWikiServiceServer
 // for forward compatibility.
@@ -166,6 +178,7 @@ type CodeWikiServiceServer interface {
 	ViewFileContent(context.Context, *ViewFileReq) (*ViewFileResp, error)
 	// interface  implement
 	GetImplement(context.Context, *GetImplementReq) (*GetImplementResp, error)
+	Answer(context.Context, *AnswerReq) (*AnswerResp, error)
 	mustEmbedUnimplementedCodeWikiServiceServer()
 }
 
@@ -202,6 +215,9 @@ func (UnimplementedCodeWikiServiceServer) ViewFileContent(context.Context, *View
 }
 func (UnimplementedCodeWikiServiceServer) GetImplement(context.Context, *GetImplementReq) (*GetImplementResp, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetImplement not implemented")
+}
+func (UnimplementedCodeWikiServiceServer) Answer(context.Context, *AnswerReq) (*AnswerResp, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Answer not implemented")
 }
 func (UnimplementedCodeWikiServiceServer) mustEmbedUnimplementedCodeWikiServiceServer() {}
 func (UnimplementedCodeWikiServiceServer) testEmbeddedByValue()                         {}
@@ -386,6 +402,24 @@ func _CodeWikiService_GetImplement_Handler(srv interface{}, ctx context.Context,
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CodeWikiService_Answer_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AnswerReq)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CodeWikiServiceServer).Answer(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CodeWikiService_Answer_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CodeWikiServiceServer).Answer(ctx, req.(*AnswerReq))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CodeWikiService_ServiceDesc is the grpc.ServiceDesc for CodeWikiService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -428,6 +462,10 @@ var CodeWikiService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetImplement",
 			Handler:    _CodeWikiService_GetImplement_Handler,
+		},
+		{
+			MethodName: "Answer",
+			Handler:    _CodeWikiService_Answer_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

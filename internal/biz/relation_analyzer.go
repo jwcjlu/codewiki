@@ -258,6 +258,19 @@ func (v *FunctionCallVisitor) handleSelectorExpr(selector *ast.SelectorExpr) {
 					Confidence: 1,
 				})
 			}
+		} else {
+			entity, ok := v.entities[x.Name]
+			if ok {
+				if function := entity.FindMethodByName(selector.Sel.Name); function != nil {
+					v.relations = append(v.relations, &Relation{
+						Type:       Call,
+						SourceID:   v.function.ID,
+						TargetID:   function.ID,
+						Confidence: 1,
+					})
+				}
+			}
+
 		}
 
 	case *ast.SelectorExpr:
@@ -560,14 +573,14 @@ func (v *FunctionCallVisitor) resolveEntityFromVariable(ent *Entity) *Entity {
 }
 
 func (v *FunctionCallVisitor) handleAssign(assign *ast.AssignStmt) {
-	for _, expr := range assign.Lhs {
+	for index, expr := range assign.Lhs {
 		switch t := expr.(type) {
 		case *ast.Ident:
-			v.handleIdentEntity(t)
+			v.handleIdentEntity(t, index)
 		}
 	}
 }
-func (v *FunctionCallVisitor) handleIdentEntity(ident *ast.Ident) {
+func (v *FunctionCallVisitor) handleIdentEntity(ident *ast.Ident, index int) {
 	name := ident.Name
 	if ident.Obj == nil {
 		return
@@ -589,6 +602,39 @@ func (v *FunctionCallVisitor) handleIdentEntity(ident *ast.Ident) {
 			}
 			v.entities[name] = entity
 		}
+	case *ast.AssignStmt:
+		v.handleAssignStmt(name, index, decl)
+	}
+}
 
+func (v *FunctionCallVisitor) handleAssignStmt(name string, index int, as *ast.AssignStmt) {
+
+	for _, expr := range as.Rhs {
+		switch t := expr.(type) {
+		case *ast.CallExpr:
+			switch tf := t.Fun.(type) {
+			case *ast.SelectorExpr:
+				implName := ""
+				if x, ok := tf.X.(*ast.Ident); ok {
+					implName = x.Name
+				}
+				function := v.GetFunctionForImport(implName, tf.Sel.Name)
+				if function == nil {
+					return
+				}
+				if len(function.Results) <= index {
+					return
+				}
+				field := function.Results[index]
+				if field == nil {
+					return
+				}
+				entity := v.GetEntityForImport(implName, field.FieldName())
+				if entity == nil {
+					return
+				}
+				v.entities[name] = entity
+			}
+		}
 	}
 }

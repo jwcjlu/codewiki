@@ -17,6 +17,7 @@ type File struct {
 	Name     string `json:"name"`
 	PkgID    string `json:"pkg_id"`
 	FilePath string `json:"file_path"`
+	fset     *token.FileSet
 
 	// AST相关
 	f1 *ast.File
@@ -38,12 +39,14 @@ func (file *File) GetCurrentPkg() *Package {
 }
 
 // NewFile 创建新的文件对象
-func NewFile(name string, pkg *Package) *File {
+func NewFile(dir, name string, pkg *Package) *File {
 	file := &File{
-		Name:  name,
-		PkgID: pkg.ID,
-		ID:    fmt.Sprintf("%s@%s", pkg.ID, name),
-		pkg:   pkg,
+		Name:     name,
+		PkgID:    pkg.ID,
+		ID:       fmt.Sprintf("%s@%s", pkg.ID, name),
+		pkg:      pkg,
+		FilePath: filepath.Join(dir, name),
+		fset:     token.NewFileSet(),
 	}
 
 	// 初始化各个管理器
@@ -53,9 +56,12 @@ func NewFile(name string, pkg *Package) *File {
 
 	return file
 }
+
+func (file *File) ReadFileContent() ([]byte, error) {
+	return GetFileContent(file.FilePath)
+}
 func (file *File) Parse(filePath string) error {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, filePath, nil, parser.AllErrors|parser.ParseComments)
+	f, err := parser.ParseFile(file.fset, filePath, nil, parser.AllErrors|parser.ParseComments)
 	if err != nil {
 		return err
 	}
@@ -403,6 +409,7 @@ func (v *FileVisitor) handleFuncDecl(node *ast.FuncDecl) {
 		PkgID:    file.PkgID,
 		FileId:   file.ID,
 		file:     file,
+		decl:     node,
 		ID:       fmt.Sprintf("%s:%s", file.PkgID, node.Name.Name),
 	}
 	fun.Parse(node.Type)

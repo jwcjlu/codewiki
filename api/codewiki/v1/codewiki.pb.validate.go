@@ -2929,3 +2929,207 @@ var _ interface {
 	Cause() error
 	ErrorName() string
 } = GetImplementRespValidationError{}
+
+// Validate checks the field values on AnswerReq with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *AnswerReq) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AnswerReq with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in AnswerReqMultiError, or nil
+// if none found.
+func (m *AnswerReq) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AnswerReq) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Id
+
+	// no validation rules for Question
+
+	if len(errors) > 0 {
+		return AnswerReqMultiError(errors)
+	}
+
+	return nil
+}
+
+// AnswerReqMultiError is an error wrapping multiple validation errors returned
+// by AnswerReq.ValidateAll() if the designated constraints aren't met.
+type AnswerReqMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AnswerReqMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AnswerReqMultiError) AllErrors() []error { return m }
+
+// AnswerReqValidationError is the validation error returned by
+// AnswerReq.Validate if the designated constraints aren't met.
+type AnswerReqValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AnswerReqValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AnswerReqValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AnswerReqValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AnswerReqValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AnswerReqValidationError) ErrorName() string { return "AnswerReqValidationError" }
+
+// Error satisfies the builtin error interface
+func (e AnswerReqValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAnswerReq.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AnswerReqValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AnswerReqValidationError{}
+
+// Validate checks the field values on AnswerResp with the rules defined in the
+// proto definition for this message. If any rules are violated, the first
+// error encountered is returned, or nil if there are no violations.
+func (m *AnswerResp) Validate() error {
+	return m.validate(false)
+}
+
+// ValidateAll checks the field values on AnswerResp with the rules defined in
+// the proto definition for this message. If any rules are violated, the
+// result is a list of violation errors wrapped in AnswerRespMultiError, or
+// nil if none found.
+func (m *AnswerResp) ValidateAll() error {
+	return m.validate(true)
+}
+
+func (m *AnswerResp) validate(all bool) error {
+	if m == nil {
+		return nil
+	}
+
+	var errors []error
+
+	// no validation rules for Answer
+
+	if len(errors) > 0 {
+		return AnswerRespMultiError(errors)
+	}
+
+	return nil
+}
+
+// AnswerRespMultiError is an error wrapping multiple validation errors
+// returned by AnswerResp.ValidateAll() if the designated constraints aren't met.
+type AnswerRespMultiError []error
+
+// Error returns a concatenation of all the error messages it wraps.
+func (m AnswerRespMultiError) Error() string {
+	msgs := make([]string, 0, len(m))
+	for _, err := range m {
+		msgs = append(msgs, err.Error())
+	}
+	return strings.Join(msgs, "; ")
+}
+
+// AllErrors returns a list of validation violation errors.
+func (m AnswerRespMultiError) AllErrors() []error { return m }
+
+// AnswerRespValidationError is the validation error returned by
+// AnswerResp.Validate if the designated constraints aren't met.
+type AnswerRespValidationError struct {
+	field  string
+	reason string
+	cause  error
+	key    bool
+}
+
+// Field function returns field value.
+func (e AnswerRespValidationError) Field() string { return e.field }
+
+// Reason function returns reason value.
+func (e AnswerRespValidationError) Reason() string { return e.reason }
+
+// Cause function returns cause value.
+func (e AnswerRespValidationError) Cause() error { return e.cause }
+
+// Key function returns key value.
+func (e AnswerRespValidationError) Key() bool { return e.key }
+
+// ErrorName returns error name.
+func (e AnswerRespValidationError) ErrorName() string { return "AnswerRespValidationError" }
+
+// Error satisfies the builtin error interface
+func (e AnswerRespValidationError) Error() string {
+	cause := ""
+	if e.cause != nil {
+		cause = fmt.Sprintf(" | caused by: %v", e.cause)
+	}
+
+	key := ""
+	if e.key {
+		key = "key for "
+	}
+
+	return fmt.Sprintf(
+		"invalid %sAnswerResp.%s: %s%s",
+		key,
+		e.field,
+		e.reason,
+		cause)
+}
+
+var _ error = AnswerRespValidationError{}
+
+var _ interface {
+	Field() string
+	Reason() string
+	Key() bool
+	Cause() error
+	ErrorName() string
+} = AnswerRespValidationError{}

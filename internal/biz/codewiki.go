@@ -7,10 +7,12 @@ import (
 
 type CodeWiki struct {
 	projectRepo ProjectRepo
+	indexer     *Indexer
 }
 
-func NewCodeWiki(projectRepo ProjectRepo) *CodeWiki {
-	return &CodeWiki{projectRepo: projectRepo}
+func NewCodeWiki(projectRepo ProjectRepo, indexer *Indexer) *CodeWiki {
+
+	return &CodeWiki{projectRepo: projectRepo, indexer: indexer}
 }
 func (c *CodeWiki) QueryCallChain(ctx context.Context, id string) ([]*v1.CallRelationship, error) {
 
@@ -43,7 +45,7 @@ func (c *CodeWiki) AnalyzeRepo(ctx context.Context, id string) error {
 		targetPath = repo.Path
 	}
 
-	project := NewProject(repo)
+	project := NewProject(repo, c.indexer)
 	if err = project.Analyze(ctx, targetPath, c.projectRepo); err != nil {
 		return err
 	}

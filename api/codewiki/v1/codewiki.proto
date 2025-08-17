@@ -82,6 +82,10 @@ service CodeWikiService {
   rpc GetImplement(GetImplementReq) returns (GetImplementResp) {
     option (google.api.http) = { get: "/v1/api/entity/{id}/implements" };
     option (openapi.v3.operation) = { summary: "实体/得到所有实现" };
+  }  // interface  implement
+  rpc Answer(AnswerReq) returns (AnswerResp) {
+    option (google.api.http) = { get: "/v1/api/project/{id}/answer" };
+    option (openapi.v3.operation) = { summary: "项目/回答" };
   }
 }
 message AnalyzeReq{
@@ -157,7 +161,10 @@ message GetRepoResp{ Repo repo=1; }
 message DeleteRepoReq{ string id=1; }
 message DeleteRepoResp{}
 
-message AnalyzeRepoReq{ string id=1; }
+message AnalyzeRepoReq{
+  string id=1;
+  
+}
 
 message GetRepoTreeReq{ string id=1; }
 message GetRepoTreeResp{
@@ -208,4 +215,13 @@ message GetImplementReq{
 
 message GetImplementResp{
   repeated Entity entities=1;
+}
+
+message AnswerReq{
+  string id=1;
+  string question=2;
+}
+
+message AnswerResp{
+  string answer=1;
 }
