@@ -98,7 +98,7 @@ func (cache *localCache[K, V]) disuseIfNeeded() {
 		return false
 	})
 	for _, k := range keys {
-		log.Debugf("delete val for capacity val[%#v]", cache.values[k.key])
+		log.Debugf("delete val for capacity val[%s]", k.key)
 		delete(cache.values, k.key)
 		reduce--
 		if reduce <= 0 {

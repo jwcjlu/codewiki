@@ -63,9 +63,7 @@ func (p *Project) Analyze(ctx context.Context, rootPath string, projectRepo Proj
 	}
 	p.AnalyzeInterfaceImplRelations(ctx)
 	for _, pkg := range p.pkgs {
-		if pkg.Name == "vminformer" {
-			go p.indexer.Indexer(ctx, pkg, p.Repo)
-		}
+		go p.indexer.Indexer(ctx, pkg, p.Repo)
 	}
 	return projectRepo.SaveProject(ctx, p)
 

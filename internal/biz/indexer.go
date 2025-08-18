@@ -109,7 +109,7 @@ func (idx *Indexer) SearchCode(ctx context.Context, repo *v1.Repo, query string)
 
 	// 在向量数据库中搜索相似的代码块
 	results, err := idx.repo.SearchCodeChunk(ctx, &SearchCodeChunksReq{
-		Limit:       1,
+		Limit:       6,
 		QueryVector: resp.Data[0].Embedding,
 		ProjectName: repo.Name,
 		Partition:   repo.Id,

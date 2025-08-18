@@ -157,8 +157,7 @@ func (ah *AnswerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				continue
 			}
-			fmt.Println(string(data))
-			// 关键修复：使用正确的SSE格式 "data: {json}\n\n"
+			// 使用正确的SSE格式 "data: {json}\n\n"
 			_, err = fmt.Fprintf(w, "data: %s\n\n", string(data))
 			if err != nil {
 				fmt.Println(err)
