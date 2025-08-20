@@ -1,6 +1,7 @@
 package llm
 
 import (
+	"encoding/json"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -128,8 +129,20 @@ func NewChatResponseStreamReceive() *ChatResponseStreamReceive {
 }
 
 type StreamResponse struct {
-	Content    string `json:"content"`
-	Error      string `json:"error,omitempty"`
-	IsComplete bool   `json:"is_complete"`
-	ChunkIndex int32  `json:"chunk_index"`
+	IsStreaming bool   `json:"is_streaming"`
+	Chunk       string `json:"chunk"`
+	Err         string `json:"error,omitempty"`
+	IsComplete  bool   `json:"is_complete"`
+	ChunkIndex  int32  `json:"chunk_index"`
+}
+
+func (sr *StreamResponse) Complete() bool {
+	return sr.IsComplete
+}
+func (sr *StreamResponse) Data() []byte {
+	data, _ := json.Marshal(sr)
+	return data
+}
+func (sr *StreamResponse) Error() string {
+	return sr.Err
 }

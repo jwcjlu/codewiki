@@ -2,6 +2,7 @@ package llm
 
 import (
 	"bytes"
+	"codewiki/internal/pkg/sse"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -57,43 +58,45 @@ func (llm *LLM) Completions(ctx context.Context, chatReq ChatRequest) (*ChatResp
 	}
 	return response, nil
 }
-func (llm *LLM) CompletionStream(ctx context.Context, chatReq ChatRequest, receive *ChatResponseStreamReceive) error {
+func (llm *LLM) CompletionStream(ctx context.Context, chatReq ChatRequest, receive chan sse.Message) error {
 	// 调用API
 	stream, err := llm.client.CreateChatCompletionStream(
 		context.WithoutCancel(ctx),
 		chatReq.ChatRequest(),
 	)
+	defer close(receive)
 	if err != nil {
 		return err
 	}
 	defer func() {
 		stream.Close()
-		close(receive.Chunk)
 	}()
 	index := 0
 	for {
-		if receive.IsClose() {
-			return nil
-		}
+
 		response, err := stream.Recv()
 		if err == io.EOF {
-			receive.Chunk <- StreamResponse{
-				IsComplete: true,
+			receive <- &StreamResponse{
+				IsComplete:  true,
+				IsStreaming: true,
 			}
 			break
 		}
 		if err != nil {
-			receive.Chunk <- StreamResponse{
-				IsComplete: true,
-				Error:      err.Error(),
+			receive <- &StreamResponse{
+				IsComplete:  true,
+				Err:         err.Error(),
+				IsStreaming: true,
 			}
 			break
 		}
-		receive.Chunk <- StreamResponse{
-			IsComplete: false,
-			Content:    response.Choices[0].Delta.Content,
-			ChunkIndex: int32(index),
+		receive <- &StreamResponse{
+			IsComplete:  false,
+			Chunk:       response.Choices[0].Delta.Content,
+			ChunkIndex:  int32(index),
+			IsStreaming: true,
 		}
+		fmt.Println(response.Choices[0].Delta.Content)
 		index++
 	}
 	return nil

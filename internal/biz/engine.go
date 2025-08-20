@@ -2,6 +2,7 @@ package biz
 
 import (
 	v1 "codewiki/api/codewiki/v1"
+	"codewiki/internal/pkg/sse"
 	"context"
 	"fmt"
 	"strings"
@@ -18,7 +19,7 @@ type QAEngine struct {
 func NewQAEngine(llm *llm.LLM, indexer *Indexer, repo ProjectRepo) *QAEngine {
 	return &QAEngine{llm: llm, indexer: indexer, repo: repo}
 }
-func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan *v1.AnswerResp) error {
+func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan sse.Message) error {
 	repo, err := qa.repo.GetRepo(ctx, req.GetId())
 	if err != nil {
 		return fmt.Errorf("query repo err:%v", err)
@@ -40,33 +41,16 @@ func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan *v1
 func (qa *QAEngine) generateAnswer(ctx context.Context,
 	question string,
 	contexts []string,
-	resp chan *v1.AnswerResp) error {
+	receive chan sse.Message) error {
 	prompt := fmt.Sprintf(`基于以下代码片段回答问题：%s问题：%s答案：`, strings.Join(contexts, "\n\n"), question)
-	receive := llm.NewChatResponseStreamReceive()
 	go func() {
-		defer close(resp)
-		for {
-			select {
-			case v, isClose := <-receive.Chunk:
-				if !isClose {
-					break
-				}
-				resp <- &v1.AnswerResp{
-					IsStreaming: true,
-					IsComplete:  v.IsComplete,
-					Chunk:       v.Content,
-					ChunkIndex:  v.ChunkIndex,
-					Error:       v.Error,
-				}
-
-			}
-		}
+		qa.llm.CompletionStream(ctx, llm.ChatRequest{
+			Model: GetLLMModel(),
+			Messages: []llm.Message{
+				{Role: "user", Content: prompt},
+			},
+		}, receive)
 	}()
-	go qa.llm.CompletionStream(ctx, llm.ChatRequest{
-		Model: GetLLMModel(),
-		Messages: []llm.Message{
-			{Role: "user", Content: prompt},
-		},
-	}, receive)
+
 	return nil
 }

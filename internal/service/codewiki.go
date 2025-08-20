@@ -3,13 +3,10 @@ package service
 import (
 	v1 "codewiki/api/codewiki/v1"
 	"codewiki/internal/biz"
+	"codewiki/internal/pkg/llm"
+	"codewiki/internal/pkg/sse"
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
-	"net/url"
-
-	"github.com/gorilla/mux"
 )
 
 // CodeWikiService is a DeepWiki service.
@@ -115,28 +112,18 @@ func NewAnswerHandler(s *CodeWikiService) *AnswerHandler {
 	return &AnswerHandler{s: s}
 }
 func (ah *AnswerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	flusher, ok := w.(http.Flusher)
-	if !ok {
+	serverSendEvent := sse.NewServerSendEvent(w, r)
+	if err := serverSendEvent.SetSSEHeaders(); err != nil {
 		http.Error(w, "SSE not supported", http.StatusInternalServerError)
 		return
 	}
-	raws := mux.Vars(r)
-	vars := make(url.Values, len(raws))
-	for k, v := range raws {
-		vars[k] = []string{v}
+	var req v1.AnswerReq
+	if err := serverSendEvent.Bind(&req); err != nil {
+		http.Error(w, "SSE bad request", http.StatusInternalServerError)
 	}
-	values := r.URL.Query()
-	question := values.Get("question")
-	id := raws["id"]
-	w.Header().Set("Content-Type", "text/event-stream")
-	w.Header().Set("Cache-Control", "no-cache")
-	w.Header().Set("Connection", "keep-alive")
-	resp := make(chan *v1.AnswerResp)
+	resp := make(chan *llm.StreamResponse)
 
-	err := ah.s.qa.Answer(context.Background(), &v1.AnswerReq{
-		Id:       id,
-		Question: question,
-	}, resp)
+	err := ah.s.qa.Answer(context.Background(), &req, serverSendEvent.ReceiveMessage())
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
@@ -146,27 +133,8 @@ func (ah *AnswerHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		close(resp)
 
 	}()
-	for {
-		// 使用SSE格式发送数据
-		select {
-		case v, isClose := <-resp:
-			if !isClose {
-				return
-			}
-			data, err := json.Marshal(v)
-			if err != nil {
-				continue
-			}
-			// 使用正确的SSE格式 "data: {json}\n\n"
-			_, err = fmt.Fprintf(w, "data: %s\n\n", string(data))
-			if err != nil {
-				fmt.Println(err)
-			}
-			flusher.Flush()
-			if v.IsComplete {
-				return
-			}
-		}
-
+	if err = serverSendEvent.HandleSSEResponse(context.Background()); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
