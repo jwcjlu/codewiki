@@ -7,7 +7,7 @@ import (
 
 type ProjectRepo interface {
 	SaveProject(ctx context.Context, p *Project) error
-	QueryCallChain(ctx context.Context, id string) ([]*v1.CallRelationship, error)
+	QueryCallChain(ctx context.Context, id string, limit int) ([]*v1.CallRelationship, error)
 
 	// Repo management
 	CreateRepo(ctx context.Context, req *v1.CreateRepoReq) (string, error)
@@ -25,4 +25,5 @@ type ProjectRepo interface {
 type IndexerRepo interface {
 	SaveCodeChunk(ctx context.Context, projectName, partition string, codeChunks []*CodeChunk) error
 	SearchCodeChunk(ctx context.Context, req *SearchCodeChunksReq) ([]*CodeChunk, error)
+	SearchCodeChunkByIds(ctx context.Context, collectionName string, ids []string, limit int) ([]*CodeChunk, error)
 }

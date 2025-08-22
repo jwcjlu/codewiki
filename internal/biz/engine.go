@@ -29,6 +29,19 @@ func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan sse
 	if err != nil {
 		return fmt.Errorf("indexer search code %s err:%v", req.GetQuestion(), err)
 	}
+
+	chains, err := qa.repo.QueryCallChain(ctx, results[0].Id, 4)
+	if err != nil {
+		return fmt.Errorf("query call chain err:%v", err)
+	}
+	var ids []string
+	for _, chain := range chains {
+		ids = append(ids, chain.CalleeId)
+	}
+	results, err = qa.indexer.repo.SearchCodeChunkByIds(ctx, repo.Name, ids, 50)
+	if err != nil {
+		return fmt.Errorf("search code chunk err:%v", err)
+	}
 	// 生成自然语言回答
 	var contents []string
 	for _, result := range results {

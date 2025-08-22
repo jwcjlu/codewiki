@@ -15,8 +15,7 @@ func NewCodeWiki(projectRepo ProjectRepo, indexer *Indexer) *CodeWiki {
 	return &CodeWiki{projectRepo: projectRepo, indexer: indexer}
 }
 func (c *CodeWiki) QueryCallChain(ctx context.Context, id string) ([]*v1.CallRelationship, error) {
-
-	return c.projectRepo.QueryCallChain(ctx, id)
+	return c.projectRepo.QueryCallChain(ctx, id, 0)
 
 }
 

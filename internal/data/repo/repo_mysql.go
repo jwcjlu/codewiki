@@ -59,8 +59,8 @@ func NewCompositeRepo(driver neo4j.DriverWithContext, db *gorm.DB) (biz.ProjectR
 func (r *compositeRepo) SaveProject(ctx context.Context, p *biz.Project) error {
 	return r.g.SaveProject(ctx, p)
 }
-func (r *compositeRepo) QueryCallChain(ctx context.Context, id string) ([]*v1.CallRelationship, error) {
-	return r.g.QueryCallChain(ctx, id)
+func (r *compositeRepo) QueryCallChain(ctx context.Context, id string, limit int) ([]*v1.CallRelationship, error) {
+	return r.g.QueryCallChain(ctx, id, limit)
 }
 func (r *compositeRepo) BindRepoRoot(ctx context.Context, repoId, rootPkgId string) error {
 	return r.g.BindRepoRoot(ctx, repoId, rootPkgId)

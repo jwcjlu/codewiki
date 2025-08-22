@@ -278,11 +278,15 @@ func getImports(files []*biz.File) []*biz.Import {
 	return imports
 }
 
-func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, id string) ([]*v1.CallRelationship, error) {
+func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, id string, limit int) ([]*v1.CallRelationship, error) {
 	ctx, _ = context.WithTimeout(ctx, 5*time.Minute)
 	session := projectRepo.neo4jDriver.NewSession(ctx, neo4j.SessionConfig{})
 	defer session.Close(ctx)
-	query := `MATCH path = (start:Function {id: $id})-[:Call*]->(end:Function)
+	callQuery := "Call*"
+	if limit > 0 {
+		callQuery = fmt.Sprintf(":Call*1..%d", limit)
+	}
+	query := `MATCH path = (start:Function {id: $id})-[%s]->(end:Function)
         UNWIND relationships(path) AS rel
         WITH startNode(rel) AS caller, endNode(rel) AS callee
         RETURN caller.id AS callerID, caller.name AS callerName,
@@ -290,6 +294,7 @@ func (projectRepo *projectRepo) QueryCallChain(ctx context.Context, id string) (
                callee.file_id AS calleeFileID, caller.file_id AS callerFileID,
                callee.scope AS calleeScope, caller.scope AS callerScope,
                callee.ent_id AS calleeEntId, caller.ent_id AS callerEntId`
+	query = fmt.Sprintf(query, callQuery)
 
 	result, err := session.Run(ctx, query, map[string]interface{}{"id": id},
 		func(config *neo4j.TransactionConfig) {

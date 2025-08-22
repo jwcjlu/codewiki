@@ -64,42 +64,146 @@ func (llm *LLM) CompletionStream(ctx context.Context, chatReq ChatRequest, recei
 		context.WithoutCancel(ctx),
 		chatReq.ChatRequest(),
 	)
-	defer close(receive)
 	if err != nil {
+		close(receive)
 		return err
 	}
+
 	defer func() {
 		stream.Close()
+		close(receive)
 	}()
+
 	index := 0
 	for {
+		select {
+		case <-ctx.Done():
+			// 上下文取消
+			select {
+			case receive <- &StreamMessage{
+				messageType: "complete",
+				data: map[string]interface{}{
+					"chunk_index": index,
+				},
+				isComplete: true,
+			}:
+			default:
+			}
+			return ctx.Err()
 
-		response, err := stream.Recv()
-		if err == io.EOF {
-			receive <- &StreamResponse{
-				IsComplete:  true,
-				IsStreaming: true,
+		default:
+			// 接收响应
+			response, err := stream.Recv()
+			if err == io.EOF {
+				// 流结束
+				select {
+				case receive <- &StreamMessage{
+					messageType: "complete",
+					data: map[string]interface{}{
+						"chunk_index": index,
+					},
+					isComplete: true,
+				}:
+				default:
+				}
+				return nil
 			}
-			break
-		}
-		if err != nil {
-			receive <- &StreamResponse{
-				IsComplete:  true,
-				Err:         err.Error(),
-				IsStreaming: true,
+
+			if err != nil {
+				// 接收错误
+				select {
+				case receive <- &StreamMessage{
+					messageType: "error",
+					data: map[string]interface{}{
+						"chunk_index": index,
+					},
+					error:      err.Error(),
+					isComplete: true,
+				}:
+				default:
+				}
+				return fmt.Errorf("stream receive error: %w", err)
 			}
-			break
+
+			// 检查响应是否有效
+			if response.Choices == nil || len(response.Choices) == 0 {
+				continue
+			}
+
+			// 发送数据块
+			content := ""
+			if response.Choices[0].Delta.Content != "" {
+				content = response.Choices[0].Delta.Content
+			}
+
+			select {
+			case receive <- &StreamMessage{
+				messageType: "data",
+				data: map[string]interface{}{
+					"chunk":       content,
+					"chunk_index": index,
+				},
+				isComplete: false,
+			}:
+				index++
+			default:
+				// 通道已满，跳过
+			}
 		}
-		receive <- &StreamResponse{
-			IsComplete:  false,
-			Chunk:       response.Choices[0].Delta.Content,
-			ChunkIndex:  int32(index),
-			IsStreaming: true,
-		}
-		fmt.Println(response.Choices[0].Delta.Content)
-		index++
 	}
-	return nil
+}
+
+// StreamMessage 实现sse.Message接口
+type StreamMessage struct {
+	messageType string
+	data        map[string]interface{}
+	error       string
+	isComplete  bool
+}
+
+func (sm *StreamMessage) Complete() bool {
+	return sm.isComplete
+}
+
+func (sm *StreamMessage) Data() []byte {
+	if sm.data == nil {
+		return []byte("{}")
+	}
+
+	// 根据消息类型构建不同的数据结构
+	var responseData map[string]interface{}
+
+	switch sm.messageType {
+	case "complete":
+		responseData = map[string]interface{}{
+			"is_complete": true,
+			"chunk_index": sm.data["chunk_index"],
+		}
+	case "error":
+		responseData = map[string]interface{}{
+			"error":       sm.error,
+			"chunk_index": sm.data["chunk_index"],
+		}
+	case "data":
+		responseData = map[string]interface{}{
+			"chunk":        sm.data["chunk"],
+			"chunk_index":  sm.data["chunk_index"],
+			"is_streaming": true,
+			"is_complete":  false,
+		}
+	default:
+		responseData = sm.data
+	}
+
+	jsonData, err := json.Marshal(responseData)
+	if err != nil {
+		return []byte("{}")
+	}
+	return jsonData
+}
+
+func (sm *StreamMessage) Error() string {
+	return sm.error
 }
 func (llm *LLM) Embeddings(ctx context.Context, embeddingRequest EmbeddingRequest) (*EmbeddingResponse, error) {
 	url := fmt.Sprintf("%s/embeddings", llm.BaseURL)

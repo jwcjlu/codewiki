@@ -20,8 +20,8 @@ type Message interface {
 
 // SSE配置常量
 const (
-	SSEReadTimeout  = 30 * time.Second
-	SSEWriteTimeout = 30 * time.Second
+	SSEReadTimeout  = 10 * time.Second
+	SSEWriteTimeout = 10 * time.Second
 )
 
 type ServerSendEvent struct {
@@ -106,7 +106,6 @@ func (sse *ServerSendEvent) HandleSSEResponse(ctx context.Context) (err error) {
 				flusher.Flush()
 				return nil
 			}
-			fmt.Println(string(msg.Data()))
 			// 处理响应数据
 			if err = sse.processResponse(msg, flusher); err != nil {
 				// 发送错误事件但继续处理

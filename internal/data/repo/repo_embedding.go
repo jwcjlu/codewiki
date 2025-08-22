@@ -100,10 +100,48 @@ func (m *Milvus) SearchCodeChunk(ctx context.Context, req *biz.SearchCodeChunksR
 			} else {
 				result.Path = value
 			}
-
+			if value, err := resultSet.GetColumn("id").GetAsString(index); err != nil {
+				return nil, err
+			} else {
+				result.Id = value
+			}
 			results = append(results, result)
 		}
 
+	}
+	return results, nil
+}
+
+func (m *Milvus) SearchCodeChunkByIds(ctx context.Context, collectionName string, ids []string, limit int) ([]*biz.CodeChunk, error) {
+	projectName := strings.ReplaceAll(collectionName, "-", "")
+	resultSet, err := m.client.Query(ctx, milvusclient.NewQueryOption(projectName).
+		WithLimit(122).
+		WithConsistencyLevel(entity.ClStrong).
+		WithIDs(column.NewColumnVarChar("id", ids)).
+		WithOutputFields("path",
+			"content",
+			"document",
+			"logic",
+			"scope"))
+	if err != nil {
+		return nil, err
+	}
+	var results []*biz.CodeChunk
+
+	for index := 0; index < resultSet.ResultCount; index++ {
+		result := &biz.CodeChunk{}
+		if value, err := resultSet.GetColumn("content").GetAsString(index); err != nil {
+			return nil, err
+		} else {
+			result.Content = value
+		}
+		if value, err := resultSet.GetColumn("path").GetAsString(index); err != nil {
+			return nil, err
+		} else {
+			result.Path = value
+		}
+
+		results = append(results, result)
 	}
 	return results, nil
 }
