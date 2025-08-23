@@ -2,17 +2,18 @@ package biz
 
 import (
 	"codewiki/internal/biz/model"
+	"codewiki/internal/pkg/log"
 	"context"
 )
 
 type RepositoryBiz struct {
-	indexer     IndexerRepo
+	indexer     *Indexer
 	codeRepo    CodeRepo
 	entityRepo  EntityRepo
 	projectRepo ProjectRepo
 }
 
-func NewRepositoryBiz(indexer IndexerRepo, codeRepo CodeRepo, entityRepo EntityRepo, projectRepo ProjectRepo) *RepositoryBiz {
+func NewRepositoryBiz(indexer *Indexer, codeRepo CodeRepo, entityRepo EntityRepo, projectRepo ProjectRepo) *RepositoryBiz {
 	return &RepositoryBiz{indexer: indexer, codeRepo: codeRepo, entityRepo: entityRepo, projectRepo: projectRepo}
 }
 func (c *RepositoryBiz) QueryCallChain(ctx context.Context, id string) ([]*model.CallRelation, error) {
@@ -49,15 +50,15 @@ func (c *RepositoryBiz) GetImplements(ctx context.Context, entityId string) ([]*
 }
 
 func (c *RepositoryBiz) AnalyzeRepo(ctx context.Context, projectId string) error {
-	repo, err := c.projectRepo.GetProject(ctx, projectId)
+	projectEntity, err := c.projectRepo.GetProject(ctx, projectId)
 	if err != nil {
 		return err
 	}
-	targetPath := repo.Target
-	if len(repo.Path) > 0 {
-		targetPath = repo.Path
+	targetPath := projectEntity.Target
+	if len(projectEntity.Path) > 0 {
+		targetPath = projectEntity.Path
 	}
-	project := model.NewProject(repo)
+	project := model.NewProject(projectEntity)
 	root, err := project.ParseCode(ctx, targetPath)
 	if err != nil {
 		return err
@@ -70,7 +71,7 @@ func (c *RepositoryBiz) AnalyzeRepo(ctx context.Context, projectId string) error
 	if err = project.AnalyzeRelations(ctx); err != nil {
 		return err
 	}
-
+	ctx = context.WithoutCancel(ctx)
 	pkgs := project.GetPackages()
 	if err = c.entityRepo.SavePackages(ctx, pkgs); err != nil {
 		return err
@@ -91,5 +92,12 @@ func (c *RepositoryBiz) AnalyzeRepo(ctx context.Context, projectId string) error
 	if err = c.codeRepo.SaveFunctions(ctx, project.GetFunctions()); err != nil {
 		return err
 	}
+	go func() {
+		if err = c.indexer.Indexer(ctx, project); err != nil {
+			log.Errorf(ctx, "indexer.Indexer err:%v", err)
+		} else {
+			log.Info(ctx, "indexer.Indexer succ")
+		}
+	}()
 	return c.codeRepo.SaveRelations(ctx, project.Relations)
 }

@@ -186,7 +186,6 @@ func (p *Project) GetFiles() []*File {
 			files = append(files, file)
 			filter[file.ID] = true
 		}
-
 	}
 	return files
 }

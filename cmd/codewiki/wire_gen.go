@@ -32,7 +32,10 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	}
 	projectRepo := repo.NewProjectRepo(db)
 	projectBiz := biz.NewProjectBiz(projectRepo)
+	config := biz.NewConfig(confData)
+	llmLLM := llm.NewLLM(config)
 	indexerRepo := repo.NewIndexerRepo(confData)
+	indexer := biz.NewIndexer(llmLLM, indexerRepo)
 	dataData, cleanup, err := data.NewData(confData, logger)
 	if err != nil {
 		return nil, nil, err
@@ -40,11 +43,8 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	driverWithContext := data.NewDriverWithContext(dataData)
 	codeRepo := repo.NewCodeNeo4jRepo(driverWithContext)
 	entityRepo := repo.NewEntityRepo(driverWithContext)
-	repositoryBiz := biz.NewRepositoryBiz(indexerRepo, codeRepo, entityRepo, projectRepo)
+	repositoryBiz := biz.NewRepositoryBiz(indexer, codeRepo, entityRepo, projectRepo)
 	projectService := service.NewProjectService(projectBiz, repositoryBiz)
-	config := biz.NewConfig(confData)
-	llmLLM := llm.NewLLM(config)
-	indexer := biz.NewIndexer(llmLLM, indexerRepo)
 	qaEngine := biz.NewQAEngine(llmLLM, indexer, codeRepo, projectRepo)
 	qaService := service.NewQAService(qaEngine)
 	repositoryService := service.NewRepositoryService(repositoryBiz)

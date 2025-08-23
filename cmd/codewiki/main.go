@@ -1,7 +1,9 @@
 package main
 
 import (
+	"codewiki/internal/pkg/log"
 	"flag"
+	"github.com/jinzhu/copier"
 	"os"
 
 	"codewiki/internal/conf"
@@ -9,8 +11,8 @@ import (
 	"github.com/go-kratos/kratos/v2"
 	"github.com/go-kratos/kratos/v2/config"
 	"github.com/go-kratos/kratos/v2/config/file"
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/middleware/tracing"
+	klog "github.com/go-kratos/kratos/v2/log"
+
 	"github.com/go-kratos/kratos/v2/transport/http"
 
 	_ "go.uber.org/automaxprocs"
@@ -19,7 +21,7 @@ import (
 // go build -ldflags "-X main.Version=x.y.z"
 var (
 	// Name is the name of the compiled software.
-	Name string
+	Name string = "codewiki"
 	// Version is the version of the compiled software.
 	Version string
 	// flagconf is the config flag.
@@ -32,7 +34,7 @@ func init() {
 	flag.StringVar(&flagconf, "conf", "D:\\workspace\\golang\\codewiki\\configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(logger log.Logger, hs *http.Server) *kratos.App {
+func newApp(logger klog.Logger, hs *http.Server) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
@@ -47,15 +49,6 @@ func newApp(logger log.Logger, hs *http.Server) *kratos.App {
 
 func main() {
 	flag.Parse()
-	logger := log.With(log.NewStdLogger(os.Stdout),
-		"ts", log.DefaultTimestamp,
-		"caller", log.DefaultCaller,
-		"service.id", id,
-		"service.name", Name,
-		"service.version", Version,
-		"trace.id", tracing.TraceID(),
-		"span.id", tracing.SpanID(),
-	)
 	c := config.New(
 		config.WithSource(
 			file.NewSource(flagconf),
@@ -71,7 +64,9 @@ func main() {
 	if err := c.Scan(&bc); err != nil {
 		panic(err)
 	}
-
+	var zapConfig log.ZapConfig
+	copier.Copy(&zapConfig, bc.Data.Logger)
+	logger := log.NewLogger(Name, zapConfig)
 	app, cleanup, err := wireApp(bc.Server, bc.Data, logger)
 	if err != nil {
 		panic(err)

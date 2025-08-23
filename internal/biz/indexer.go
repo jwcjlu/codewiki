@@ -28,9 +28,9 @@ type SearchCodeChunksReq struct {
 }
 
 // Indexer 创建索引
-func (idx *Indexer) Indexer(ctx context.Context, pkg *model.Package, project *model.ProjectEntity) error {
+func (idx *Indexer) Indexer(ctx context.Context, project *model.Project) error {
 	var codeChunks []*model.CodeChunk
-	for _, file := range pkg.Files {
+	for _, file := range project.GetFiles() {
 		for _, fun := range file.GetFunctions() {
 			cc, err := idx.buildCodeChunk(ctx, fun)
 			if err != nil {
@@ -46,7 +46,7 @@ func (idx *Indexer) Indexer(ctx context.Context, pkg *model.Package, project *mo
 			codeChunks = append(codeChunks, cc)
 		}
 	}
-	return idx.repo.SaveCodeChunk(ctx, project.Name, project.ID, codeChunks)
+	return idx.repo.SaveCodeChunk(ctx, project.Project.Name, project.Project.ID, codeChunks)
 }
 
 func (idx *Indexer) buildCodeChunk(ctx context.Context, builder model.CodeChunkBuilder) (*model.CodeChunk, error) {

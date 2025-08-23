@@ -53,9 +53,20 @@ message Data {
   Database database = 3;
   LLM llm=4;
   Embedding embedding=5;
+  Zap logger=6;
 }
 
 message PoolConfig{
   int32 poolSize=1;
   bool blocking=2;
+}
+
+
+message Zap {
+  string file = 1; //日志文件路径
+  bool console = 2; //是否输出到终端，用于命令行启动显示
+  int32 max_age = 3; //最大存放天数，0为长期保存
+  string level = 4; //等级，默认info级别，有debug、info、warn、error等
+  int32 max_size = 5; //文件最大大小，M为单位
+  int32 max_backups = 6; //日志文件最大滚动数
 }
