@@ -37,11 +37,17 @@ export interface CreateRepoReq {
 }
 
 export interface ListReposResp {
-  repos: Repo[];
+  ret: BaseResp;
+  body: {
+    project: Repo[];
+  };
 }
 
 export interface GetRepoResp {
-  repo: Repo;
+  ret: BaseResp;
+  body: {
+    project: Repo;
+  };
 }
 
 export interface PackageNode {
@@ -57,14 +63,16 @@ export interface FileNode {
 }
 
 export interface RepoTreeResp {
-  packages: PackageNode[];
-  files: FileNode[];
+  ret: BaseResp;
+  body: {
+    packages: PackageNode[];
+    files: FileNode[];
+  };
 }
 
 export interface ApiResponse {
-  code: number;
-  msg: string;
-  callRelations?: CallRelation[];
+  ret: BaseResp;
+  body?: any;
 }
 
 export interface Node {
@@ -146,9 +154,12 @@ export interface ViewFileReq {
 }
 
 export interface ViewFileResp {
-  Content: string;
-  language: string;
-  functions: Function[];
+  ret: BaseResp;
+  body: {
+    Content: string;
+    language: string;
+    functions: Function[];
+  };
 }
 
 // 新增：实现接口相关类型
@@ -157,7 +168,10 @@ export interface GetImplementReq {
 }
 
 export interface GetImplementResp {
-  entities: Entity[];
+  ret: BaseResp;
+  body: {
+    entities: Entity[];
+  };
 }
 
 export interface Entity {
@@ -165,4 +179,29 @@ export interface Entity {
   fileId: string;
   id: string;
   functions: Function[];
+}
+
+// 新增：基础响应结构
+export interface BaseResp {
+  code: number;
+  reason: string;
+  msg: string;
+}
+
+// 更新：调用链响应
+export interface CallChainResp {
+  ret: BaseResp;
+  body: {
+    code: number;
+    msg: string;
+    callRelations: CallRelation[];
+  };
+}
+
+// 更新：创建仓库响应
+export interface CreateRepoResp {
+  ret: BaseResp;
+  body: {
+    id: string;
+  };
 }

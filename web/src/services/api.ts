@@ -1,4 +1,4 @@
-import { CallRelation, ApiResponse, CreateRepoReq, ListReposResp, GetRepoResp, RepoTreeResp, ViewFileResp, GetImplementResp, AnswerReq, AnswerResp } from '../types';
+import { CallRelation, ApiResponse, CreateRepoReq, ListReposResp, GetRepoResp, RepoTreeResp, ViewFileResp, GetImplementResp, AnswerReq, AnswerResp, CallChainResp, CreateRepoResp } from '../types';
 
 const API_BASE_URL = 'http://localhost:8000/v1/api';
 // ---- Mock for call graph (kept) ----
@@ -110,9 +110,18 @@ export const fetchFunctionCalls = async (functionId: string, entityName?: string
     });
 
     if (!response.ok) throw new Error('Failed to fetch function calls');
-    const data: ApiResponse = await response.json();
-    if (data.code !== 0 || !data.callRelations) throw new Error(data.msg || 'Failed to fetch function calls');
-    return data.callRelations;
+    const data: CallChainResp = await response.json();
+    
+    // 检查响应状态
+    if (data.ret.code !== 0) {
+      throw new Error(data.ret.msg || 'Failed to fetch function calls');
+    }
+    
+    if (!data.body?.callRelations) {
+      throw new Error('No call relations data received');
+    }
+    
+    return data.body.callRelations;
   } catch (error) {
     return mockData;
   }
@@ -121,35 +130,57 @@ export const fetchFunctionCalls = async (functionId: string, entityName?: string
 // ---- Repo Management APIs ----
 
 export async function createRepo(req: CreateRepoReq): Promise<string> {
-  const res = await fetch(`${API_BASE_URL}/repos`, {
+  const res = await fetch(`${API_BASE_URL}/project`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
     credentials: 'include',
     body: JSON.stringify(req),
   });
   if (!res.ok) throw new Error('Create repo failed');
-  const data = await res.json();
-  return (data.id ?? data?.data?.id) as string;
+  const data: CreateRepoResp = await res.json();
+  
+  // 检查响应状态
+  if (data.ret.code !== 0) {
+    throw new Error(data.ret.msg || 'Create repo failed');
+  }
+  
+  return data.body.id;
 }
 
 export async function listRepos(): Promise<ListReposResp> {
-  const res = await fetch(`${API_BASE_URL}/repos`, { headers: { 'Accept': 'application/json' }, credentials: 'include' });
+  const res = await fetch(`${API_BASE_URL}/projects`, { headers: { 'Accept': 'application/json' }, credentials: 'include' });
   if (!res.ok) throw new Error('List repos failed');
-  const raw = await res.json();
-  const payload = raw?.repos ? raw : raw?.data ? raw.data : { repos: [] };
-  return payload as ListReposResp;
+  const data: ListReposResp = await res.json();
+  
+  // 检查响应状态
+  if (data.ret.code !== 0) {
+    throw new Error(data.ret.msg || 'List repos failed');
+  }
+  
+  return data;
 }
 
 export async function getRepo(id: string): Promise<GetRepoResp> {
-  const res = await fetch(`${API_BASE_URL}/repos/${encodeURIComponent(id)}`, { headers: { 'Accept': 'application/json' }, credentials: 'include' });
+  const res = await fetch(`${API_BASE_URL}/project/${encodeURIComponent(id)}`, { headers: { 'Accept': 'application/json' }, credentials: 'include' });
   if (!res.ok) throw new Error('Get repo failed');
-  const raw = await res.json();
-  return (raw?.repo ? raw : raw?.data ? raw.data : raw) as GetRepoResp;
+  const data: GetRepoResp = await res.json();
+  
+  // 检查响应状态
+  if (data.ret.code !== 0) {
+    throw new Error(data.ret.msg || 'Get repo failed');
+  }
+  
+  return data;
 }
 
 export async function deleteRepo(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE_URL}/repos/${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'include' });
+  const res = await fetch(`${API_BASE_URL}/project/${encodeURIComponent(id)}`, { method: 'DELETE', credentials: 'include' });
   if (!res.ok) throw new Error('Delete repo failed');
+  
+  const data = await res.json();
+  if (data.ret && data.ret.code !== 0) {
+    throw new Error(data.ret.msg || 'Delete repo failed');
+  }
 }
 
 export async function analyzeRepo(id: string): Promise<void> {
@@ -163,17 +194,24 @@ export async function analyzeRepo(id: string): Promise<void> {
     const text = await res.text().catch(() => '');
     throw new Error(`Analyze repo failed${text ? `: ${text}` : ''}`);
   }
+  
+  const data = await res.json();
+  if (data.ret && data.ret.code !== 0) {
+    throw new Error(data.ret.msg || 'Analyze repo failed');
+  }
 }
 
 export async function getRepoTree(id: string): Promise<RepoTreeResp> {
   const res = await fetch(`${API_BASE_URL}/repos/${encodeURIComponent(id)}/tree`, { headers: { 'Accept': 'application/json' }, credentials: 'include' });
   if (!res.ok) throw new Error('Get repo tree failed');
-  const raw = await res.json();
-  const payload = raw?.packages || raw?.files ? raw : raw?.data ? raw.data : {};
-  return {
-    packages: Array.isArray(payload.packages) ? payload.packages : [],
-    files: Array.isArray(payload.files) ? payload.files : []
-  };
+  const data: RepoTreeResp = await res.json();
+  
+  // 检查响应状态
+  if (data.ret.code !== 0) {
+    throw new Error(data.ret.msg || 'Get repo tree failed');
+  }
+  
+  return data;
 }
 
 export async function viewFileContent(repoId: string, fileId: string): Promise<ViewFileResp> {
@@ -182,13 +220,14 @@ export async function viewFileContent(repoId: string, fileId: string): Promise<V
     credentials: 'include' 
   });
   if (!res.ok) throw new Error('View file content failed');
-  const raw = await res.json();
-  const payload = raw?.Content ? raw : raw?.data ? raw.data : {};
-  return {
-    Content: payload.Content || '',
-    language: payload.language || 'Golang',
-    functions: payload.functions || []
-  };
+  const data: ViewFileResp = await res.json();
+  
+  // 检查响应状态
+  if (data.ret.code !== 0) {
+    throw new Error(data.ret.msg || 'View file content failed');
+  }
+  
+  return data;
 }
 
 // 新增：获取实现接口
@@ -196,83 +235,95 @@ export async function getImplement(entityId: string): Promise<GetImplementResp> 
   // 添加 mock 数据用于测试
   if (entityId === 'data_processor_interface') {
     return {
-      entities: [
-        {
-          id: 'json_processor_impl',
-          name: 'JSONDataProcessor',
-          fileId: 'json_processor.go',
-          functions: [
-            { id: 'process_json', name: 'Process', receiver: 'JSONDataProcessor', fileId: 'json_processor.go' },
-            { id: 'validate_json', name: 'Validate', receiver: 'JSONDataProcessor', fileId: 'json_processor.go' }
-          ]
-        },
-        {
-          id: 'xml_processor_impl',
-          name: 'XMLDataProcessor',
-          fileId: 'xml_processor.go',
-          functions: [
-            { id: 'process_xml', name: 'Process', receiver: 'XMLDataProcessor', fileId: 'xml_processor.go' },
-            { id: 'validate_xml', name: 'Validate', receiver: 'XMLDataProcessor', fileId: 'xml_processor.go' }
-          ]
-        }
-      ]
+      ret: { code: 0, reason: '', msg: '' },
+      body: {
+        entities: [
+          {
+            id: 'json_processor_impl',
+            name: 'JSONDataProcessor',
+            fileId: 'json_processor.go',
+            functions: [
+              { id: 'process_json', name: 'Process', receiver: 'JSONDataProcessor', fileId: 'json_processor.go' },
+              { id: 'validate_json', name: 'Validate', receiver: 'JSONDataProcessor', fileId: 'json_processor.go' }
+            ]
+          },
+          {
+            id: 'xml_processor_impl',
+            name: 'XMLDataProcessor',
+            fileId: 'xml_processor.go',
+            functions: [
+              { id: 'process_xml', name: 'Process', receiver: 'XMLDataProcessor', fileId: 'xml_processor.go' },
+              { id: 'validate_xml', name: 'Validate', receiver: 'XMLDataProcessor', fileId: 'xml_processor.go' }
+            ]
+          }
+        ]
+      }
     };
   }
   
   if (entityId === 'validator_interface') {
     return {
-      entities: [
-        {
-          id: 'string_validator_impl',
-          name: 'StringValidator',
-          fileId: 'string_validator.go',
-          functions: [
-            { id: 'validate_string', name: 'Validate', receiver: 'StringValidator', fileId: 'string_validator.go' }
-          ]
-        }
-      ]
+      ret: { code: 0, reason: '', msg: '' },
+      body: {
+        entities: [
+          {
+            id: 'string_validator_impl',
+            name: 'StringValidator',
+            fileId: 'string_validator.go',
+            functions: [
+              { id: 'validate_string', name: 'Validate', receiver: 'StringValidator', fileId: 'string_validator.go' }
+            ]
+          }
+        ]
+      }
     };
   }
 
   if (entityId === 'regex_engine_interface') {
     return {
-      entities: [
-        {
-          id: 'standard_regex_impl',
-          name: 'StandardRegexEngine',
-          fileId: 'standard_regex.go',
-          functions: [
-            { id: 'compile_regex', name: 'Compile', receiver: 'StandardRegexEngine', fileId: 'standard_regex.go' },
-            { id: 'match_regex', name: 'Match', receiver: 'StandardRegexEngine', fileId: 'standard_regex.go' }
-          ]
-        }
-      ]
+      ret: { code: 0, reason: '', msg: '' },
+      body: {
+        entities: [
+          {
+            id: 'standard_regex_impl',
+            name: 'StandardRegexEngine',
+            fileId: 'standard_regex.go',
+            functions: [
+              { id: 'compile_regex', name: 'Compile', receiver: 'StandardRegexEngine', fileId: 'standard_regex.go' },
+              { id: 'match_regex', name: 'Match', receiver: 'StandardRegexEngine', fileId: 'standard_regex.go' }
+            ]
+          }
+        ]
+      }
     };
   }
 
   // 为 vm_rule_engine_interface 添加实现数据
   if (entityId === 'vm_rule_engine_interface') {
     return {
-      entities: [
-        {
-          id: 'standard_vm_rule_impl',
-          name: 'StandardVMRuleEngine',
-          fileId: 'standard_vm_rule.go',
-          functions: [
-            { id: 'check_vm_rule', name: 'Check', receiver: 'StandardVMRuleEngine', fileId: 'standard_vm_rule.go' },
-            { id: 'apply_vm_rule', name: 'Apply', receiver: 'StandardVMRuleEngine', fileId: 'standard_vm_rule.go' }
-          ]
-        },
-        {
-          id: 'advanced_vm_rule_impl',
-          name: 'AdvancedVMRuleEngine',
-          fileId: 'advanced_vm_rule.go',
-          functions: [
-            { id: 'check_advanced_vm_rule', name: 'Check', receiver: 'AdvancedVMRuleEngine', fileId: 'advanced_vm_rule.go' },
-            { id: 'apply_advanced_vm_rule', name: 'Apply', receiver: 'AdvancedVMRuleEngine', fileId: 'advanced_vm_rule.go' }
-          ]
-        }
-      ]
+      ret: { code: 0, reason: '', msg: '' },
+      body: {
+        entities: [
+          {
+            id: 'standard_vm_rule_impl',
+            name: 'StandardVMRuleEngine',
+            fileId: 'standard_vm_rule.go',
+            functions: [
+              { id: 'check_vm_rule', name: 'Check', receiver: 'StandardVMRuleEngine', fileId: 'standard_vm_rule.go' },
+              { id: 'apply_vm_rule', name: 'Apply', receiver: 'StandardVMRuleEngine', fileId: 'standard_vm_rule.go' }
+            ]
+          },
+          {
+            id: 'advanced_vm_rule_impl',
+            name: 'AdvancedVMRuleEngine',
+            fileId: 'advanced_vm_rule.go',
+            functions: [
+              { id: 'check_advanced_vm_rule', name: 'Check', receiver: 'AdvancedVMRuleEngine', fileId: 'advanced_vm_rule.go' },
+              { id: 'apply_advanced_vm_rule', name: 'Apply', receiver: 'AdvancedVMRuleEngine', fileId: 'advanced_vm_rule.go' }
+            ]
+          }
+        ]
+      }
     };
   }
 
@@ -282,14 +333,20 @@ export async function getImplement(entityId: string): Promise<GetImplementResp> 
       credentials: 'include' 
     });
     if (!res.ok) throw new Error('Get implement failed');
-    const raw = await res.json();
-    const payload = raw?.entities ? raw : raw?.data ? raw.data : {};
-    return {
-      entities: Array.isArray(payload.entities) ? payload.entities : []
-    };
+    const data: GetImplementResp = await res.json();
+    
+    // 检查响应状态
+    if (data.ret.code !== 0) {
+      throw new Error(data.ret.msg || 'Get implement failed');
+    }
+    
+    return data;
   } catch (error) {
     // 如果 API 调用失败，返回空数组
-    return { entities: [] };
+    return { 
+      ret: { code: 0, reason: '', msg: '' },
+      body: { entities: [] } 
+    };
   }
 }
 
@@ -306,6 +363,8 @@ export const askQuestion = async (
     return new Promise((resolve, reject) => {
       let fullAnswer = '';
       let isComplete = false;
+      let hasReceivedData = false;
+      let connectionTimeout: NodeJS.Timeout;
       
       // 创建EventSource连接
       const eventSource = new EventSource(
@@ -313,15 +372,29 @@ export const askQuestion = async (
         { withCredentials: true }
       );
 
+      // 设置连接超时检测
+      connectionTimeout = setTimeout(() => {
+        if (!hasReceivedData && !isComplete) {
+          console.error('SSE连接超时，未接收到数据');
+          eventSource.close();
+          reject(new Error('SSE连接超时'));
+        }
+      }, 30000); // 30秒超时
+
       // 处理连接打开
       eventSource.onopen = () => {
         console.log('SSE连接已建立');
+        // 连接建立后清除超时
+        clearTimeout(connectionTimeout);
       };
 
       // 处理消息接收
       eventSource.onmessage = (event) => {
         try {
           console.log('收到SSE消息:', event.data);
+          
+          // 标记已接收到数据
+          hasReceivedData = true;
           
           // 解析SSE数据
           const data = JSON.parse(event.data);
@@ -346,6 +419,7 @@ export const askQuestion = async (
         } catch (parseError) {
           console.log('SSE数据解析失败，作为纯文本处理:', event.data);
           fullAnswer += event.data;
+          hasReceivedData = true;
           onChunk?.(event.data, false);
         }
       };
@@ -353,15 +427,33 @@ export const askQuestion = async (
       // 处理错误
       eventSource.onerror = (error) => {
         console.error('SSE连接错误:', error);
-        if (!isComplete) {
+        
+        // 清除超时定时器
+        clearTimeout(connectionTimeout);
+        
+        // 检查连接状态和错误类型
+        const isNormalClosure = eventSource.readyState === EventSource.CLOSED;
+        
+        // 只有在以下情况才报告错误：
+        // 1. 连接未完成
+        // 2. 连接状态不是正常关闭
+        // 3. 没有接收到任何数据
+        if (!isComplete && !isNormalClosure && !hasReceivedData) {
           reject(new Error('SSE连接失败'));
+        } else {
+          console.log('SSE连接正常关闭或已完成数据传输');
         }
+        
         eventSource.close();
       };
 
       // 处理连接关闭
       eventSource.addEventListener('close', () => {
         console.log('SSE连接已关闭');
+        
+        // 清除超时定时器
+        clearTimeout(connectionTimeout);
+        
         if (!isComplete) {
           isComplete = true;
           onChunk?.(fullAnswer, true);
@@ -377,6 +469,10 @@ export const askQuestion = async (
       if (signal) {
         signal.addEventListener('abort', () => {
           console.log('SSE请求被取消');
+          
+          // 清除超时定时器
+          clearTimeout(connectionTimeout);
+          
           eventSource.close();
           reject(new Error('SSE请求已取消'));
         });
@@ -401,16 +497,38 @@ export const askQuestionLegacy = async (req: AnswerReq, signal?: AbortSignal): P
     return new Promise((resolve, reject) => {
       let fullAnswer = '';
       let isComplete = false;
+      let hasReceivedData = false;
+      let connectionTimeout: NodeJS.Timeout;
       
       const eventSource = new EventSource(
         `${API_BASE_URL}/project/${req.id}/answer?question=${encodeURIComponent(req.question)}`,
         { withCredentials: true }
       );
 
+      // 设置连接超时检测
+      connectionTimeout = setTimeout(() => {
+        if (!hasReceivedData && !isComplete) {
+          console.error('SSE连接超时，未接收到数据');
+          eventSource.close();
+          reject(new Error('SSE连接超时'));
+        }
+      }, 30000); // 30秒超时
+
+      // 处理连接打开
+      eventSource.onopen = () => {
+        console.log('SSE连接已建立');
+        // 连接建立后清除超时
+        clearTimeout(connectionTimeout);
+      };
+
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           console.log('data', data);
+          
+          // 标记已接收到数据
+          hasReceivedData = true;
+          
           if (data.error) {
             reject(new Error(data.error));
             eventSource.close();
@@ -432,19 +550,36 @@ export const askQuestionLegacy = async (req: AnswerReq, signal?: AbortSignal): P
           }
         } catch (parseError) {
           fullAnswer += event.data;
+          hasReceivedData = true;
         }
       };
 
       eventSource.onerror = (error) => {
-        if (!isComplete) {
+        // 清除超时定时器
+        clearTimeout(connectionTimeout);
+        
+        // 检查连接状态和错误类型
+        const isNormalClosure = eventSource.readyState === EventSource.CLOSED;
+        
+        // 只有在以下情况才报告错误：
+        // 1. 连接未完成
+        // 2. 连接状态不是正常关闭
+        // 3. 没有接收到任何数据
+        if (!isComplete && !isNormalClosure && !hasReceivedData) {
           reject(new Error('SSE连接失败'));
+        } else {
+          console.log('SSE连接正常关闭或已完成数据传输');
         }
+        
         eventSource.close();
       };
 
       // 处理AbortSignal
       if (signal) {
         signal.addEventListener('abort', () => {
+          // 清除超时定时器
+          clearTimeout(connectionTimeout);
+          
           eventSource.close();
           reject(new Error('SSE请求已取消'));
         });

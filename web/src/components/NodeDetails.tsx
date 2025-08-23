@@ -56,8 +56,8 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
     try {
       const response = await getImplement(entityId);
       console.log(`getImplement response:`, response);
-      console.log(`response.entities:`, response.entities);
-      setImplementEntities(response.entities || []);
+      console.log(`response.body.entities:`, response.body.entities);
+      setImplementEntities(response.body.entities || []);
     } catch (error) {
       console.error(`Error in fetchImplementEntities:`, error);
       setImplementError(error instanceof Error ? error.message : '获取实现信息失败');
@@ -142,7 +142,7 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
     try {
       // 查询该接口的实现
       const response = await getImplement(interfaceId);
-      const implementations = response.entities || [];
+      const implementations = response.body.entities || [];
       
       if (implementations.length === 0) {
         alert(`接口 ${interfaceName} 没有找到实现类`);

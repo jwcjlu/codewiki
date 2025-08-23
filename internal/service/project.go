@@ -41,7 +41,9 @@ func (project *ProjectService) ListProjects(ctx context.Context, req *v1.ListPro
 	if err != nil {
 		return result, err
 	}
-	result.Body.Project = projects
+	result.Body = &v1.ListProjectResp_Result{
+		Project: projects,
+	}
 	return result, nil
 }
 func (project *ProjectService) GetProject(ctx context.Context, req *v1.GetProjectReq) (*v1.GetProjectResp, error) {
@@ -55,7 +57,9 @@ func (project *ProjectService) GetProject(ctx context.Context, req *v1.GetProjec
 	if err != nil {
 		return result, err
 	}
-	result.Body.Project = &target
+	result.Body = &v1.GetProjectResp_Result{
+		Project: &target,
+	}
 	return result, nil
 }
 func (project *ProjectService) DeleteProject(ctx context.Context, req *v1.DeleteProjectReq) (*v1.DeleteProjectResp, error) {

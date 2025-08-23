@@ -70,7 +70,7 @@ func (handler *StreamDataHandler[T]) HandleStreamData(ctx context.Context) (err 
 			if err != nil {
 				// 发生错误
 				handler.receive <- &StreamResponse{
-					IsComplete:  true,
+					IsComplete:  false,
 					IsStreaming: true,
 					Err:         err.Error(),
 				}

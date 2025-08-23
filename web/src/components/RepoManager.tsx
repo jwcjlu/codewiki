@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Repo, RepoTreeResp, Function, CallRelation, Node, NodePosition } from '../types';
+import { Repo, RepoTreeResp, Function, CallRelation, Node, NodePosition, PackageNode, FileNode } from '../types';
 import { listRepos, createRepo, deleteRepo, analyzeRepo, getRepoTree, viewFileContent, fetchFunctionCalls, getImplement } from '../services/api';
 import CodeViewer from './CodeViewer';
 import CallGraph from './CallGraph';
@@ -141,7 +141,7 @@ const RepoManager: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({ name: '', repoType: 0, target: '', path: '', token: '', description: '', language: 'Golang', excludes: '' });
   const [selectedRepoId, setSelectedRepoId] = useState<string | null>(null);
-  const [tree, setTree] = useState<RepoTreeResp | null>(null);
+  const [tree, setTree] = useState<{ packages: PackageNode[]; files: FileNode[] } | null>(null);
   const [treeLoading, setTreeLoading] = useState(false);
   const [filter, setFilter] = useState('');
   const [toast, setToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -499,7 +499,7 @@ const RepoManager: React.FC = () => {
     setError(null);
     try {
       const data = await listRepos();
-      setRepos(data.repos || []);
+      setRepos(data.body.project || []);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -558,7 +558,7 @@ const RepoManager: React.FC = () => {
     setSelectedRepoId(id);
     try {
       const data = await getRepoTree(id);
-      setTree(data);
+      setTree(data.body);
       // 默认只展开根节点，不展开所有子包
       setExpandedPkgs(new Set(['root']));
     } catch (error) {
@@ -570,10 +570,10 @@ const RepoManager: React.FC = () => {
     try {
       const fileData = await viewFileContent(repoId, fileId);
       setViewingFile({
-        content: fileData.Content,
-        language: fileData.language,
+        content: fileData.body.Content,
+        language: fileData.body.language,
         fileName: fileName,
-        functions: fileData.functions
+        functions: fileData.body.functions
       });
     } catch (error) {
       showToast('error', `Failed to view file: ${error}`);
@@ -663,7 +663,7 @@ const RepoManager: React.FC = () => {
         setTreeLoading(true);
         try {
           const data = await getRepoTree(selectedRepoId!);
-          setTree(data);
+          setTree(data.body);
           setExpandedPkgs(new Set());
         } catch (error) {
           showToast('error', `Failed to load repo tree: ${error}`);
@@ -690,16 +690,16 @@ const RepoManager: React.FC = () => {
             const node = callGraphNodes.get(nodeId);
             
             setViewingFile({
-              content: fileData.Content,
-              language: fileData.language,
+              content: fileData.body.Content,
+              language: fileData.body.language,
               fileName: file.name,
-              functions: fileData.functions,
+              functions: fileData.body.functions,
               highlightFunction: node?.name // 设置要高亮的函数名
             });
             
             if (node) {
               // 在文件内容中查找函数名并滚动到位置
-              highlightFunctionInFile(node.name, fileData.Content);
+              highlightFunctionInFile(node.name, fileData.body.Content);
             }
           } catch (error) {
             showToast('error', `Failed to view file: ${error}`);
@@ -763,9 +763,11 @@ const RepoManager: React.FC = () => {
     );
   }, [repos, filter]);
 
-  const TreeView: React.FC<{ tree: RepoTreeResp; rootId?: string }> = ({ tree, rootId }) => {
-    const pkgById = new Map(tree.packages.map(p => [p.id, p]));
-    const fileById = new Map(tree.files.map(f => [f.id, f]));
+  const TreeView: React.FC<{ tree: { packages: PackageNode[]; files: FileNode[] }; rootId?: string }> = ({ tree, rootId }) => {
+    const packages = tree.packages || [];
+    const files = tree.files || [];
+    const pkgById = new Map(packages.map(p => [p.id, p]));
+    const fileById = new Map(files.map(f => [f.id, f]));
     const pkgChildren = new Map<string, string[]>();
     const filesByPkg = new Map<string, string[]>();
     
@@ -776,7 +778,7 @@ const RepoManager: React.FC = () => {
     const [selectedResultIndex, setSelectedResultIndex] = useState(-1); // 当前选中的搜索结果索引
 
     // 构建包层次结构
-    tree.packages.forEach(pkg => {
+    packages.forEach(pkg => {
       if (pkg.parentId) {
         if (!pkgChildren.has(pkg.parentId)) pkgChildren.set(pkg.parentId, []);
         pkgChildren.get(pkg.parentId)!.push(pkg.id);
@@ -784,7 +786,7 @@ const RepoManager: React.FC = () => {
     });
 
     // 构建文件到包的映射
-    tree.files.forEach(file => {
+    files.forEach(file => {
       if (!filesByPkg.has(file.pkgId)) filesByPkg.set(file.pkgId, []);
       filesByPkg.get(file.pkgId)!.push(file.id);
     });
@@ -813,7 +815,7 @@ const RepoManager: React.FC = () => {
 
     // 新增：展开所有包（谨慎使用）
     const expandAll = () => {
-      const allPkgIds = new Set(tree.packages.map(p => p.id));
+      const allPkgIds = new Set(packages.map(p => p.id));
       allPkgIds.add('root');
       setExpandedPkgs(allPkgIds);
     };
@@ -830,7 +832,7 @@ const RepoManager: React.FC = () => {
       const queryLower = query.toLowerCase();
 
       // 遍历所有文件，查找匹配的文件名
-      tree.files.forEach(file => {
+      files.forEach(file => {
         if (file.name.toLowerCase().includes(queryLower)) {
           // 找到文件所属的包
           const pkg = pkgById.get(file.pkgId);

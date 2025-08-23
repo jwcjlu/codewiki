@@ -28,6 +28,7 @@ func (service *RepositoryService) CallChain(ctx context.Context, req *v1.CallCha
 	if err != nil {
 		return result, err
 	}
+	result.Body = &v1.CallChainResp_Result{}
 	result.Body.CallRelations = targets
 	return result, nil
 }
@@ -45,6 +46,7 @@ func (service *RepositoryService) GetRepoTree(ctx context.Context, req *v1.GetRe
 	if err != nil {
 		return result, err
 	}
+	result.Body = &v1.GetRepoTreeResp_Result{}
 	for _, pkg := range pkgs {
 		result.Body.Packages = append(result.Body.Packages, &v1.PackageNode{
 			Id:       pkg.ID,
@@ -67,6 +69,7 @@ func (service *RepositoryService) ViewFileContent(ctx context.Context, req *v1.V
 	if err != nil {
 		return result, err
 	}
+	result.Body = &v1.ViewFileResp_Result{}
 	result.Body.Content = fc.Content
 	result.Body.Language = fc.Language
 	var funs []*v1.Function
@@ -85,6 +88,7 @@ func (service *RepositoryService) GetImplement(ctx context.Context, req *v1.GetI
 	if err != nil {
 		return result, err
 	}
+	result.Body = &v1.GetImplementResp_Result{}
 	result.Body.Entities = entities
 
 	return result, nil
