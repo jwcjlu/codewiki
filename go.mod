@@ -8,9 +8,9 @@ require (
 	github.com/go-kratos/aegis v0.2.0
 	github.com/go-kratos/kratos/contrib/metrics/prometheus/v2 v2.0.0-20240322155018-41971ffa647a
 	github.com/go-kratos/kratos/v2 v2.7.3
-	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/uuid v1.6.0
 	github.com/google/wire v0.6.0
+	github.com/gorilla/mux v1.8.1
 	github.com/milvus-io/milvus/client/v2 v2.5.6
 	github.com/prometheus/client_golang v1.21.1
 	github.com/qdrant/go-client v1.15.2
@@ -20,7 +20,6 @@ require (
 	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/automaxprocs v1.5.3
 	golang.org/x/mod v0.18.0
-	golang.org/x/oauth2 v0.27.0
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
 	gorm.io/driver/mysql v1.6.0
@@ -45,7 +44,7 @@ require (
 	github.com/lufia/plan9stats v0.0.0-20231016141302-07b5767bb0ed // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/neo4j/neo4j-go-driver/v5 v5.28.1
-	github.com/panjf2000/ants/v2 v2.11.3
+	github.com/panjf2000/ants/v2 v2.11.3 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/power-devops/perfstat v0.0.0-20221212215047-62379fc7944b // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
@@ -79,13 +78,12 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/btree v1.1.2 // indirect
-	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
+	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jonboulle/clockwork v0.2.2 // indirect
@@ -99,7 +97,6 @@ require (
 	github.com/opencontainers/runtime-spec v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
-	github.com/quasilyte/go-ruleguard/dsl v0.3.22 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/samber/lo v1.27.0 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.12 // indirect

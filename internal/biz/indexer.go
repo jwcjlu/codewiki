@@ -2,6 +2,7 @@ package biz
 
 import (
 	v1 "codewiki/api/codewiki/v1"
+	"codewiki/internal/biz/model"
 	"codewiki/internal/pkg/llm"
 	"context"
 )
@@ -19,33 +20,6 @@ func NewIndexer(llm *llm.LLM, repo IndexerRepo) *Indexer {
 	return &Indexer{llm: llm, repo: repo}
 }
 
-type Scope string
-
-const (
-	ChunkFileScope     Scope = "file"
-	ChunkFunctionScope Scope = "function"
-	ChunkPkgScope      Scope = "pkg"
-	ChunkProjectScope  Scope = "project"
-)
-
-type CodeChunk struct {
-	Path        string `json:"path" `
-	Content     string `json:"content" `
-	codeVector  []float32
-	logicVector []float32
-	Document    string `json:"document"`
-	Logic       string `json:"logic"`
-	Scope       Scope  `json:"scope"`
-	Id          string `json:"id"`
-}
-
-func (cc *CodeChunk) CodeVector() []float32 {
-	return cc.codeVector
-}
-func (cc *CodeChunk) LogicVector() []float32 {
-	return cc.logicVector
-}
-
 type SearchCodeChunksReq struct {
 	Limit       int
 	QueryVector []float32
@@ -54,8 +28,8 @@ type SearchCodeChunksReq struct {
 }
 
 // Indexer 创建索引
-func (idx *Indexer) Indexer(ctx context.Context, pkg *Package, repo *v1.Repo) error {
-	var codeChunks []*CodeChunk
+func (idx *Indexer) Indexer(ctx context.Context, pkg *model.Package, project *model.ProjectEntity) error {
+	var codeChunks []*model.CodeChunk
 	for _, file := range pkg.Files {
 		for _, fun := range file.GetFunctions() {
 			cc, err := idx.buildCodeChunk(ctx, fun)
@@ -72,10 +46,10 @@ func (idx *Indexer) Indexer(ctx context.Context, pkg *Package, repo *v1.Repo) er
 			codeChunks = append(codeChunks, cc)
 		}
 	}
-	return idx.repo.SaveCodeChunk(ctx, repo.Name, repo.Id, codeChunks)
+	return idx.repo.SaveCodeChunk(ctx, project.Name, project.ID, codeChunks)
 }
 
-func (idx *Indexer) buildCodeChunk(ctx context.Context, builder CodeChunkBuilder) (*CodeChunk, error) {
+func (idx *Indexer) buildCodeChunk(ctx context.Context, builder model.CodeChunkBuilder) (*model.CodeChunk, error) {
 	rawCodeChunk := builder.BuildRawCodeChunk()
 	if !idx.llm.Enable() {
 		return nil, v1.ErrorNotSupportLLM("buildCodeChunk failure ! not support llm")
@@ -87,12 +61,12 @@ func (idx *Indexer) buildCodeChunk(ctx context.Context, builder CodeChunkBuilder
 	if err != nil {
 		return nil, err
 	}
-	rawCodeChunk.codeVector = resp.Data[0].Embedding
+	rawCodeChunk.SetCodeVector(resp.Data[0].Embedding)
 	return rawCodeChunk, nil
 }
 
 // SearchCode 搜索代码
-func (idx *Indexer) SearchCode(ctx context.Context, repo *v1.Repo, query string) ([]*CodeChunk, error) {
+func (idx *Indexer) SearchCode(ctx context.Context, repo *model.ProjectEntity, query string) ([]*model.CodeChunk, error) {
 	if !idx.llm.Enable() {
 		return nil, v1.ErrorNotSupportLLM("SearchCode failure !not support llm")
 	}
@@ -110,11 +84,7 @@ func (idx *Indexer) SearchCode(ctx context.Context, repo *v1.Repo, query string)
 		Limit:       1,
 		QueryVector: resp.Data[0].Embedding,
 		ProjectName: repo.Name,
-		Partition:   repo.Id,
+		Partition:   repo.ID,
 	})
 	return results, nil
-}
-
-type CodeChunkBuilder interface {
-	BuildRawCodeChunk() *CodeChunk
 }

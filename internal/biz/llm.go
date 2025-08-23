@@ -9,7 +9,7 @@ func NewConfig(data *conf.Data) *llm.Config {
 	if data.Llm == nil {
 		return &llm.Config{}
 	}
-	model = Model{
+	llmModel = LLMModel{
 		llmModel:       data.Llm.LlmModelName,
 		embeddingModel: data.Llm.LlmModelName,
 	}
@@ -20,22 +20,22 @@ func NewConfig(data *conf.Data) *llm.Config {
 
 }
 
-var model Model
+var llmModel LLMModel
 
-type Model struct {
+type LLMModel struct {
 	llmModel       string
 	embeddingModel string
 }
 
 func GetLLMModel() string {
-	if model.llmModel == "" {
+	if llmModel.llmModel == "" {
 		return "deepseek-r1:32b"
 	}
-	return model.llmModel
+	return llmModel.llmModel
 }
 func GetEmbeddingModel() string {
-	if model.embeddingModel == "" {
+	if llmModel.embeddingModel == "" {
 		return "text-embedding-3-small"
 	}
-	return model.embeddingModel
+	return llmModel.embeddingModel
 }

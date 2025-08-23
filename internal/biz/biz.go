@@ -6,4 +6,4 @@ import (
 )
 
 // ProviderSet is biz providers.
-var ProviderSet = wire.NewSet(NewCodeWiki, NewQAEngine, llm.NewLLM, NewIndexer, NewConfig)
+var ProviderSet = wire.NewSet(NewQAEngine, llm.NewLLM, NewIndexer, NewConfig, NewRepositoryBiz, NewProjectBiz)

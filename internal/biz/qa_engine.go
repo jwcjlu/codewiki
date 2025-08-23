@@ -11,16 +11,17 @@ import (
 )
 
 type QAEngine struct {
-	llm     *llm.LLM
-	indexer *Indexer
-	repo    ProjectRepo
+	llm         *llm.LLM
+	indexer     *Indexer
+	repo        CodeRepo
+	projectRepo ProjectRepo
 }
 
-func NewQAEngine(llm *llm.LLM, indexer *Indexer, repo ProjectRepo) *QAEngine {
-	return &QAEngine{llm: llm, indexer: indexer, repo: repo}
+func NewQAEngine(llm *llm.LLM, indexer *Indexer, repo CodeRepo, projectRepo ProjectRepo) *QAEngine {
+	return &QAEngine{llm: llm, indexer: indexer, repo: repo, projectRepo: projectRepo}
 }
 func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan sse.Message) error {
-	repo, err := qa.repo.GetRepo(ctx, req.GetId())
+	repo, err := qa.projectRepo.GetProject(ctx, req.GetId())
 	if err != nil {
 		return fmt.Errorf("query repo err:%v", err)
 	}
@@ -30,7 +31,7 @@ func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan sse
 		return fmt.Errorf("indexer search code %s err:%v", req.GetQuestion(), err)
 	}
 
-	chains, err := qa.repo.QueryCallChain(ctx, results[0].Id, 4)
+	chains, err := qa.repo.QueryCallRelations(ctx, results[0].Id, 4)
 	if err != nil {
 		return fmt.Errorf("query call chain err:%v", err)
 	}
@@ -38,7 +39,7 @@ func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan sse
 	for _, chain := range chains {
 		ids = append(ids, chain.CalleeId)
 	}
-	results, err = qa.indexer.repo.SearchCodeChunkByIds(ctx, repo.Name, ids, 50)
+	results, err = qa.indexer.repo.SearchCodeChunkByIds(ctx, repo.Name, ids, 200)
 	if err != nil {
 		return fmt.Errorf("search code chunk err:%v", err)
 	}

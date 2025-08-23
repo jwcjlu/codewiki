@@ -3,16 +3,16 @@
 
 openapi: 3.0.3
 info:
-    title: CodeWikiService API
+    title: ""
     version: 0.0.1
 paths:
     /v1/api/entity/{id}/implements:
         get:
             tags:
-                - CodeWikiService
+                - RepoService
             summary: 实体/得到所有实现
             description: interface  implement
-            operationId: CodeWikiService_GetImplement
+            operationId: RepoService_GetImplement
             parameters:
                 - name: id
                   in: path
@@ -35,9 +35,9 @@ paths:
     /v1/api/functions/{id}/calls:
         get:
             tags:
-                - CodeWikiService
+                - RepoService
             summary: 分析代码
-            operationId: CodeWikiService_CallChain
+            operationId: RepoService_CallChain
             parameters:
                 - name: id
                   in: path
@@ -57,65 +57,18 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /v1/api/project/{id}/answer:
-        get:
-            tags:
-                - CodeWikiService
-            summary: 项目/回答
-            operationId: CodeWikiService_Answer
-            parameters:
-                - name: id
-                  in: path
-                  required: true
-                  schema:
-                    type: string
-                - name: question
-                  in: query
-                  schema:
-                    type: string
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/AnswerResp'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
-    /v1/api/repos:
-        get:
-            tags:
-                - CodeWikiService
-            summary: 仓库列表
-            operationId: CodeWikiService_ListRepos
-            responses:
-                "200":
-                    description: OK
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/ListReposResp'
-                default:
-                    description: Default error response
-                    content:
-                        application/json:
-                            schema:
-                                $ref: '#/components/schemas/Status'
+    /v1/api/project:
         post:
             tags:
-                - CodeWikiService
+                - ProjectService
             summary: 创建仓库
             description: Repo management
-            operationId: CodeWikiService_CreateRepo
+            operationId: ProjectService_CreateProject
             requestBody:
                 content:
                     application/json:
                         schema:
-                            $ref: '#/components/schemas/CreateRepoReq'
+                            $ref: '#/components/schemas/CreateProjectReq'
                 required: true
             responses:
                 "200":
@@ -123,19 +76,19 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/CreateRepoResp'
+                                $ref: '#/components/schemas/CreateProjectResp'
                 default:
                     description: Default error response
                     content:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Status'
-    /v1/api/repos/{id}:
+    /v1/api/project/{id}:
         get:
             tags:
-                - CodeWikiService
+                - ProjectService
             summary: 仓库详情
-            operationId: CodeWikiService_GetRepo
+            operationId: ProjectService_GetProject
             parameters:
                 - name: id
                   in: path
@@ -148,7 +101,7 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/GetRepoResp'
+                                $ref: '#/components/schemas/GetProjectResp'
                 default:
                     description: Default error response
                     content:
@@ -157,9 +110,9 @@ paths:
                                 $ref: '#/components/schemas/Status'
         delete:
             tags:
-                - CodeWikiService
+                - ProjectService
             summary: 删除仓库
-            operationId: CodeWikiService_DeleteRepo
+            operationId: ProjectService_DeleteProject
             parameters:
                 - name: id
                   in: path
@@ -172,7 +125,26 @@ paths:
                     content:
                         application/json:
                             schema:
-                                $ref: '#/components/schemas/DeleteRepoResp'
+                                $ref: '#/components/schemas/DeleteProjectResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/projects:
+        get:
+            tags:
+                - ProjectService
+            summary: 仓库列表
+            operationId: ProjectService_ListProjects
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListProjectResp'
                 default:
                     description: Default error response
                     content:
@@ -182,10 +154,10 @@ paths:
     /v1/api/repos/{id}/analyze:
         post:
             tags:
-                - CodeWikiService
+                - RepoService
             summary: 按仓库触发分析
             description: Analyze by repository id
-            operationId: CodeWikiService_AnalyzeRepo
+            operationId: RepoService_AnalyzeRepo
             parameters:
                 - name: id
                   in: path
@@ -214,10 +186,10 @@ paths:
     /v1/api/repos/{id}/tree:
         get:
             tags:
-                - CodeWikiService
+                - RepoService
             summary: 仓库包/文件树
             description: Repo tree display
-            operationId: CodeWikiService_GetRepoTree
+            operationId: RepoService_GetRepoTree
             parameters:
                 - name: id
                   in: path
@@ -240,10 +212,10 @@ paths:
     /v1/api/{repoId}/file/{id}/view:
         get:
             tags:
-                - CodeWikiService
+                - RepoService
             summary: 文件/文件内容
             description: File  view  content
-            operationId: CodeWikiService_ViewFileContent
+            operationId: RepoService_ViewFileContent
             parameters:
                 - name: repoId
                   in: path
@@ -278,28 +250,26 @@ components:
         AnalyzeResp:
             type: object
             properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+        BaseResp:
+            type: object
+            properties:
                 code:
                     type: integer
                     format: int32
+                reason:
+                    type: string
                 msg:
                     type: string
-        AnswerResp:
+        CallChainResp:
             type: object
             properties:
-                answer:
-                    type: string
-                isStreaming:
-                    type: boolean
-                isComplete:
-                    type: boolean
-                chunk:
-                    type: string
-                chunkIndex:
-                    type: integer
-                    format: int32
-                error:
-                    type: string
-        CallChainResp:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/CallChainResp_Result'
+        CallChainResp_Result:
             type: object
             properties:
                 code:
@@ -334,7 +304,7 @@ components:
                     type: string
                 callerEntityId:
                     type: string
-        CreateRepoReq:
+        CreateProjectReq:
             type: object
             properties:
                 name:
@@ -357,14 +327,23 @@ components:
                 language:
                     type: integer
                     format: enum
-        CreateRepoResp:
+        CreateProjectResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/CreateProjectResp_Result'
+        CreateProjectResp_Result:
             type: object
             properties:
                 id:
                     type: string
-        DeleteRepoResp:
+        DeleteProjectResp:
             type: object
-            properties: {}
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
         Entity:
             type: object
             properties:
@@ -401,16 +380,37 @@ components:
         GetImplementResp:
             type: object
             properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/GetImplementResp_Result'
+        GetImplementResp_Result:
+            type: object
+            properties:
                 entities:
                     type: array
                     items:
                         $ref: '#/components/schemas/Entity'
-        GetRepoResp:
+        GetProjectResp:
             type: object
             properties:
-                repo:
-                    $ref: '#/components/schemas/Repo'
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/GetProjectResp_Result'
+        GetProjectResp_Result:
+            type: object
+            properties:
+                project:
+                    $ref: '#/components/schemas/Project'
         GetRepoTreeResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/GetRepoTreeResp_Result'
+        GetRepoTreeResp_Result:
             type: object
             properties:
                 packages:
@@ -429,13 +429,20 @@ components:
                     description: The type of the serialized message.
             additionalProperties: true
             description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
-        ListReposResp:
+        ListProjectResp:
             type: object
             properties:
-                repos:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/ListProjectResp_Result'
+        ListProjectResp_Result:
+            type: object
+            properties:
+                project:
                     type: array
                     items:
-                        $ref: '#/components/schemas/Repo'
+                        $ref: '#/components/schemas/Project'
         PackageNode:
             type: object
             properties:
@@ -445,7 +452,7 @@ components:
                     type: string
                 parentId:
                     type: string
-        Repo:
+        Project:
             type: object
             properties:
                 id:
@@ -490,6 +497,13 @@ components:
         ViewFileResp:
             type: object
             properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/ViewFileResp_Result'
+        ViewFileResp_Result:
+            type: object
+            properties:
                 Content:
                     type: string
                 language:
@@ -500,4 +514,5 @@ components:
                     items:
                         $ref: '#/components/schemas/Function'
 tags:
-    - name: CodeWikiService
+    - name: ProjectService
+    - name: RepoService

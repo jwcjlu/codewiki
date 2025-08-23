@@ -28,7 +28,7 @@ enum FunScope{
     Constant=3;
     Variable=4;
 }
-service CodeWikiService {
+service RepoService {
   rpc CallChain(CallChainReq) returns (CallChainResp) {
     option (google.api.http) = {
       get: "/v1/api/functions/{id}/calls"
@@ -37,28 +37,6 @@ service CodeWikiService {
       summary: "分析代码"
     };
   }
-
-  // Repo management
-  rpc CreateRepo(CreateRepoReq) returns (CreateRepoResp) {
-    option (google.api.http) = {
-      post: "/v1/api/repos"
-      body: "*"
-    };
-    option (openapi.v3.operation) = { summary: "创建仓库" };
-  }
-  rpc ListRepos(ListReposReq) returns (ListReposResp) {
-    option (google.api.http) = { get: "/v1/api/repos" };
-    option (openapi.v3.operation) = { summary: "仓库列表" };
-  }
-  rpc GetRepo(GetRepoReq) returns (GetRepoResp) {
-    option (google.api.http) = { get: "/v1/api/repos/{id}" };
-    option (openapi.v3.operation) = { summary: "仓库详情" };
-  }
-  rpc DeleteRepo(DeleteRepoReq) returns (DeleteRepoResp) {
-    option (google.api.http) = { delete: "/v1/api/repos/{id}" };
-    option (openapi.v3.operation) = { summary: "删除仓库" };
-  }
-
   // Analyze by repository id
   rpc AnalyzeRepo(AnalyzeRepoReq) returns (AnalyzeResp) {
     option (google.api.http) = {
@@ -83,11 +61,32 @@ service CodeWikiService {
     option (google.api.http) = { get: "/v1/api/entity/{id}/implements" };
     option (openapi.v3.operation) = { summary: "实体/得到所有实现" };
   }  // interface  implement
-  rpc Answer(AnswerReq) returns (stream AnswerResp) {
-    option (google.api.http) = { get: "/v1/api/project/{id}/answer" };
-    option (openapi.v3.operation) = { summary: "项目/回答" };
+
+}
+
+service ProjectService{
+  // Repo management
+  rpc CreateProject(CreateProjectReq) returns (CreateProjectResp) {
+    option (google.api.http) = {
+      post: "/v1/api/project"
+      body: "*"
+    };
+    option (openapi.v3.operation) = { summary: "创建仓库" };
+  }
+  rpc ListProjects(ListProjectReq) returns (ListProjectResp) {
+    option (google.api.http) = { get: "/v1/api/projects" };
+    option (openapi.v3.operation) = { summary: "仓库列表" };
+  }
+  rpc GetProject(GetProjectReq) returns (GetProjectResp) {
+    option (google.api.http) = { get: "/v1/api/project/{id}" };
+    option (openapi.v3.operation) = { summary: "仓库详情" };
+  }
+  rpc DeleteProject(DeleteProjectReq) returns (DeleteProjectResp) {
+    option (google.api.http) = { delete: "/v1/api/project/{id}" };
+    option (openapi.v3.operation) = { summary: "删除仓库" };
   }
 }
+
 message AnalyzeReq{
    RepoType repoType=1;
    string path=2[(validate.rules).string = {min_len: 8, max_len: 256}];
@@ -99,8 +98,7 @@ message AnalyzeReq{
 }
 
 message AnalyzeResp{
-  int32 code=1;
-  string msg=2;
+  BaseResp ret = 1;
 }
 
 message CallChainReq{
@@ -108,9 +106,14 @@ message CallChainReq{
 }
 
 message CallChainResp{
-  int32 code=1;
-  string msg=2;
-  repeated CallRelationship callRelations=3;
+  message Result{
+    int32 code=1;
+    string msg=2;
+    repeated CallRelationship callRelations=3;
+  }
+
+  BaseResp ret = 1;
+  Result body = 2;
 }
 
 message CallRelationship{
@@ -127,7 +130,7 @@ message CallRelationship{
 }
 
 // ===== Repo Management =====
-message Repo{
+message Project{
   string id=1;
   string name=2;
   RepoType repoType=3;
@@ -140,7 +143,7 @@ message Repo{
 
 }
 
-message CreateRepoReq{
+message CreateProjectReq{
   string name=1[(validate.rules).string = {min_len: 1, max_len: 128}];
   RepoType repoType=2;
   string path=3;
@@ -150,16 +153,36 @@ message CreateRepoReq{
   repeated string excludes=7;//不需要分析的目录
   Language language=8;
 }
-message CreateRepoResp{ string id=1; }
+message CreateProjectResp{
+  message Result{
+    string id=1;
+  }
+  BaseResp ret = 1;
+  Result body = 2;
+  }
 
-message ListReposReq{}
-message ListReposResp{ repeated Repo repos=1; }
+message ListProjectReq{}
+message ListProjectResp{
+  message Result{
+   repeated Project project=1;
+  }
+  BaseResp ret = 1;
+  Result body = 2;
+}
 
-message GetRepoReq{ string id=1; }
-message GetRepoResp{ Repo repo=1; }
+message GetProjectReq{ string id=1; }
+message GetProjectResp{
+  message Result{
+    Project project=1;
+  }
+  BaseResp ret = 1;
+  Result body = 2;
+}
 
-message DeleteRepoReq{ string id=1; }
-message DeleteRepoResp{}
+message DeleteProjectReq{ string id=1; }
+message DeleteProjectResp{
+  BaseResp ret = 1;
+}
 
 message AnalyzeRepoReq{
   string id=1;
@@ -168,8 +191,13 @@ message AnalyzeRepoReq{
 
 message GetRepoTreeReq{ string id=1; }
 message GetRepoTreeResp{
-  repeated PackageNode packages=1;
-  repeated FileNode files=2;
+  message Result{
+    repeated PackageNode packages=1;
+    repeated FileNode files=2;
+  }
+  BaseResp ret = 1;
+  Result body = 2;
+
 }
 
 message PackageNode{
@@ -189,9 +217,13 @@ message ViewFileReq{
 }
 
 message ViewFileResp{
-  string Content=1;
-  Language language=2;
-  repeated Function functions=3;
+  message Result{
+    string Content=1;
+    Language language=2;
+    repeated Function functions=3;
+  }
+  BaseResp ret = 1;
+  Result body = 2;
 
 }
 
@@ -214,7 +246,12 @@ message GetImplementReq{
 }
 
 message GetImplementResp{
-  repeated Entity entities=1;
+  message Result{
+    repeated Entity entities=1;
+  }
+  BaseResp ret = 1;
+  Result body = 2;
+
 }
 
 message AnswerReq{
@@ -223,10 +260,22 @@ message AnswerReq{
 }
 
 message AnswerResp{
+
   string answer = 1;
   bool is_streaming = 2;  // 是否为流式响应
   bool is_complete = 3;   // 是否完成
   string chunk = 4;       // 流式数据块
   int32 chunk_index = 5;  // 数据块索引
   string error = 6;       // 错误信息
+}
+
+
+message BaseResp{
+  int32 code = 1;
+  string reason = 2;
+  string msg = 3;
+}
+
+message Response{
+  BaseResp ret = 1;
 }

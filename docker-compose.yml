@@ -75,17 +75,7 @@ services:
       - codewiki-network
     restart: unless-stopped
 
-  # Redis缓存（可选）
-  redis:
-    image: redis:7-alpine
-    container_name: codewiki-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - codewiki-network
-    restart: unless-stopped
+
 
 volumes:
   mysql_data:

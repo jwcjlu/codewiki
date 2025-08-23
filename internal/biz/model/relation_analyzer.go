@@ -1,25 +1,27 @@
-package biz
+package model
 
 import (
 	"fmt"
 	"go/ast"
 )
 
+type RelationType string
+
 const (
-	Contains      = "Contains"      //包含
-	ContainsFile  = "ContainsFile"  //包含
-	DeclareFunc   = "DeclareFunc"   //声明
-	DeclareEntity = "DeclareEntity" //声明
-	HasFields     = "HasFields"     //有某字段
-	HasMethod     = "HasMethod"     //有某方法
-	Implement     = "Implement"     //实现
-	Call          = "Call"          //调用
-	Extends       = "Extends"       //继承
-	Imports       = "Import"
+	Contains      RelationType = "Contains"      //包含
+	ContainsFile  RelationType = "ContainsFile"  //包含
+	DeclareFunc   RelationType = "DeclareFunc"   //声明
+	DeclareEntity RelationType = "DeclareEntity" //声明
+	HasFields     RelationType = "HasFields"     //有某字段
+	HasMethod     RelationType = "HasMethod"     //有某方法
+	Implement     RelationType = "Implement"     //实现
+	Call          RelationType = "Call"          //调用
+	Extends       RelationType = "Extends"       //继承
+	Imports       RelationType = "Import"
 )
 
 type Relation struct {
-	Type       string
+	Type       RelationType
 	TargetID   string
 	Confidence float64
 	SourceID   string

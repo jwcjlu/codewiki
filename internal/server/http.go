@@ -5,87 +5,34 @@ import (
 	"codewiki/internal/conf"
 	"codewiki/internal/server/middleware"
 	"codewiki/internal/service"
-	"strings"
-
 	"github.com/go-kratos/aegis/ratelimit/bbr"
+	"github.com/go-kratos/kratos/v2/errors"
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware/logging"
 	"github.com/go-kratos/kratos/v2/middleware/ratelimit"
+	"github.com/go-kratos/kratos/v2/middleware/recovery"
 	"github.com/go-kratos/kratos/v2/middleware/tracing"
 	"github.com/go-kratos/kratos/v2/middleware/validate"
+	"github.com/go-kratos/kratos/v2/transport/http"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/rs/cors"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
-
-	"github.com/go-kratos/kratos/v2/log"
-	"github.com/go-kratos/kratos/v2/middleware/recovery"
-	"github.com/go-kratos/kratos/v2/transport/http"
+	shttp "net/http"
+	"reflect"
 )
 
 // NewHTTPServer new an HTTP server.
-func NewHTTPServer(c *conf.Server, codeWikiService *service.CodeWikiService, logger log.Logger) *http.Server {
-	corsMiddleware := cors.New(cors.Options{
-		AllowedOrigins: []string{
-			"http://localhost:3000", // React开发服务器
-			"http://localhost:3001", // React备用端口
-			"http://localhost:5173", // Vite开发服务器
-			"http://localhost:8080", // 其他前端开发端口
-			"http://localhost:9000", // 流式API端口
-			"http://127.0.0.1:3000", // 本地IP访问
-			"http://127.0.0.1:3001",
-			"http://127.0.0.1:5173",
-			"http://127.0.0.1:8080",
-			"http://127.0.0.1:9000", // 流式API端口
-		},
-		AllowedMethods: []string{
-			"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH",
-		},
-		AllowedHeaders: []string{
-			"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With",
-			"Cache-Control", "Pragma", "X-CSRF-Token", "X-API-Key",
-			"Accept-Encoding", "Accept-Language", "DNT", "User-Agent",
-		},
-		ExposedHeaders: []string{
-			"Content-Length", "Content-Type", "X-Total-Count",
-			"X-Request-ID", "X-Response-Time",
-		},
-		AllowCredentials: true,
-		MaxAge:           86400, // 24小时
-		AllowOriginFunc: func(origin string) bool {
-			// 允许无origin的请求（如curl、Postman等）
-			if origin == "" {
-				return true
-			}
-
-			// 允许null origin（某些浏览器扩展）
-			if origin == "null" {
-				return true
-			}
-
-			// 开发环境允许所有localhost来源
-			if strings.Contains(origin, "localhost") || strings.Contains(origin, "127.0.0.1") {
-				return true
-			}
-
-			// 允许file://协议（本地文件访问）
-			if strings.HasPrefix(origin, "file://") {
-				return true
-			}
-
-			// 生产环境可以在这里添加允许的域名
-			// 例如：strings.HasPrefix(origin, "https://yourdomain.com")
-
-			return false
-		},
-		// 调试模式
-		Debug: false,
-	})
+func NewHTTPServer(c *conf.Server,
+	projectService *service.ProjectService,
+	qaService *service.QAService,
+	repositoryService *service.RepositoryService,
+	logger log.Logger) *http.Server {
 
 	var opts = []http.ServerOption{
 		http.Middleware(
 			recovery.Recovery(),
 		),
-		http.Filter(corsMiddleware.Handler),
+		http.Filter(middleware.CorsHandler()),
 	}
 	if c.Http.Network != "" {
 		opts = append(opts, http.Network(c.Http.Network))
@@ -111,9 +58,69 @@ func NewHTTPServer(c *conf.Server, codeWikiService *service.CodeWikiService, log
 		middleware.Metric(),
 		ratelimit.Server(ratelimit.WithLimiter(bbr.NewLimiter())),
 	))
+	opts = append(opts, http.ResponseEncoder(responseEncoder))
+	opts = append(opts, http.ErrorEncoder(errorEncoder))
 	srv := http.NewServer(opts...)
-	v1.RegisterCodeWikiServiceHTTPServer(srv, codeWikiService)
+	v1.RegisterProjectServiceHTTPServer(srv, projectService)
+	v1.RegisterRepoServiceHTTPServer(srv, repositoryService)
 	srv.Handle("/metrics", promhttp.Handler())
-	srv.Handle("/v1/api/project/{id}/answer", service.NewAnswerHandler(codeWikiService))
+	srv.Handle("/v1/api/project/{id}/answer", qaService)
 	return srv
+}
+
+type BizResp interface {
+	GetRet() *v1.BaseResp
+}
+
+func responseEncoder(w http.ResponseWriter, r *http.Request, v interface{}) error {
+	if v == nil {
+		return nil
+	}
+	if rd, ok := v.(http.Redirector); ok {
+		url, code := rd.Redirect()
+		shttp.Redirect(w, r, url, code)
+		return nil
+	}
+	bizResp, ok := v.(BizResp)
+	if ok && bizResp != nil && bizResp.GetRet() == nil {
+		val := reflect.ValueOf(v).Elem()
+		ret := val.FieldByName("Ret")
+		if ret.CanSet() {
+			ret.Set(reflect.ValueOf(&v1.BaseResp{Code: 0, Msg: ""}))
+		}
+	}
+	codec, _ := http.CodecForRequest(r, "Accept")
+	data, err := codec.Marshal(v)
+	if err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_, err = w.Write(data)
+	return err
+}
+
+func errorEncoder(w shttp.ResponseWriter, r *shttp.Request, err error) {
+	se := errors.FromError(err)
+	codec, _ := http.CodecForRequest(r, "Accept")
+	bizCode := v1.ErrorReason_value[se.Reason]
+	if bizCode == 0 {
+		bizCode = 500
+	}
+
+	rsp := v1.Response{
+		Ret: &v1.BaseResp{
+			Code:   bizCode,
+			Reason: se.Reason,
+			Msg:    se.Message,
+		},
+	}
+	body, err := codec.Marshal(&rsp)
+	if err != nil {
+		w.WriteHeader(shttp.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(int(se.Code))
+	_, _ = w.Write(body)
 }

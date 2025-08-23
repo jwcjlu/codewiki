@@ -26,31 +26,30 @@ import (
 
 // wireApp init kratos application.
 func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*kratos.App, func(), error) {
+	db, err := data.NewGormDB(confData, logger)
+	if err != nil {
+		return nil, nil, err
+	}
+	projectRepo := repo.NewProjectRepo(db)
+	projectBiz := biz.NewProjectBiz(projectRepo)
+	indexerRepo := repo.NewIndexerRepo(confData)
 	dataData, cleanup, err := data.NewData(confData, logger)
 	if err != nil {
 		return nil, nil, err
 	}
 	driverWithContext := data.NewDriverWithContext(dataData)
-	db, err := data.NewGormDB(confData, logger)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
-	projectRepo, err := repo.NewCompositeRepo(driverWithContext, db)
-	if err != nil {
-		cleanup()
-		return nil, nil, err
-	}
+	codeRepo := repo.NewCodeNeo4jRepo(driverWithContext)
+	entityRepo := repo.NewEntityRepo(driverWithContext)
+	repositoryBiz := biz.NewRepositoryBiz(indexerRepo, codeRepo, entityRepo, projectRepo)
+	projectService := service.NewProjectService(projectBiz, repositoryBiz)
 	config := biz.NewConfig(confData)
 	llmLLM := llm.NewLLM(config)
-	indexerRepo := repo.NewMilvus(confData)
 	indexer := biz.NewIndexer(llmLLM, indexerRepo)
-	codeWiki := biz.NewCodeWiki(projectRepo, indexer)
-	qaEngine := biz.NewQAEngine(llmLLM, indexer, projectRepo)
-	codeWikiService := service.NewCodeWikiService(codeWiki, qaEngine)
-	httpServer := server.NewHTTPServer(confServer, codeWikiService, logger)
-	grpcServer := server.NewGRPCServer(confServer, codeWikiService, logger)
-	app := newApp(logger, httpServer, grpcServer)
+	qaEngine := biz.NewQAEngine(llmLLM, indexer, codeRepo, projectRepo)
+	qaService := service.NewQAService(qaEngine)
+	repositoryService := service.NewRepositoryService(repositoryBiz)
+	httpServer := server.NewHTTPServer(confServer, projectService, qaService, repositoryService, logger)
+	app := newApp(logger, httpServer)
 	return app, func() {
 		cleanup()
 	}, nil

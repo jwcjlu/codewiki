@@ -2,6 +2,7 @@ package repo
 
 import (
 	"codewiki/internal/biz"
+	"codewiki/internal/biz/model"
 	"codewiki/internal/conf"
 	"context"
 	"github.com/milvus-io/milvus/client/v2/entity"
@@ -11,12 +12,12 @@ import (
 	"github.com/milvus-io/milvus/client/v2/milvusclient"
 )
 
-type Milvus struct {
+type indexerMilvus struct {
 	client     *milvusclient.Client
 	milvusAddr string
 }
 
-func NewMilvus(data *conf.Data) biz.IndexerRepo {
+func NewIndexerRepo(data *conf.Data) biz.IndexerRepo {
 	if data.Embedding == nil && len(data.Embedding.ApiURL) > 0 {
 		return nil
 	}
@@ -26,10 +27,10 @@ func NewMilvus(data *conf.Data) biz.IndexerRepo {
 	if err != nil {
 		panic(err)
 	}
-	return &Milvus{client: client}
+	return &indexerMilvus{client: client}
 }
 
-func (m *Milvus) SaveCodeChunk(ctx context.Context, projectName, partition string, codeChunks []*biz.CodeChunk) error {
+func (m *indexerMilvus) SaveCodeChunk(ctx context.Context, projectName, partition string, codeChunks []*model.CodeChunk) error {
 	var paths []string
 	var contents []string
 	var documents []string
@@ -68,7 +69,7 @@ func (m *Milvus) SaveCodeChunk(ctx context.Context, projectName, partition strin
 }
 
 // SearchCodeChunk 搜索代码块
-func (m *Milvus) SearchCodeChunk(ctx context.Context, req *biz.SearchCodeChunksReq) ([]*biz.CodeChunk, error) {
+func (m *indexerMilvus) SearchCodeChunk(ctx context.Context, req *biz.SearchCodeChunksReq) ([]*model.CodeChunk, error) {
 	projectName := strings.ReplaceAll(req.ProjectName, "-", "")
 	resultSets, err := m.client.Search(context.WithoutCancel(ctx), milvusclient.NewSearchOption(
 		projectName,
@@ -85,11 +86,11 @@ func (m *Milvus) SearchCodeChunk(ctx context.Context, req *biz.SearchCodeChunksR
 	if err != nil {
 		return nil, err
 	}
-	var results []*biz.CodeChunk
+	var results []*model.CodeChunk
 	for _, resultSet := range resultSets {
 
 		for index := 0; index < resultSet.ResultCount; index++ {
-			result := &biz.CodeChunk{}
+			result := &model.CodeChunk{}
 			if value, err := resultSet.GetColumn("content").GetAsString(index); err != nil {
 				return nil, err
 			} else {
@@ -112,10 +113,10 @@ func (m *Milvus) SearchCodeChunk(ctx context.Context, req *biz.SearchCodeChunksR
 	return results, nil
 }
 
-func (m *Milvus) SearchCodeChunkByIds(ctx context.Context, collectionName string, ids []string, limit int) ([]*biz.CodeChunk, error) {
+func (m *indexerMilvus) SearchCodeChunkByIds(ctx context.Context, collectionName string, ids []string, limit int) ([]*model.CodeChunk, error) {
 	projectName := strings.ReplaceAll(collectionName, "-", "")
 	resultSet, err := m.client.Query(ctx, milvusclient.NewQueryOption(projectName).
-		WithLimit(122).
+		WithLimit(limit).
 		WithConsistencyLevel(entity.ClStrong).
 		WithIDs(column.NewColumnVarChar("id", ids)).
 		WithOutputFields("path",
@@ -126,10 +127,10 @@ func (m *Milvus) SearchCodeChunkByIds(ctx context.Context, collectionName string
 	if err != nil {
 		return nil, err
 	}
-	var results []*biz.CodeChunk
+	var results []*model.CodeChunk
 
 	for index := 0; index < resultSet.ResultCount; index++ {
-		result := &biz.CodeChunk{}
+		result := &model.CodeChunk{}
 		if value, err := resultSet.GetColumn("content").GetAsString(index); err != nil {
 			return nil, err
 		} else {
