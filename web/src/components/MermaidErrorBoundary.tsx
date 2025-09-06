@@ -52,3 +52,4 @@ class MermaidErrorBoundary extends Component<Props, State> {
 export default MermaidErrorBoundary;
 
 
+

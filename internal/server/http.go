@@ -64,7 +64,7 @@ func NewHTTPServer(c *conf.Server,
 	v1.RegisterCodeAnalyzerServiceHTTPServer(srv, codeAnalyzerService)
 	v1.RegisterRepoServiceHTTPServer(srv, repositoryService)
 	srv.Handle("/metrics", promhttp.Handler())
-	srv.Handle("/v1/api/project/{id}/answer", qaService)
+	srv.Handle("/v1/api/repo/{id}/answer", qaService)
 	return srv
 }
 
