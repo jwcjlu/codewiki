@@ -1,0 +1,221 @@
+.app {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.app-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: white;
+  min-height: 100vh;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.1);
+}
+
+/* 应用头部 */
+.app-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 30px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.app-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.app-nav {
+  display: flex;
+  gap: 15px;
+}
+
+.nav-btn {
+  padding: 12px 24px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 25px;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+}
+
+.nav-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.nav-btn.active {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+/* 应用内容 */
+.app-content {
+  padding: 30px;
+  min-height: calc(100vh - 100px);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .app-header {
+    flex-direction: column;
+    gap: 20px;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .app-title {
+    font-size: 1.5rem;
+  }
+  
+  .app-nav {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .nav-btn {
+    width: 100%;
+  }
+  
+  .app-content {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 15px;
+  }
+  
+  .app-title {
+    font-size: 1.3rem;
+  }
+  
+  .app-content {
+    padding: 15px;
+  }
+}
+
+/* 暗色主题支持 */
+@media (prefers-color-scheme: dark) {
+  .app {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+  }
+  
+  .app-container {
+    background: #1a202c;
+    color: #e2e8f0;
+  }
+  
+  .app-header {
+    background: linear-gradient(135deg, #2c5282 0%, #553c9a 100%);
+  }
+}
+
+/* 主题切换器支持 */
+[data-theme="dark"] .app {
+  background: linear-gradient(135deg, #1a202c 0%, #2d3748 100%);
+}
+
+[data-theme="dark"] .app-container {
+  background: #1a202c;
+  color: #e2e8f0;
+}
+
+[data-theme="dark"] .app-header {
+  background: linear-gradient(135deg, #2c5282 0%, #553c9a 100%);
+}
+
+/* 动画效果 */
+.app-container {
+  animation: slideInUp 0.6s ease-out;
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.nav-btn {
+  animation: fadeInRight 0.6s ease-out;
+  animation-fill-mode: both;
+}
+
+.nav-btn:nth-child(1) { animation-delay: 0.1s; }
+.nav-btn:nth-child(2) { animation-delay: 0.2s; }
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* 滚动条样式 */
+.app-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.app-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.app-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.app-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 暗色主题滚动条 */
+@media (prefers-color-scheme: dark) {
+  .app-content::-webkit-scrollbar-track {
+    background: #2d3748;
+  }
+  
+  .app-content::-webkit-scrollbar-thumb {
+    background: #4a5568;
+  }
+  
+  .app-content::-webkit-scrollbar-thumb:hover {
+    background: #718096;
+  }
+}
+
+[data-theme="dark"] .app-content::-webkit-scrollbar-track {
+  background: #2d3748;
+}
+
+[data-theme="dark"] .app-content::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
+[data-theme="dark"] .app-content::-webkit-scrollbar-thumb:hover {
+  background: #718096;
+}
+

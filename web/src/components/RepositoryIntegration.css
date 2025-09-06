@@ -1,0 +1,403 @@
+.repository-integration {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: white;
+  border-radius: 15px;
+  padding: 25px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+  margin-bottom: 30px;
+}
+
+.integration-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #4facfe;
+}
+
+.integration-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.5em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.view-controls {
+  display: flex;
+  gap: 10px;
+}
+
+.view-btn {
+  padding: 8px 16px;
+  border: 2px solid #e1e5e9;
+  background: white;
+  color: #666;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.view-btn:hover {
+  border-color: #4facfe;
+  color: #4facfe;
+  transform: translateY(-1px);
+}
+
+.view-btn.active {
+  background: #4facfe;
+  color: white;
+  border-color: #4facfe;
+  box-shadow: 0 3px 10px rgba(79, 172, 254, 0.3);
+}
+
+.integration-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.search-section {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.search-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #4facfe;
+  box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+}
+
+.filter-select {
+  padding: 12px 16px;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.content-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.structure-panel,
+.call-chains-panel {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.structure-panel h4,
+.call-chains-panel h4 {
+  margin: 0 0 20px 0;
+  color: #333;
+  font-size: 1.2em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.structure-content,
+.call-chains-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* 树形视图样式 */
+.tree-node {
+  margin-bottom: 5px;
+}
+
+.node-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.node-content:hover {
+  background: rgba(79, 172, 254, 0.1);
+}
+
+.node-content.selected {
+  background: #4facfe;
+  color: white;
+}
+
+.node-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.node-name {
+  font-weight: 500;
+  flex: 1;
+}
+
+.node-meta {
+  display: flex;
+  gap: 5px;
+}
+
+.meta-tag {
+  background: rgba(79, 172, 254, 0.2);
+  color: #4facfe;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7em;
+  font-weight: 500;
+}
+
+.selected .meta-tag {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.node-children {
+  margin-left: 20px;
+}
+
+/* 列表视图样式 */
+.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.list-item:hover {
+  border-color: #4facfe;
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
+}
+
+.list-item.selected {
+  background: #4facfe;
+  color: white;
+  border-color: #4facfe;
+}
+
+.item-icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+.item-name {
+  font-weight: 500;
+  min-width: 120px;
+}
+
+.item-path {
+  font-size: 0.8em;
+  color: #666;
+  font-family: 'Courier New', monospace;
+  flex: 1;
+}
+
+.selected .item-path {
+  color: #e0e0e0;
+}
+
+/* 调用链样式 */
+.call-chains-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.call-chain-item {
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  padding: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.call-chain-item:hover {
+  border-color: #4facfe;
+  box-shadow: 0 3px 10px rgba(79, 172, 254, 0.2);
+}
+
+.call-chain-item.selected {
+  background: #4facfe;
+  color: white;
+  border-color: #4facfe;
+}
+
+.chain-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.chain-arrow {
+  color: #666;
+  font-weight: bold;
+}
+
+.selected .chain-arrow {
+  color: #e0e0e0;
+}
+
+.chain-details {
+  display: flex;
+  gap: 15px;
+  font-size: 0.85em;
+  color: #666;
+}
+
+.selected .chain-details {
+  color: #e0e0e0;
+}
+
+.chain-file {
+  font-family: 'Courier New', monospace;
+}
+
+.chain-type {
+  background: rgba(79, 172, 254, 0.2);
+  color: #4facfe;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 0.7em;
+  font-weight: 500;
+}
+
+.selected .chain-type {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.chain-context {
+  font-style: italic;
+}
+
+/* 选择摘要 */
+.selection-summary {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  padding: 20px;
+  background: #e8f4fd;
+  border: 1px solid #4facfe;
+  border-radius: 10px;
+}
+
+.summary-item {
+  text-align: center;
+}
+
+.summary-label {
+  display: block;
+  color: #666;
+  font-size: 0.9em;
+  margin-bottom: 5px;
+}
+
+.summary-value {
+  display: block;
+  font-size: 1.8em;
+  font-weight: bold;
+  color: #4facfe;
+}
+
+/* 加载状态 */
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+  font-style: italic;
+}
+
+/* 响应式设计 */
+@media (max-width: 1200px) {
+  .content-panels {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .repository-integration {
+    padding: 20px;
+  }
+  
+  .integration-header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-start;
+  }
+  
+  .view-controls {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .search-section {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .selection-summary {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .summary-item {
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .view-controls {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .view-btn {
+    width: 200px;
+    text-align: center;
+  }
+  
+  .structure-panel,
+  .call-chains-panel {
+    padding: 15px;
+  }
+}

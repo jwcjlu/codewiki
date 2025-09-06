@@ -1,0 +1,74 @@
+/* RepoManager 组件样式 */
+
+/* 标签页容器 */
+.tab-container {
+  margin: 20px 0;
+}
+
+/* 标签页按钮 */
+.tab-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 8px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border-bottom: none;
+}
+
+.tab-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.tab-btn.active {
+  background: #ffffff;
+  color: #1f2937;
+  border-color: #d1d5db;
+  border-bottom: 2px solid #3b82f6;
+  margin-bottom: -1px;
+}
+
+/* 标签页内容 */
+.tab-content {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 0 8px 8px 8px;
+  padding: 20px;
+  min-height: 400px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .tab-buttons {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .tab-btn {
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 0;
+  }
+  
+  .tab-btn.active {
+    margin-bottom: 0;
+    border-bottom: 2px solid #3b82f6;
+  }
+  
+  .tab-content {
+    border-radius: 8px;
+    margin-top: 8px;
+  }
+}

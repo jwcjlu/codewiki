@@ -1,0 +1,367 @@
+.sequence-diagram-demo {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: #f8f9fa;
+  min-height: 100vh;
+}
+
+.demo-header {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  margin-bottom: 30px;
+}
+
+.demo-header h1 {
+  font-size: 3em;
+  margin-bottom: 15px;
+  font-weight: 300;
+}
+
+.demo-header p {
+  font-size: 1.2em;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.demo-content {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+/* 生成历史 */
+.generation-history {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.generation-history h3 {
+  margin: 0 0 25px 0;
+  color: #333;
+  font-size: 1.5em;
+  border-bottom: 2px solid #4facfe;
+  padding-bottom: 15px;
+}
+
+.history-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.history-item {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.history-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.history-header h4 {
+  margin: 0;
+  color: #333;
+  font-size: 1.1em;
+}
+
+.timestamp {
+  font-size: 0.8em;
+  color: #666;
+  background: #e9ecef;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.history-content p {
+  margin: 8px 0;
+  color: #555;
+  font-size: 0.9em;
+}
+
+.history-content strong {
+  color: #333;
+}
+
+.history-actions {
+  margin-top: 15px;
+  text-align: center;
+}
+
+/* 导出历史 */
+.export-history {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.export-history h3 {
+  margin: 0 0 25px 0;
+  color: #333;
+  font-size: 1.5em;
+  border-bottom: 2px solid #4facfe;
+  padding-bottom: 15px;
+}
+
+.export-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-item {
+  background: #f8f9fa;
+  border-radius: 8px;
+  padding: 15px;
+  border: 1px solid #e9ecef;
+}
+
+.export-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+ .export-format {
+   background: #4facfe;
+   color: white;
+   padding: 4px 12px;
+   border-radius: 12px;
+   font-size: 0.8em;
+   font-weight: bold;
+ }
+
+ .export-type {
+   background: #28a745;
+   color: white;
+   padding: 4px 8px;
+   border-radius: 8px;
+   font-size: 0.7em;
+   font-weight: bold;
+ }
+
+.export-title {
+  font-weight: 500;
+  color: #333;
+}
+
+.export-time {
+  color: #666;
+  font-size: 0.9em;
+}
+
+/* 使用说明 */
+.usage-guide {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  margin-bottom: 30px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.usage-guide h3 {
+  margin: 0 0 25px 0;
+  color: #333;
+  font-size: 1.5em;
+  border-bottom: 2px solid #4facfe;
+  padding-bottom: 15px;
+}
+
+.guide-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+}
+
+.guide-section {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #e9ecef;
+}
+
+.guide-section h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.2em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guide-section ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.guide-section li {
+  margin: 8px 0;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* 技术特性 */
+.tech-features {
+  background: white;
+  border-radius: 15px;
+  padding: 30px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+}
+
+.tech-features h3 {
+  margin: 0 0 25px 0;
+  color: #333;
+  font-size: 1.5em;
+  border-bottom: 2px solid #4facfe;
+  padding-bottom: 15px;
+  text-align: center;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 25px;
+}
+
+.feature-item {
+  text-align: center;
+  padding: 25px 20px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+}
+
+.feature-item:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.feature-icon {
+  font-size: 3em;
+  margin-bottom: 15px;
+  display: block;
+}
+
+.feature-item h4 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.2em;
+}
+
+.feature-item p {
+  margin: 0;
+  color: #666;
+  line-height: 1.5;
+  font-size: 0.9em;
+}
+
+/* 按钮样式 */
+.btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 172, 254, 0.3);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .demo-header {
+    padding: 30px 15px;
+  }
+  
+  .demo-header h1 {
+    font-size: 2.5em;
+  }
+  
+  .demo-content {
+    padding: 0 15px 30px;
+  }
+  
+  .generation-history,
+  .export-history,
+  .usage-guide,
+  .tech-features {
+    padding: 20px;
+  }
+  
+  .history-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .guide-content {
+    grid-template-columns: 1fr;
+  }
+  
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .export-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .demo-header h1 {
+    font-size: 2em;
+  }
+  
+  .demo-header p {
+    font-size: 1em;
+  }
+  
+  .generation-history,
+  .export-history,
+  .usage-guide,
+  .tech-features {
+    padding: 15px;
+  }
+  
+  .history-item,
+  .guide-section,
+  .feature-item {
+    padding: 15px;
+  }
+}

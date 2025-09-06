@@ -1,0 +1,73 @@
+syntax = "proto3";
+package kratos.api;
+
+option go_package = "codewiki/internal/conf;conf";
+
+import "google/protobuf/duration.proto";
+
+message Bootstrap {
+  Server server = 1;
+  Data data = 2;
+}
+
+message Server {
+  message HTTP {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  message GRPC {
+    string network = 1;
+    string addr = 2;
+    google.protobuf.Duration timeout = 3;
+  }
+  HTTP http = 1;
+  GRPC grpc = 2;
+}
+
+message Data {
+  message Neo4j {
+    string target = 1;
+    string username = 2;
+    string password=3;
+  }
+  message Database {
+    string driver = 1;
+    string source = 2;
+  }
+  message LLM{
+    string baseURL=1;
+    string apiKey=2;
+    string embeddingModel=3;
+    string llmModelName=4;
+
+  }
+  message Embedding{
+    string apiURL=1;
+    string apiKey=2;
+    string modelName=3;
+    int32 dimension=4;
+  }
+  Neo4j neo4j = 1;
+  PoolConfig poolConfig=2;
+  Database database = 3;
+  LLM llm=4;
+  Embedding embedding=5;
+  Zap logger=6;
+  string repoDir=7;
+}
+
+message PoolConfig{
+  int32 poolSize=1;
+  bool blocking=2;
+}
+
+
+message Zap {
+  string file = 1; //日志文件路径
+  bool console = 2; //是否输出到终端，用于命令行启动显示
+  int32 max_age = 3; //最大存放天数，0为长期保存
+  string level = 4; //等级，默认info级别，有debug、info、warn、error等
+  int32 max_size = 5; //文件最大大小，M为单位
+  int32 max_backups = 6; //日志文件最大滚动数
+}

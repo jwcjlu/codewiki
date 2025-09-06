@@ -1,0 +1,505 @@
+# Generated with protoc-gen-openapi
+# https://github.com/google/gnostic/tree/master/cmd/protoc-gen-openapi
+
+openapi: 3.0.3
+info:
+    title: ""
+    version: 0.0.1
+paths:
+    /v1/api/entity/{id}/implements:
+        get:
+            tags:
+                - CodeAnalyzerService
+            summary: 实体/得到所有实现
+            description: interface  implement
+            operationId: CodeAnalyzerService_GetImplement
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetImplementResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/functions/{id}/calls:
+        get:
+            tags:
+                - CodeAnalyzerService
+            summary: 分析代码
+            operationId: CodeAnalyzerService_CallChain
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CallChainResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/repo:
+        post:
+            tags:
+                - RepoService
+            summary: 创建仓库
+            description: Repo management
+            operationId: RepoService_CreateRepo
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/CreateRepoReq'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/CreateRepoResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/repo/{id}:
+        get:
+            tags:
+                - RepoService
+            summary: 仓库详情
+            operationId: RepoService_GetRepo
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetRepoResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+        delete:
+            tags:
+                - RepoService
+            summary: 删除仓库
+            operationId: RepoService_DeleteRepo
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/DeleteRepoResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/repos:
+        get:
+            tags:
+                - RepoService
+            summary: 仓库列表
+            operationId: RepoService_ListRepos
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListRepoResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/repos/{id}/analyze:
+        post:
+            tags:
+                - CodeAnalyzerService
+            summary: 按仓库触发分析
+            description: Analyze by repository id
+            operationId: CodeAnalyzerService_AnalyzeRepo
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            requestBody:
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/AnalyzeRepoReq'
+                required: true
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/AnalyzeResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/repos/{id}/tree:
+        get:
+            tags:
+                - RepoService
+            summary: 仓库包/文件树
+            description: Repo tree display
+            operationId: RepoService_GetRepoTree
+            parameters:
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GetRepoTreeResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+    /v1/api/{repoId}/file/{id}/view:
+        get:
+            tags:
+                - CodeAnalyzerService
+            summary: 文件/文件内容
+            description: File  view  content
+            operationId: CodeAnalyzerService_ViewFileContent
+            parameters:
+                - name: repoId
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+                - name: id
+                  in: path
+                  required: true
+                  schema:
+                    type: string
+            responses:
+                "200":
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ViewFileResp'
+                default:
+                    description: Default error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Status'
+components:
+    schemas:
+        AnalyzeRepoReq:
+            type: object
+            properties:
+                id:
+                    type: string
+                forceUpdate:
+                    type: boolean
+        AnalyzeResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+        BaseResp:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    format: int32
+                reason:
+                    type: string
+                msg:
+                    type: string
+        CallChainResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/CallChainResp_Result'
+        CallChainResp_Result:
+            type: object
+            properties:
+                callRelations:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/CallRelationship'
+        CallRelationship:
+            type: object
+            properties:
+                callerId:
+                    type: string
+                callerName:
+                    type: string
+                calleeId:
+                    type: string
+                calleeName:
+                    type: string
+                calleeFileId:
+                    type: string
+                callerFileId:
+                    type: string
+                calleeScope:
+                    type: string
+                callerScope:
+                    type: string
+                calleeEntityId:
+                    type: string
+                callerEntityId:
+                    type: string
+        CreateRepoReq:
+            type: object
+            properties:
+                name:
+                    type: string
+                repoType:
+                    type: integer
+                    format: enum
+                path:
+                    type: string
+                token:
+                    type: string
+                description:
+                    type: string
+                excludes:
+                    type: string
+                language:
+                    type: integer
+                    format: enum
+        CreateRepoResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/CreateRepoResp_Result'
+        CreateRepoResp_Result:
+            type: object
+            properties:
+                id:
+                    type: string
+        DeleteRepoResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+        Entity:
+            type: object
+            properties:
+                name:
+                    type: string
+                fileId:
+                    type: string
+                id:
+                    type: string
+                functions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Function'
+        FileNode:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                pkgId:
+                    type: string
+        Function:
+            type: object
+            properties:
+                id:
+                    type: string
+                fileId:
+                    type: string
+                name:
+                    type: string
+                receiver:
+                    type: string
+        GetImplementResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/GetImplementResp_Result'
+        GetImplementResp_Result:
+            type: object
+            properties:
+                entities:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Entity'
+        GetRepoResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/GetRepoResp_Result'
+        GetRepoResp_Result:
+            type: object
+            properties:
+                repo:
+                    $ref: '#/components/schemas/Repo'
+        GetRepoTreeResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/GetRepoTreeResp_Result'
+        GetRepoTreeResp_Result:
+            type: object
+            properties:
+                packages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/PackageNode'
+                files:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/FileNode'
+        GoogleProtobufAny:
+            type: object
+            properties:
+                '@type':
+                    type: string
+                    description: The type of the serialized message.
+            additionalProperties: true
+            description: Contains an arbitrary serialized message along with a @type that describes the type of the serialized message.
+        ListRepoResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/ListRepoResp_Result'
+        ListRepoResp_Result:
+            type: object
+            properties:
+                repo:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Repo'
+        PackageNode:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                parentId:
+                    type: string
+        Repo:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                repoType:
+                    type: integer
+                    format: enum
+                path:
+                    type: string
+                description:
+                    type: string
+                excludes:
+                    type: string
+                language:
+                    type: integer
+                    format: enum
+            description: ===== Repo Management =====
+        Status:
+            type: object
+            properties:
+                code:
+                    type: integer
+                    description: The status code, which should be an enum value of [google.rpc.Code][google.rpc.Code].
+                    format: int32
+                message:
+                    type: string
+                    description: A developer-facing error message, which should be in English. Any user-facing error message should be localized and sent in the [google.rpc.Status.details][google.rpc.Status.details] field, or localized by the client.
+                details:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/GoogleProtobufAny'
+                    description: A list of messages that carry the error details.  There is a common set of message types for APIs to use.
+            description: 'The `Status` type defines a logical error model that is suitable for different programming environments, including REST APIs and RPC APIs. It is used by [gRPC](https://github.com/grpc). Each `Status` message contains three pieces of data: error code, error message, and error details. You can find out more about this error model and how to work with it in the [API Design Guide](https://cloud.google.com/apis/design/errors).'
+        ViewFileResp:
+            type: object
+            properties:
+                ret:
+                    $ref: '#/components/schemas/BaseResp'
+                body:
+                    $ref: '#/components/schemas/ViewFileResp_Result'
+        ViewFileResp_Result:
+            type: object
+            properties:
+                Content:
+                    type: string
+                language:
+                    type: integer
+                    format: enum
+                functions:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/Function'
+tags:
+    - name: CodeAnalyzerService
+    - name: RepoService

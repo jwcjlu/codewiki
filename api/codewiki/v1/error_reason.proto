@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package codewiki.v1;
+import "errors/errors.proto";
+option go_package = "codewiki/api/codewiki/v1;v1";
+option java_multiple_files = true;
+option java_package = "codewiki.v1";
+option objc_class_prefix = "codewikiV1";
+
+enum ErrorReason {
+  option (errors.default_code) = 500;
+  _ = 0;
+  ParamValidate = 1 [(errors.code) = 400];
+  DataInsert = 2;
+  DataDelete = 3;
+  DataUpdate = 4;
+  DataQuery = 5;
+  DataRecordNotFound = 6;
+  Rpc = 7;
+  BizDuplicateOp = 8;
+  NotFoundHostNetwork = 9;
+  Acl = 10;
+
+  ParseCodeError=1000;
+  AnalyzeRelations=1001;
+  AnalyzeDependencies=1002;
+  NotSupportLLM=1003;
+  NotSupportQA=1004;
+}

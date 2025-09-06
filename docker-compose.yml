@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: codewiki-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: codewiki
+      MYSQL_USER: codewiki
+      MYSQL_PASSWORD: codewiki123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./documents/init.sql:/docker-entrypoint-initdb.d/init.sql
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - codewiki-network
+
+  # Neo4j图数据库
+  neo4j:
+    image: neo4j:5.15
+    container_name: codewiki-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/123456
+      NEO4J_PLUGINS: '["apoc"]'
+      NEO4J_dbms_security_procedures_unrestricted: apoc.*
+    ports:
+      - "7474:7474"  # HTTP
+      - "7687:7687"  # Bolt
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_import:/var/lib/neo4j/import
+      - neo4j_plugins:/plugins
+    networks:
+      - codewiki-network
+
+  # CodeWiki后端服务
+  codewiki-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: codewiki-backend
+    ports:
+      - "8000:8000"  # HTTP
+      - "9000:9000"  # gRPC
+    volumes:
+      - ./configs:/app/configs
+      - ./repos:/app/repos
+    environment:
+      - GIN_MODE=release
+    depends_on:
+      - mysql
+      - neo4j
+    networks:
+      - codewiki-network
+    restart: unless-stopped
+
+  # CodeWiki前端服务
+  codewiki-frontend:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: codewiki-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_BASE_URL=http://localhost:8000
+    depends_on:
+      - codewiki-backend
+    networks:
+      - codewiki-network
+    restart: unless-stopped
+
+
+
+volumes:
+  mysql_data:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_import:
+  neo4j_plugins:
+  redis_data:
+
+networks:
+  codewiki-network:
+    driver: bridge

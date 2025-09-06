@@ -1,0 +1,11 @@
+
+// 创建索引
+CREATE INDEX package_id_index FOR (p:Package) ON(p.id);
+
+CREATE INDEX file_id_index FOR (f:File) ON(f.id);
+
+CREATE INDEX entity_id_index FOR (e:Entity) ON(e.id);
+
+CREATE INDEX function_id_index FOR (f:Function) ON(f.id);
+
+CREATE INDEX field_id_index FOR (fd:Field) ON(fd.id);
