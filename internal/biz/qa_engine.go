@@ -31,6 +31,9 @@ func (qa *QAEngine) Answer(ctx context.Context, req *v1.AnswerReq, resp chan sse
 	if err != nil {
 		return fmt.Errorf("indexer search code %s err:%v", req.GetQuestion(), err)
 	}
+	if len(results) == 0 {
+		return fmt.Errorf("no results found for question %s", req.GetQuestion())
+	}
 
 	chains, err := qa.repo.QueryCallRelations(ctx, results[0].Id, 4)
 	if err != nil {

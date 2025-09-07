@@ -46,7 +46,60 @@
   border: 1px solid #e5e7eb;
   border-radius: 0 8px 8px 8px;
   padding: 20px;
-  min-height: 400px;
+  min-height: 150px; /* 进一步减少最小高度 */
+  max-height: 70vh; /* 使用视口高度，更灵活 */
+  overflow-y: auto; /* 内容过多时显示滚动条 */
+  display: flex;
+  flex-direction: column;
+}
+
+/* 特定标签页内容样式 */
+.tab-content.tree-content {
+  min-height: 100px; /* 树形结构可以更小 */
+}
+
+.tab-content.callgraph-content {
+  min-height: 300px; /* 调用图需要更多空间 */
+  position: relative;
+}
+
+.tab-content.mermaid-content {
+  min-height: 200px; /* 图表生成中等高度 */
+}
+
+.tab-content.search-content {
+  min-height: 150px; /* 搜索内容可以较小 */
+}
+
+/* 空状态样式优化 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: #6b7280;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  min-height: 120px; /* 减少空状态的最小高度 */
+}
+
+.empty-state .icon {
+  font-size: 36px; /* 减小图标大小 */
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  margin: 0 0 12px 0;
+  color: #374151;
+  font-size: 16px; /* 减小标题大小 */
+}
+
+.empty-state p {
+  margin: 0 0 16px 0;
+  font-size: 13px; /* 减小文字大小 */
 }
 
 /* 响应式设计 */
@@ -70,5 +123,6 @@
   .tab-content {
     border-radius: 8px;
     margin-top: 8px;
+    min-height: 100px; /* 移动端进一步减少最小高度 */
   }
 }

@@ -77,6 +77,8 @@ func (cp *CodeParse) ParseCode(ctx context.Context) (*Package, error) {
 
 // AnalyzeRelations 分析包和包，包和文件，类和函数，函数和函数之间的关系
 func (cp *CodeParse) AnalyzeRelations(ctx context.Context) error {
+	cp.Root.ClassifyExtends(ctx)
+	cp.Root.ClassifyMethod(ctx)
 	for _, pkg := range cp.pkgs {
 		if err := pkg.AnalyzeRelations(ctx, cp.module); err != nil {
 			return err
@@ -90,6 +92,8 @@ func (cp *CodeParse) AnalyzeRelations(ctx context.Context) error {
 			})
 		}
 	}
+	//分析实现关系
+	cp.AnalyzeInterfaceImplRelations(ctx)
 	return nil
 }
 func (cp *CodeParse) GetPackageById(pkgId string) *Package {

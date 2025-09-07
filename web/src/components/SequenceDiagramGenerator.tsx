@@ -199,10 +199,10 @@ const SequenceDiagramGenerator: React.FC<SequenceDiagramGeneratorProps> = ({
         if (isCancelled) return;
         
         try {
-          // 清除之前的图表
+          // 清除之前的图表 - 使用更安全的方法
           const chartContainer = document.querySelector('.mermaid-chart .mermaid');
           if (chartContainer && !isCancelled) {
-            chartContainer.innerHTML = '';
+            chartContainer.textContent = '';
           }
           
           // 重新渲染图表
@@ -223,11 +223,11 @@ const SequenceDiagramGenerator: React.FC<SequenceDiagramGeneratorProps> = ({
       return () => {
         isCancelled = true;
         clearTimeout(timer);
-        // 清理Mermaid图表
+        // 清理Mermaid图表 - 使用更安全的方法
         try {
           const chartContainer = document.querySelector('.mermaid-chart .mermaid');
           if (chartContainer) {
-            chartContainer.innerHTML = '';
+            chartContainer.textContent = '';
           }
         } catch (error) {
           console.error('清理图表时出错:', error);

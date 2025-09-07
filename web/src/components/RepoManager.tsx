@@ -1607,25 +1607,16 @@ const RepoManager: React.FC = () => {
 
           {/* 标签页内容 */}
           {activeTab === 'tree' && (
-            <div className="tab-content">
+            <div className="tab-content tree-content">
               {treeLoading ? (
                 <div style={styles.card}>加载树...</div>
               ) : selectedRepoId && tree ? (
                 <TreeView tree={tree} rootId={selectedRepoId || undefined} />
               ) : (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '50px', 
-                  color: '#6b7280',
-                  background: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px'
-                }}>
-                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>📁</div>
-                  <h3 style={{ margin: '0 0 16px 0', color: '#374151' }}>仓库结构</h3>
-                  <p style={{ margin: '0 0 20px 0', fontSize: '14px' }}>
-                    请选择左侧仓库查看包/文件结构
-                  </p>
+                <div className="empty-state">
+                  <div className="icon">📁</div>
+                  <h3>仓库结构</h3>
+                  <p>请选择左侧仓库查看包/文件结构</p>
                   <div style={{ 
                     background: '#fff', 
                     border: '1px solid #e5e7eb', 
@@ -1648,13 +1639,13 @@ const RepoManager: React.FC = () => {
           )}
 
           {activeTab === 'callgraph' && (
-            <div className="tab-content">
+            <div className="tab-content callgraph-content">
               {renderCallGraphContent()}
             </div>
           )}
 
           {activeTab === 'mermaid' && (
-            <div className="tab-content">
+            <div className="tab-content mermaid-content">
               <MermaidTest
                 selectedRepoId={selectedRepoId || undefined}
                 selectedFunctionId={selectedCallGraphNode?.id}
@@ -1668,7 +1659,7 @@ const RepoManager: React.FC = () => {
           )}
 
           {activeTab === 'search' && (
-            <div className="tab-content">
+            <div className="tab-content search-content">
               {selectedRepoId ? (
                 <ErrorBoundary>
                   <CodeSearch 
@@ -1678,19 +1669,10 @@ const RepoManager: React.FC = () => {
                   />
                 </ErrorBoundary>
               ) : (
-                <div style={{ 
-                  textAlign: 'center', 
-                  padding: '50px', 
-                  color: '#6b7280',
-                  background: '#f9fafb',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px'
-                }}>
-                  <div style={{ fontSize: '48px', marginBottom: '20px' }}>🤖</div>
-                  <h3 style={{ margin: '0 0 16px 0', color: '#374151' }}>AI问答</h3>
-                  <p style={{ margin: '0 0 20px 0', fontSize: '14px' }}>
-                    请先选择左侧仓库，然后使用自然语言提问
-                  </p>
+                <div className="empty-state">
+                  <div className="icon">🤖</div>
+                  <h3>AI问答</h3>
+                  <p>请先选择左侧仓库，然后使用自然语言提问</p>
                   <div style={{ 
                     background: '#fff', 
                     border: '1px solid #e5e7eb', 

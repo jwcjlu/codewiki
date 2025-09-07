@@ -86,11 +86,11 @@ const MermaidExporter: React.FC<MermaidExporterProps> = ({
     setError(null);
 
     try {
-      // 更安全的清空容器方式
+      // 更安全的清空容器方式 - 使用React兼容的方法
       const container = chartRef.current;
       if (container) {
-        // 使用 innerHTML 而不是 removeChild 来避免 React 冲突
-        container.innerHTML = '';
+        // 使用 textContent 清空容器，避免DOM操作冲突
+        container.textContent = '';
         
         // 创建包含Mermaid代码的元素
         const mermaidElement = document.createElement('div');
@@ -116,9 +116,9 @@ const MermaidExporter: React.FC<MermaidExporterProps> = ({
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : '渲染图表失败');
-      // 清理失败的内容
+      // 清理失败的内容 - 使用更安全的方法
       if (chartRef.current) {
-        chartRef.current.innerHTML = '';
+        chartRef.current.textContent = '';
       }
     } finally {
       setIsLoading(false);

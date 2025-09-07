@@ -237,6 +237,13 @@ type Function struct {
 	decl     *ast.FuncDecl
 }
 
+func (f *Function) GetEntity() *Entity {
+	if len(f.Receiver) == 0 {
+		return nil
+	}
+	return f.file.GetCurrentPkg().GetEntity(f.Receiver)
+}
+
 func (f *Function) readFileContent() ([]byte, error) {
 	if f.file == nil {
 		return nil, nil
@@ -381,6 +388,9 @@ type Field struct {
 	field    *ast.Field
 }
 
+func (field *Field) GetType() ast.Expr {
+	return field.expr
+}
 func (field *Field) FieldName() string {
 	if len(field.Name) > 0 {
 		return field.Name

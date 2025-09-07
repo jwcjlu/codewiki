@@ -276,16 +276,29 @@ const CallGraph: React.FC<CallGraphProps> = ({
       // 检查组件是否仍然挂载
       if (!mermaidRef.current) return;
       
-      mermaidRef.current.innerHTML = svg;
+      // 使用更安全的方式清空内容
+      mermaidRef.current.textContent = '';
+      
+      // 创建临时容器来解析SVG - 使用更安全的方法
+      const tempDiv = document.createElement('div');
+      // 使用 textContent 而不是 innerHTML 来避免潜在问题
+      tempDiv.textContent = svg;
+      // 然后解析为HTML
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svg, 'image/svg+xml');
+      const svgElement = doc.documentElement;
+      if (svgElement && svgElement.tagName === 'svg') {
+        mermaidRef.current.appendChild(svgElement);
+      }
       
       // 添加节点点击事件
-      const svgElement = mermaidRef.current.querySelector('svg');
-      if (svgElement) {
-        svgElement.style.cursor = 'pointer';
+      const svgElementForEvents = mermaidRef.current.querySelector('svg') as SVGElement;
+      if (svgElementForEvents) {
+        svgElementForEvents.style.cursor = 'pointer';
         
         // 为每个节点添加点击事件
-        const nodeElements = svgElement.querySelectorAll('.node');
-        nodeElements.forEach((nodeElement, index) => {
+        const nodeElements = svgElementForEvents.querySelectorAll('.node');
+        nodeElements.forEach((nodeElement: Element, index: number) => {
           const nodeId = Array.from(effectiveVisibleNodes)[index];
           if (nodeId) {
                          // 移除旧的事件监听器（如果存在）
@@ -317,13 +330,32 @@ const CallGraph: React.FC<CallGraphProps> = ({
       
       // 检查组件是否仍然挂载
       if (mermaidRef.current) {
-        mermaidRef.current.innerHTML = `
-          <div style="padding: 40px; text-align: center; color: #6c757d;">
-            <div style="font-size: 48px; margin-bottom: 16px;">❌</div>
-            <h3>图表渲染失败</h3>
-            <p>${err instanceof Error ? err.message : '未知错误'}</p>
-          </div>
-        `;
+        // 使用更安全的方式清空内容
+        mermaidRef.current.textContent = '';
+        
+        // 创建错误显示元素 - 使用更安全的方法
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = 'padding: 40px; text-align: center; color: #6c757d;';
+        
+        // 创建错误图标
+        const iconDiv = document.createElement('div');
+        iconDiv.style.cssText = 'font-size: 48px; margin-bottom: 16px;';
+        iconDiv.textContent = '❌';
+        
+        // 创建标题
+        const titleH3 = document.createElement('h3');
+        titleH3.textContent = '图表渲染失败';
+        
+        // 创建错误信息
+        const errorP = document.createElement('p');
+        errorP.textContent = err instanceof Error ? err.message : '未知错误';
+        
+        // 组装错误显示元素
+        errorDiv.appendChild(iconDiv);
+        errorDiv.appendChild(titleH3);
+        errorDiv.appendChild(errorP);
+        
+        mermaidRef.current.appendChild(errorDiv);
       }
     } finally {
       // 检查组件是否仍然挂载

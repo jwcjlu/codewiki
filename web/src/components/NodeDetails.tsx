@@ -488,7 +488,7 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
                            文件: {entity.fileId}
                          </div>
                          {entity.functions && entity.functions.length > 0 && (
-                           <div style={{ fontSize: '12px', color: '#666' }}>
+                           <div style={{ fontSize: '12px', color: '#666', marginBottom: '8px' }}>
                              函数: {entity.functions.map((f, index) => (
                                <span key={`${entity.id}-func-${index}`}>
                                  {f.name}
@@ -497,6 +497,43 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
                              ))}
                            </div>
                          )}
+                         
+                         {/* 新增：查看实现类代码按钮 */}
+                         <div style={{ 
+                           display: 'flex', 
+                           justifyContent: 'space-between', 
+                           alignItems: 'center',
+                           marginTop: '8px',
+                           paddingTop: '8px',
+                           borderTop: '1px solid #e0e0e0'
+                         }}>
+                           <span style={{ fontSize: '11px', color: '#666' }}>
+                             📁 实现类: {entity.name}
+                           </span>
+                           <button
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               if (onViewFileDetails && entity.fileId) {
+                                 console.log(`查看实现类代码: ${entity.name}, fileId: ${entity.fileId}`);
+                                 onViewFileDetails(entity.id, entity.fileId);
+                               }
+                             }}
+                             style={{
+                               fontSize: '10px',
+                               padding: '4px 8px',
+                               backgroundColor: '#17a2b8',
+                               color: 'white',
+                               border: 'none',
+                               borderRadius: '4px',
+                               cursor: 'pointer',
+                               transition: 'background-color 0.2s'
+                             }}
+                             onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#138496'}
+                             onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#17a2b8'}
+                           >
+                             📄 查看代码
+                           </button>
+                         </div>
                        </div>
                      )}
                    </div>
@@ -776,15 +813,13 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
                  <div key={impl.id} style={{
                    padding: '12px 16px',
                    borderBottom: '1px solid #f0f0f0',
-                   cursor: 'pointer',
                    transition: 'background-color 0.2s'
                  }}
                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f5f5f5'}
                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                                   onClick={() => selectInterfaceImplementation(impl.id, impl.name)}
                  >
                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                     <div>
+                     <div style={{ flex: 1 }}>
                        <div style={{ fontWeight: '500', color: '#333', marginBottom: '4px' }}>
                          {index + 1}. {impl.name}
                        </div>
@@ -797,7 +832,53 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
                          </div>
                        )}
                      </div>
-                     <span style={{ color: '#007bff', fontSize: '14px' }}>→</span>
+                     
+                     {/* 新增：操作按钮组 */}
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       {/* 查看代码按钮 */}
+                       <button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           if (onViewFileDetails && impl.fileId) {
+                             console.log(`查看实现类代码: ${impl.name}, fileId: ${impl.fileId}`);
+                             onViewFileDetails(impl.id, impl.fileId);
+                           }
+                         }}
+                         style={{
+                           fontSize: '10px',
+                           padding: '4px 8px',
+                           backgroundColor: '#17a2b8',
+                           color: 'white',
+                           border: 'none',
+                           borderRadius: '4px',
+                           cursor: 'pointer',
+                           transition: 'background-color 0.2s'
+                         }}
+                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#138496'}
+                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#17a2b8'}
+                       >
+                         📄 查看代码
+                       </button>
+                       
+                       {/* 选择实现按钮 */}
+                       <button
+                         onClick={() => selectInterfaceImplementation(impl.id, impl.name)}
+                         style={{
+                           fontSize: '10px',
+                           padding: '4px 8px',
+                           backgroundColor: '#007bff',
+                           color: 'white',
+                           border: 'none',
+                           borderRadius: '4px',
+                           cursor: 'pointer',
+                           transition: 'background-color 0.2s'
+                         }}
+                         onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#0056b3'}
+                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#007bff'}
+                       >
+                         🔗 选择实现
+                       </button>
+                     </div>
                    </div>
                  </div>
                ))}
@@ -811,7 +892,9 @@ const NodeDetails: React.FC<NodeDetailsProps> = ({
                fontSize: '13px',
                color: '#666'
              }}>
-               💡 点击任意实现类继续查看其调用链
+               💡 操作说明：<br/>
+               • 📄 查看代码：查看实现类的源代码<br/>
+               • 🔗 选择实现：选择该实现类继续查看调用链
              </div>
            </div>
          </div>

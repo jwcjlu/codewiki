@@ -27,12 +27,6 @@ type ZapLogger struct {
 	LogLevel gorm_log.LogLevel
 }
 
-// deprecated 不要用这个方法作为gorm logger的初始化，这只是个demo方法，会有两个Zaplogger互相覆盖，非常混乱，用全局变量ZapLoggerInstance替代
-func NewZapExample() *ZapLogger {
-	e := zap.NewExample()
-	return &ZapLogger{log: e, Sync: e.Sync, LogLevel: gorm_log.Info}
-}
-
 // NewZapLogger return a zap logger.
 func NewZapLogger(encoder zapcore.EncoderConfig, level zap.AtomicLevel, name string, maxFileSize, MaxBackups, maxAge int, console bool, opts ...zap.Option) *ZapLogger {
 	lumberJackLogger := &lumberjack.Logger{

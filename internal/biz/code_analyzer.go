@@ -70,15 +70,9 @@ func (c *CodeAnalyzer) AnalyzeRepo(ctx context.Context, projectId string, forceU
 		return err
 	}
 	codeParse := model.NewCodeParse(cr, c.repoDir)
-	root, err := codeParse.ParseCode(ctx)
-	if err != nil {
+	if _, err = codeParse.ParseCode(ctx); err != nil {
 		return err
 	}
-	if root == nil {
-		return nil
-	}
-	root.ClassifyExtends(ctx)
-	root.ClassifyMethod(ctx)
 	if err = codeParse.AnalyzeRelations(ctx); err != nil {
 		return err
 	}

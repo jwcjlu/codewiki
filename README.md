@@ -245,6 +245,16 @@ GET /v1/api/project/{id}/answer?question=如何实现用户认证
 - **语法树构建**: 基于Go标准库的AST解析
 - **语义提取**: 提取函数、类、接口、变量等语义信息
 - **关系分析**: 分析调用关系、依赖关系、继承关系
+- **接口解析**: 支持接口方法调用和实现关系分析
+- **结构体字段**: 处理结构体字段访问和方法调用
+
+#### 调用链分析技术
+- **直接调用**: 函数直接调用其他函数
+- **方法调用**: 结构体/接口的方法调用
+- **字段访问**: 通过结构体字段访问方法
+- **接口实现**: 接口与实现类的关系映射
+- **链式调用**: 复杂的链式方法调用
+- **泛型支持**: 泛型类型的方法调用分析
 
 #### 图数据库存储
 - **Neo4j图模型**: 使用Cypher查询语言
@@ -443,11 +453,131 @@ cd web && npm test
 - [OpenAI](https://openai.com/) - AI语言模型
 - [Ants](https://github.com/panjf2000/ants) - Go协程池
 
+## ❓ 常见问题
+
+### Q: 为什么某些调用链关系解析不准确？
+A: 当前版本在以下场景可能存在解析问题：
+- **接口方法调用**: `obj.interfaceField.Method()` 类型的调用
+- **结构体字段访问**: 通过字段访问方法的复杂调用
+- **泛型方法调用**: 泛型类型的方法调用
+- **链式调用**: 复杂的链式方法调用
+
+### Q: 如何提高调用链分析的准确性？
+A: 建议采用以下方法：
+- 确保接口定义完整，包含所有方法签名
+- 使用明确的类型声明，避免 `interface{}` 类型
+- 在代码中添加适当的类型断言
+- 考虑使用代码注释来辅助分析
+
+### Q: 支持哪些类型的调用关系？
+A: 目前支持：
+- ✅ 直接函数调用
+- ✅ 结构体方法调用
+- ✅ 包级函数调用
+- ⚠️ 接口方法调用（部分支持）
+- ⚠️ 泛型方法调用（部分支持）
+- ❌ 反射调用（计划支持）
+
 ## 📞 联系我们
 
 - 项目主页: [GitHub Repository](https://github.com/your-username/codewiki)
 - 问题反馈: [Issues](https://github.com/your-username/codewiki/issues)
 - 讨论交流: [Discussions](https://github.com/your-username/codewiki/discussions)
+
+## 🔧 技术改进计划
+
+### 调用链分析增强
+- [ ] **接口方法调用**: 改进接口字段方法调用的解析
+- [ ] **结构体字段访问**: 增强结构体字段访问的分析
+- [ ] **接口实现关系**: 完善接口与实现类的关系映射
+- [ ] **泛型支持**: 支持泛型类型的方法调用分析
+- [ ] **链式调用**: 优化复杂链式调用的解析
+
+### 示例：改进的调用链解析
+```go
+// 现在支持的情况
+type SessionBiz struct {
+    vmagentRepo CGVmAgentRepo  // 接口字段
+}
+
+func (b *SessionBiz) LaunchGame(ctx context.Context, session SessionInfo) {
+    // 1. 直接方法调用 ✅
+    b.processSession(session)
+    
+    // 2. 接口方法调用 ✅ (已改进)
+    if err := b.vmagentRepo.StartGame(ctx, session, req); err != nil {
+        // 3. 错误处理调用 ✅
+        b.handleError(err)
+    }
+}
+```
+
+### 技术实现细节
+
+#### 1. 接口字段解析
+- 通过AST分析识别结构体字段类型
+- 支持接口类型字段的方法调用解析
+- 建立接口与实现类的关系映射
+
+#### 2. 关系类型扩展
+- 新增 `InterfaceCall` 关系类型
+- 改进 `Implement` 关系分析
+- 支持接口实现关系的自动发现
+
+#### 3. 调用链分析算法
+```go
+// 核心算法流程
+func (v *FunctionCallVisitor) handleSelectorExpr(selector *ast.SelectorExpr) {
+    // 1. 识别字段访问 (b.vmagentRepo)
+    if field := v.resolveFieldFromIdent(x); field != nil {
+        // 2. 解析接口类型
+        if interfaceEntity := v.resolveInterfaceFromField(field); interfaceEntity != nil {
+            // 3. 查找接口方法
+            if function := interfaceEntity.FindMethodByName(selector.Sel.Name); function != nil {
+                // 4. 建立调用关系
+                v.addInterfaceCallRelation(function)
+            }
+        }
+    }
+}
+```
+
+## 🐛 问题修复
+
+### DOM操作冲突修复 (v2.0.1 - v2.0.3)
+- **问题**: React组件中使用 `innerHTML` 和 `removeChild` 导致DOM操作错误
+- **原因**: 直接操作DOM与React虚拟DOM管理产生冲突
+- **解决方案**: 
+  - **v2.0.1**: 使用 `removeChild` 替代 `innerHTML` 清空容器
+  - **v2.0.2**: 通过临时容器解析HTML内容，避免直接DOM操作
+  - **v2.0.3**: 使用 `textContent = ''` 替代所有 `removeChild` 操作，彻底避免DOM冲突
+- **影响组件**: `MermaidExporter`, `SequenceDiagramGenerator`, `CallGraph`
+- **技术改进**: 
+  - 使用 `DOMParser` 安全解析SVG内容
+  - 采用 `textContent` 清空容器，避免节点操作
+  - 保持React组件生命周期兼容性
+
+### 接口实现代码查看功能 (v2.0.2)
+- **新增功能**: 在选择接口实现类后，可以直接查看实现类的源代码
+- **实现位置**: 
+  - 实现信息展开区域：添加"📄 查看代码"按钮
+  - 接口实现选择器：每个实现类都有"查看代码"和"选择实现"两个按钮
+- **功能特点**:
+  - 支持查看任意实现类的源代码
+  - 保持原有的调用链分析功能
+  - 提供直观的操作界面和提示信息
+
+### 仓库分析面板UI优化 (v2.0.4)
+- **问题**: 仓库分析面板内容不多但占位太大
+- **优化内容**:
+  - 减少标签页内容的最小高度：从400px降至150px
+  - 使用视口高度(70vh)作为最大高度，更灵活适应不同屏幕
+  - 为不同标签页设置差异化高度：树形结构(100px)、调用图(300px)、图表生成(200px)、AI问答(150px)
+  - 优化空状态显示，使用统一的CSS类减少重复代码
+- **技术改进**:
+  - 采用flexbox布局，内容自适应高度
+  - 添加滚动条支持，内容过多时自动滚动
+  - 响应式设计，移动端进一步优化高度
 
 ## 🎯 路线图
 
@@ -456,6 +586,7 @@ cd web && npm test
 - [ ] 增强AI问答的上下文理解能力
 - [ ] 添加代码质量分析和建议功能
 - [ ] 支持团队协作和权限管理
+- [ ] 改进调用链分析算法
 
 ### 长期愿景
 - [ ] 构建代码知识图谱

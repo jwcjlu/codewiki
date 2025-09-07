@@ -18,6 +18,7 @@ const (
 	Call          RelationType = "Call"          //调用
 	Extends       RelationType = "Extends"       //继承
 	Imports       RelationType = "Import"
+	InterfaceCall RelationType = "InterfaceCall" //接口调用
 )
 
 type Relation struct {
@@ -64,6 +65,8 @@ func (ra *RelationAnalyzer) AnalyzeEntityRelations() ([]*Relation, error) {
 			funRelations := ra.analyzeFunctionRelations(fun, e)
 			relations = append(relations, funRelations...)
 		}
+
+		// 分析继承关系
 		for _, ee := range e.Extends {
 			relations = append(relations, &Relation{
 				Type:       Extends,
@@ -72,6 +75,11 @@ func (ra *RelationAnalyzer) AnalyzeEntityRelations() ([]*Relation, error) {
 				SourceID:   e.ID,
 			})
 		}
+
+		// 分析接口实现关系
+		/*	interfaceRelations := ra.analyzeInterfaceImplementations(e)
+			relations = append(relations, interfaceRelations...)
+		*/
 		relations = append(relations, &Relation{
 			Type:       DeclareEntity,
 			TargetID:   e.ID,
@@ -167,6 +175,7 @@ func (ra *RelationAnalyzer) analyzeFunctionCalls(fun *Function) []*Relation {
 		analyzer:  ra,
 		entities:  make(map[string]*Entity),
 	}
+	visitor.prepare()
 	// 遍历AST
 	ast.Walk(visitor, fun.Data)
 	return visitor.relations
@@ -178,6 +187,29 @@ type FunctionCallVisitor struct {
 	function  *Function
 	analyzer  *RelationAnalyzer
 	entities  map[string]*Entity
+}
+
+// 解析参数和接收器的字段
+func (v *FunctionCallVisitor) prepare() {
+	for _, param := range v.function.Params {
+		if len(param.Name) == 0 {
+			continue
+		}
+		if entity := v.resolveEntityFromExpr(param.GetType()); entity != nil {
+			v.entities[param.Name] = entity
+		}
+	}
+	entity := v.function.GetEntity()
+	if entity == nil {
+		return
+	}
+	for _, field := range entity.fieldManager.GetFields() {
+		if fieldEntity := v.resolveFromField(field); fieldEntity != nil {
+			v.entities[field.Name] = fieldEntity
+		}
+
+	}
+
 }
 
 func (v *FunctionCallVisitor) GetFunctionForImport(importName, functionName string) *Function {
@@ -272,7 +304,6 @@ func (v *FunctionCallVisitor) handleSelectorExpr(selector *ast.SelectorExpr) {
 					})
 				}
 			}
-
 		}
 
 	case *ast.SelectorExpr:
@@ -570,6 +601,32 @@ func (v *FunctionCallVisitor) resolveEntityFromVariable(ent *Entity) *Entity {
 		return v.analyzer.resolveTypeEntity(e)
 	case *ast.SelectorExpr:
 		return v.analyzer.resolveTypeEntity(e)
+	}
+	return nil
+}
+
+// resolveInterfaceFromField 从字段解析接口实体
+func (v *FunctionCallVisitor) resolveFromField(field *Field) *Entity {
+	if field == nil || field.expr == nil {
+		return nil
+	}
+
+	// 解析字段类型，如果是接口类型则返回接口实体
+	switch t := field.expr.(type) {
+	case *ast.Ident:
+		// 直接接口类型引用
+		return v.analyzer.pkg.GetEntity(t.Name)
+	case *ast.SelectorExpr:
+		// 包.接口 形式
+		if x, ok := t.X.(*ast.Ident); ok {
+			return v.GetEntityForImport(x.Name, t.Sel.Name)
+		}
+	case *ast.StarExpr:
+		// 指针接口类型
+		return v.resolveFromField(&Field{
+			Name: field.Name,
+			expr: t.X,
+		})
 	}
 	return nil
 }
