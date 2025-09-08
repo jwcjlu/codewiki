@@ -78,6 +78,7 @@ type Server struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Http          *Server_HTTP           `protobuf:"bytes,1,opt,name=http,proto3" json:"http,omitempty"`
 	Grpc          *Server_GRPC           `protobuf:"bytes,2,opt,name=grpc,proto3" json:"grpc,omitempty"`
+	Mcp           *Server_Mcp            `protobuf:"bytes,3,opt,name=mcp,proto3" json:"mcp,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -122,6 +123,13 @@ func (x *Server) GetHttp() *Server_HTTP {
 func (x *Server) GetGrpc() *Server_GRPC {
 	if x != nil {
 		return x.Grpc
+	}
+	return nil
+}
+
+func (x *Server) GetMcp() *Server_Mcp {
+	if x != nil {
+		return x.Mcp
 	}
 	return nil
 }
@@ -474,6 +482,58 @@ func (x *Server_GRPC) GetTimeout() *durationpb.Duration {
 	return nil
 }
 
+type Server_Mcp struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Protocol      string                 `protobuf:"bytes,1,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Port          int32                  `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Server_Mcp) Reset() {
+	*x = Server_Mcp{}
+	mi := &file_conf_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Server_Mcp) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Server_Mcp) ProtoMessage() {}
+
+func (x *Server_Mcp) ProtoReflect() protoreflect.Message {
+	mi := &file_conf_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Server_Mcp.ProtoReflect.Descriptor instead.
+func (*Server_Mcp) Descriptor() ([]byte, []int) {
+	return file_conf_proto_rawDescGZIP(), []int{1, 2}
+}
+
+func (x *Server_Mcp) GetProtocol() string {
+	if x != nil {
+		return x.Protocol
+	}
+	return ""
+}
+
+func (x *Server_Mcp) GetPort() int32 {
+	if x != nil {
+		return x.Port
+	}
+	return 0
+}
+
 type Data_Neo4J struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Target        string                 `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
@@ -485,7 +545,7 @@ type Data_Neo4J struct {
 
 func (x *Data_Neo4J) Reset() {
 	*x = Data_Neo4J{}
-	mi := &file_conf_proto_msgTypes[7]
+	mi := &file_conf_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -497,7 +557,7 @@ func (x *Data_Neo4J) String() string {
 func (*Data_Neo4J) ProtoMessage() {}
 
 func (x *Data_Neo4J) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_proto_msgTypes[7]
+	mi := &file_conf_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -544,7 +604,7 @@ type Data_Database struct {
 
 func (x *Data_Database) Reset() {
 	*x = Data_Database{}
-	mi := &file_conf_proto_msgTypes[8]
+	mi := &file_conf_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -556,7 +616,7 @@ func (x *Data_Database) String() string {
 func (*Data_Database) ProtoMessage() {}
 
 func (x *Data_Database) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_proto_msgTypes[8]
+	mi := &file_conf_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -598,7 +658,7 @@ type Data_LLM struct {
 
 func (x *Data_LLM) Reset() {
 	*x = Data_LLM{}
-	mi := &file_conf_proto_msgTypes[9]
+	mi := &file_conf_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -610,7 +670,7 @@ func (x *Data_LLM) String() string {
 func (*Data_LLM) ProtoMessage() {}
 
 func (x *Data_LLM) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_proto_msgTypes[9]
+	mi := &file_conf_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -666,7 +726,7 @@ type Data_Embedding struct {
 
 func (x *Data_Embedding) Reset() {
 	*x = Data_Embedding{}
-	mi := &file_conf_proto_msgTypes[10]
+	mi := &file_conf_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -678,7 +738,7 @@ func (x *Data_Embedding) String() string {
 func (*Data_Embedding) ProtoMessage() {}
 
 func (x *Data_Embedding) ProtoReflect() protoreflect.Message {
-	mi := &file_conf_proto_msgTypes[10]
+	mi := &file_conf_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -731,10 +791,11 @@ const file_conf_proto_rawDesc = "" +
 	"kratos.api\x1a\x1egoogle/protobuf/duration.proto\"]\n" +
 	"\tBootstrap\x12*\n" +
 	"\x06server\x18\x01 \x01(\v2\x12.kratos.api.ServerR\x06server\x12$\n" +
-	"\x04data\x18\x02 \x01(\v2\x10.kratos.api.DataR\x04data\"\xb8\x02\n" +
+	"\x04data\x18\x02 \x01(\v2\x10.kratos.api.DataR\x04data\"\x99\x03\n" +
 	"\x06Server\x12+\n" +
 	"\x04http\x18\x01 \x01(\v2\x17.kratos.api.Server.HTTPR\x04http\x12+\n" +
-	"\x04grpc\x18\x02 \x01(\v2\x17.kratos.api.Server.GRPCR\x04grpc\x1ai\n" +
+	"\x04grpc\x18\x02 \x01(\v2\x17.kratos.api.Server.GRPCR\x04grpc\x12(\n" +
+	"\x03mcp\x18\x03 \x01(\v2\x16.kratos.api.Server.McpR\x03mcp\x1ai\n" +
 	"\x04HTTP\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
@@ -742,7 +803,10 @@ const file_conf_proto_rawDesc = "" +
 	"\x04GRPC\x12\x18\n" +
 	"\anetwork\x18\x01 \x01(\tR\anetwork\x12\x12\n" +
 	"\x04addr\x18\x02 \x01(\tR\x04addr\x123\n" +
-	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\"\xdc\x05\n" +
+	"\atimeout\x18\x03 \x01(\v2\x19.google.protobuf.DurationR\atimeout\x1a5\n" +
+	"\x03Mcp\x12\x1a\n" +
+	"\bprotocol\x18\x01 \x01(\tR\bprotocol\x12\x12\n" +
+	"\x04port\x18\x02 \x01(\x05R\x04port\"\xdc\x05\n" +
 	"\x04Data\x12,\n" +
 	"\x05neo4j\x18\x01 \x01(\v2\x16.kratos.api.Data.Neo4jR\x05neo4j\x126\n" +
 	"\n" +
@@ -795,7 +859,7 @@ func file_conf_proto_rawDescGZIP() []byte {
 	return file_conf_proto_rawDescData
 }
 
-var file_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_conf_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_conf_proto_goTypes = []any{
 	(*Bootstrap)(nil),           // 0: kratos.api.Bootstrap
 	(*Server)(nil),              // 1: kratos.api.Server
@@ -804,30 +868,32 @@ var file_conf_proto_goTypes = []any{
 	(*Zap)(nil),                 // 4: kratos.api.Zap
 	(*Server_HTTP)(nil),         // 5: kratos.api.Server.HTTP
 	(*Server_GRPC)(nil),         // 6: kratos.api.Server.GRPC
-	(*Data_Neo4J)(nil),          // 7: kratos.api.Data.Neo4j
-	(*Data_Database)(nil),       // 8: kratos.api.Data.Database
-	(*Data_LLM)(nil),            // 9: kratos.api.Data.LLM
-	(*Data_Embedding)(nil),      // 10: kratos.api.Data.Embedding
-	(*durationpb.Duration)(nil), // 11: google.protobuf.Duration
+	(*Server_Mcp)(nil),          // 7: kratos.api.Server.Mcp
+	(*Data_Neo4J)(nil),          // 8: kratos.api.Data.Neo4j
+	(*Data_Database)(nil),       // 9: kratos.api.Data.Database
+	(*Data_LLM)(nil),            // 10: kratos.api.Data.LLM
+	(*Data_Embedding)(nil),      // 11: kratos.api.Data.Embedding
+	(*durationpb.Duration)(nil), // 12: google.protobuf.Duration
 }
 var file_conf_proto_depIdxs = []int32{
 	1,  // 0: kratos.api.Bootstrap.server:type_name -> kratos.api.Server
 	2,  // 1: kratos.api.Bootstrap.data:type_name -> kratos.api.Data
 	5,  // 2: kratos.api.Server.http:type_name -> kratos.api.Server.HTTP
 	6,  // 3: kratos.api.Server.grpc:type_name -> kratos.api.Server.GRPC
-	7,  // 4: kratos.api.Data.neo4j:type_name -> kratos.api.Data.Neo4j
-	3,  // 5: kratos.api.Data.poolConfig:type_name -> kratos.api.PoolConfig
-	8,  // 6: kratos.api.Data.database:type_name -> kratos.api.Data.Database
-	9,  // 7: kratos.api.Data.llm:type_name -> kratos.api.Data.LLM
-	10, // 8: kratos.api.Data.embedding:type_name -> kratos.api.Data.Embedding
-	4,  // 9: kratos.api.Data.logger:type_name -> kratos.api.Zap
-	11, // 10: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
-	11, // 11: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	7,  // 4: kratos.api.Server.mcp:type_name -> kratos.api.Server.Mcp
+	8,  // 5: kratos.api.Data.neo4j:type_name -> kratos.api.Data.Neo4j
+	3,  // 6: kratos.api.Data.poolConfig:type_name -> kratos.api.PoolConfig
+	9,  // 7: kratos.api.Data.database:type_name -> kratos.api.Data.Database
+	10, // 8: kratos.api.Data.llm:type_name -> kratos.api.Data.LLM
+	11, // 9: kratos.api.Data.embedding:type_name -> kratos.api.Data.Embedding
+	4,  // 10: kratos.api.Data.logger:type_name -> kratos.api.Zap
+	12, // 11: kratos.api.Server.HTTP.timeout:type_name -> google.protobuf.Duration
+	12, // 12: kratos.api.Server.GRPC.timeout:type_name -> google.protobuf.Duration
+	13, // [13:13] is the sub-list for method output_type
+	13, // [13:13] is the sub-list for method input_type
+	13, // [13:13] is the sub-list for extension type_name
+	13, // [13:13] is the sub-list for extension extendee
+	0,  // [0:13] is the sub-list for field type_name
 }
 
 func init() { file_conf_proto_init() }
@@ -841,7 +907,7 @@ func file_conf_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_conf_proto_rawDesc), len(file_conf_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

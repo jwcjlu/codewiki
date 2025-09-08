@@ -2,6 +2,7 @@ package main
 
 import (
 	"codewiki/internal/pkg/log"
+	"codewiki/internal/server"
 	"flag"
 	"github.com/jinzhu/copier"
 	"os"
@@ -34,7 +35,7 @@ func init() {
 	flag.StringVar(&flagconf, "conf", "D:\\workspace\\golang\\codewiki\\configs", "config path, eg: -conf config.yaml")
 }
 
-func newApp(logger klog.Logger, hs *http.Server) *kratos.App {
+func newApp(logger klog.Logger, hs *http.Server, mcp *server.MCPServer) *kratos.App {
 	return kratos.New(
 		kratos.ID(id),
 		kratos.Name(Name),
@@ -43,6 +44,7 @@ func newApp(logger klog.Logger, hs *http.Server) *kratos.App {
 		kratos.Logger(logger),
 		kratos.Server(
 			hs,
+			mcp,
 		),
 	)
 }

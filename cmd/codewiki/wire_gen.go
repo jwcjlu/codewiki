@@ -50,7 +50,9 @@ func wireApp(confServer *conf.Server, confData *conf.Data, logger log.Logger) (*
 	repositoryBiz := biz.NewRepositoryBiz(indexer, codeRepo, entityRepo, repositoryRepo)
 	repositoryService := service.NewRepositoryService(repositoryBiz)
 	httpServer := server.NewHTTPServer(confServer, codeAnalyzerService, qaService, repositoryService, logger)
-	app := newApp(logger, httpServer)
+	mcpService := service.NewMCPService(codeAnalyzerService, repositoryService, qaService)
+	mcpServer := server.NewMCPServer(confServer, mcpService)
+	app := newApp(logger, httpServer, mcpServer)
 	return app, func() {
 		cleanup()
 	}, nil
